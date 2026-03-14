@@ -72,15 +72,29 @@ class FedexShipmentCreateApiTest extends TestCase
         $this->assertSame('REQ-FDX-CREATE-001', (string) $carrierShipment->correlation_id);
         $this->assertSame('SHIP-IDEMP-001', (string) $carrierShipment->idempotency_key);
         $this->assertSame('created', (string) data_get($carrierShipment->carrier_metadata, 'initial_carrier_status'));
+        $this->assertSame('captured', (string) data_get($carrierShipment->carrier_metadata, 'wallet_reservation.status'));
+        $this->assertSame('captured_on_success', (string) data_get($carrierShipment->carrier_metadata, 'wallet_reservation.lifecycle'));
 
         $freshShipment = $shipment->fresh();
         $this->assertSame(Shipment::STATUS_PURCHASED, (string) $freshShipment->status);
+        $this->assertSame((string) $carrierShipment->id, (string) $freshShipment->carrierShipment->id);
+        $this->assertSame((string) $freshShipment->balance_reservation_id, (string) $shipment->balance_reservation_id);
+        $this->assertSame(number_format(345.15, 2, '.', ''), number_format((float) $freshShipment->reserved_amount, 2, '.', ''));
 
         if (Schema::hasColumn('shipments', 'tracking_number')) {
             $this->assertSame('794699999999', (string) $freshShipment->tracking_number);
         } else {
             $this->assertSame('794699999999', (string) $freshShipment->carrier_tracking_number);
         }
+
+        $hold = WalletHold::query()->findOrFail((string) $freshShipment->balance_reservation_id);
+        $wallet = BillingWallet::query()->findOrFail((string) $hold->wallet_id);
+
+        $this->assertSame(WalletHold::STATUS_CAPTURED, (string) $hold->status);
+        $this->assertNotNull($hold->captured_at);
+        $this->assertSame('0.00', number_format((float) $wallet->reserved_balance, 2, '.', ''));
+        $this->assertSame('654.85', number_format((float) $wallet->available_balance, 2, '.', ''));
+        $this->assertSame('345.15', number_format((float) $wallet->total_debited, 2, '.', ''));
 
         Http::assertSentCount(2);
     }
@@ -108,6 +122,13 @@ class FedexShipmentCreateApiTest extends TestCase
         $this->assertSame((string) $first['id'], (string) $second['id']);
         $this->assertSame((string) $first['carrier_shipment_id'], (string) $second['carrier_shipment_id']);
         $this->assertSame(1, CarrierShipment::query()->where('shipment_id', (string) $shipment->id)->count());
+
+        $hold = WalletHold::query()->findOrFail((string) $shipment->fresh()->balance_reservation_id);
+        $wallet = BillingWallet::query()->findOrFail((string) $hold->wallet_id);
+
+        $this->assertSame(WalletHold::STATUS_CAPTURED, (string) $hold->status);
+        $this->assertSame('0.00', number_format((float) $wallet->reserved_balance, 2, '.', ''));
+        $this->assertSame('345.15', number_format((float) $wallet->total_debited, 2, '.', ''));
 
         Http::assertSentCount(2);
     }
@@ -167,6 +188,37 @@ class FedexShipmentCreateApiTest extends TestCase
         $this->assertNotEmpty($carrierShipment->request_payload);
         $this->assertNotEmpty($carrierShipment->response_payload);
         $this->assertSame(Shipment::STATUS_FAILED, (string) $shipment->fresh()->status);
+        $this->assertSame('active', (string) data_get($carrierShipment->carrier_metadata, 'wallet_reservation.status'));
+        $this->assertSame('kept_active_on_failure', (string) data_get($carrierShipment->carrier_metadata, 'wallet_reservation.lifecycle'));
+
+        $hold = WalletHold::query()->findOrFail((string) $shipment->fresh()->balance_reservation_id);
+        $wallet = BillingWallet::query()->findOrFail((string) $hold->wallet_id);
+
+        $this->assertSame(WalletHold::STATUS_ACTIVE, (string) $hold->status);
+        $this->assertNull($hold->captured_at);
+        $this->assertSame('345.15', number_format((float) $wallet->reserved_balance, 2, '.', ''));
+        $this->assertSame('1000.00', number_format((float) $wallet->available_balance, 2, '.', ''));
+        $this->assertSame('0.00', number_format((float) $wallet->total_debited, 2, '.', ''));
+    }
+
+    public function test_cross_tenant_carrier_creation_access_returns_404(): void
+    {
+        $this->configureFedex();
+
+        Http::preventStrayRequests();
+        Http::fake();
+
+        $owner = $this->createCarrierActor();
+        $otherTenant = $this->createCarrierActor();
+        $shipment = $this->createPaymentPendingShipment($owner);
+
+        $this->postJson(
+            '/api/v1/shipments/' . $shipment->id . '/carrier/create',
+            [],
+            $this->authHeaders($otherTenant)
+        )->assertNotFound();
+
+        Http::assertNothingSent();
     }
 
     private function configureFedex(): void

@@ -26,7 +26,7 @@ class CarrierService
         private DhlApiService $dhlApi,
         private FedexShipmentProvider $fedexShipmentProvider,
         private AuditService $audit,
-        private WalletBillingService $billing,
+        private BillingWalletService $billing,
     ) {}
 
     public function createAtCarrier(
@@ -93,6 +93,8 @@ class CarrierService
             ));
 
             DB::transaction(function () use ($shipment, $user, $provider, $carrierShipment, $response, $correlationId, $idempotencyKey) {
+                $capturedReservation = $this->captureActiveReservationForIssuedShipment($shipment);
+
                 $carrierShipment->update([
                     'carrier_code' => (string) ($response['carrier_code'] ?? $provider->carrierCode()),
                     'carrier_name' => (string) ($response['carrier_name'] ?? ucfirst($provider->carrierCode())),
@@ -110,6 +112,10 @@ class CarrierService
                             'initial_carrier_status' => $response['initial_carrier_status'] ?? 'created',
                             'correlation_id' => $correlationId,
                             'idempotency_key' => $idempotencyKey,
+                            'wallet_reservation' => $this->buildReservationMetadata(
+                                $capturedReservation,
+                                'captured_on_success'
+                            ),
                         ]
                     ),
                     'is_cancellable' => false,
@@ -117,7 +123,12 @@ class CarrierService
                 ]);
 
                 $oldStatus = (string) $shipment->status;
-                $shipment->update($this->buildShipmentCarrierCreationUpdates($shipment, $carrierShipment, $response));
+                $shipment->update($this->buildShipmentCarrierCreationUpdates(
+                    $shipment,
+                    $carrierShipment,
+                    $response,
+                    $capturedReservation
+                ));
 
                 $this->recordStatusHistory($shipment, $oldStatus, Shipment::STATUS_PURCHASED, 'system', $user->id, 'Carrier shipment created');
 
@@ -140,6 +151,8 @@ class CarrierService
 
             return $carrierShipment->fresh();
         } catch (\Throwable $e) {
+            $linkedReservation = $this->resolveLinkedReservation($shipment);
+
             if ($e instanceof BusinessException) {
                 $context = $e->getContext();
                 $carrierShipment->update([
@@ -152,6 +165,10 @@ class CarrierService
                             'carrier_error_code' => $context['carrier_error_code'] ?? null,
                             'correlation_id' => $correlationId,
                             'idempotency_key' => $idempotencyKey,
+                            'wallet_reservation' => $this->buildReservationMetadata(
+                                $linkedReservation,
+                                'kept_active_on_failure'
+                            ),
                         ], static fn ($value) => $value !== null && $value !== '')
                     ),
                 ]);
@@ -685,6 +702,19 @@ class CarrierService
             ->first();
     }
 
+    private function resolveLinkedReservation(Shipment $shipment): ?WalletHold
+    {
+        $reservationId = trim((string) ($shipment->balance_reservation_id ?? ''));
+        if ($reservationId !== '') {
+            return WalletHold::query()->find($reservationId);
+        }
+
+        return WalletHold::query()
+            ->where('shipment_id', (string) $shipment->id)
+            ->latest('created_at')
+            ->first();
+    }
+
     private function resolveExpectedReservationAmount(Shipment $shipment): float
     {
         $selectedOption = $shipment->selectedRateOption;
@@ -707,14 +737,32 @@ class CarrierService
         return round($amount, 2);
     }
 
+    private function captureActiveReservationForIssuedShipment(Shipment $shipment): WalletHold
+    {
+        $reservation = $this->resolveActiveReservation($shipment);
+
+        if (! $reservation) {
+            throw BusinessException::make(
+                'ERR_WALLET_RESERVATION_REQUIRED',
+                'An active wallet reservation is required before carrier creation.',
+                ['shipment_id' => (string) $shipment->id],
+                422
+            );
+        }
+
+        return $this->billing->captureHold((string) $reservation->id);
+    }
+
     /**
      * @param array<string, mixed> $response
+     * @param WalletHold|null $reservation
      * @return array<string, mixed>
      */
     private function buildShipmentCarrierCreationUpdates(
         Shipment $shipment,
         CarrierShipment $carrierShipment,
-        array $response
+        array $response,
+        ?WalletHold $reservation = null
     ): array {
         $updates = [
             'status' => Shipment::STATUS_PURCHASED,
@@ -751,7 +799,37 @@ class CarrierService
             $updates['carrier_name'] = $response['carrier_name'] ?? $carrierShipment->carrier_name;
         }
 
+        if ($reservation) {
+            if (Schema::hasColumn('shipments', 'balance_reservation_id')) {
+                $updates['balance_reservation_id'] = (string) $reservation->id;
+            }
+
+            if (Schema::hasColumn('shipments', 'reserved_amount')) {
+                $updates['reserved_amount'] = (float) $reservation->amount;
+            }
+        }
+
         return $updates;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function buildReservationMetadata(?WalletHold $reservation, string $lifecycle): ?array
+    {
+        if (! $reservation) {
+            return null;
+        }
+
+        return [
+            'id' => (string) $reservation->id,
+            'status' => (string) $reservation->status,
+            'amount' => (float) $reservation->amount,
+            'currency' => (string) ($reservation->currency ?? ''),
+            'lifecycle' => $lifecycle,
+            'captured_at' => optional($reservation->captured_at)?->toIso8601String(),
+            'released_at' => optional($reservation->released_at)?->toIso8601String(),
+        ];
     }
 
     private function recordStatusHistory(
