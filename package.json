@@ -1,0 +1,11 @@
+{
+  "name": "cebx-code-e2e",
+  "private": true,
+  "devDependencies": {
+    "@playwright/test": "^1.58.2"
+  },
+  "scripts": {
+    "e2e": "playwright test tests/e2e/login-and-navigation.smoke.spec.js --workers=1",
+    "e2e:install": "playwright install chromium"
+  }
+}

@@ -1,0 +1,60 @@
+/* ═══ Gateway Portal Logo — CBEX ═══ */
+/* أضف هذا في نهاية public/css/app.css */
+
+.gateway-logo-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    /* Glow effect matching the original SG icon */
+    filter: drop-shadow(0 8px 30px rgba(99, 102, 241, 0.4));
+}
+
+.gateway-logo-img {
+    width: 80px;
+    height: 80px;
+    border-radius: 18px;
+    object-fit: contain;
+    transition: transform 0.3s ease;
+}
+
+.gateway-logo-img:hover {
+    transform: scale(1.05);
+}
+
+/* Larger variant for portal/gateway pages */
+@media (min-width: 768px) {
+    .gateway-logo-img {
+        width: 90px;
+        height: 90px;
+    }
+}
+
+/* ── Auth Logo Override (for login page too) ── */
+.auth-logo {
+    width: auto;
+    height: auto;
+    border-radius: 0;
+    background: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    color: inherit;
+    font-size: inherit;
+    font-weight: inherit;
+}
+.auth-logo-img {
+    max-width: 220px;
+    height: auto;
+    object-fit: contain;
+    filter: drop-shadow(0 2px 8px rgba(0,0,0,0.3));
+}
+
+/* ── Sidebar Logo Override ── */
+.sidebar-logo-img {
+    height: 32px;
+    width: auto;
+    object-fit: contain;
+    flex-shrink: 0;
+}
