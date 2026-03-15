@@ -9,9 +9,9 @@
             <span style="margin:0 6px">/</span>
             <span>المحفظة</span>
         </div>
-        <h1 style="font-size:28px;font-weight:800;color:var(--tx);margin:0">المركز المالي السريع</h1>
+        <h1 style="font-size:28px;font-weight:800;color:var(--tx);margin:0">المركز المالي للمنظمة</h1>
         <p style="color:var(--td);font-size:14px;margin:8px 0 0;max-width:760px">
-            متابعة الرصيد والحركات الأخيرة تساعد فريقك على اتخاذ قرار سريع قبل فتح صفحة المحفظة الكاملة أو معالجة الشحنات المكلفة.
+            متابعة الرصيد والحركات الأخيرة تساعد فريق المنظمة على اتخاذ قرار سريع قبل فتح صفحة المحفظة الكاملة أو معالجة الشحنات المكلفة عبر المنصة.
         </p>
     </div>
     <a href="{{ route('wallet.index') }}" class="btn btn-pr">فتح المحفظة الكاملة</a>

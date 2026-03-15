@@ -9,9 +9,9 @@
             <span style="margin:0 6px">/</span>
             <span>التقارير</span>
         </div>
-        <h1 style="font-size:28px;font-weight:800;color:var(--tx);margin:0">واجهة التقارير التنفيذية</h1>
+        <h1 style="font-size:28px;font-weight:800;color:var(--tx);margin:0">التقارير التنفيذية للمنظمة</h1>
         <p style="color:var(--td);font-size:14px;margin:8px 0 0;max-width:760px">
-            هذه الصفحة مصممة لقراءة سريعة قبل الانتقال إلى مركز التقارير الكامل. استخدمها كملخص تنفيذي للحساب الحالي.
+            هذه الصفحة مصممة لقراءة سريعة قبل الانتقال إلى مركز التقارير الكامل. استخدمها كملخص تنفيذي لحساب المنظمة الحالي.
         </p>
     </div>
     <a href="{{ route('reports.index') }}" class="btn btn-pr">فتح مركز التقارير</a>

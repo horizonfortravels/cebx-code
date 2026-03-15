@@ -27,7 +27,7 @@ class BrowserGuidanceTest extends TestCase
         $response = $this->actingAs($user, 'web')->get('/admin');
 
         $response->assertForbidden();
-        $response->assertSeeText('هذه الصفحة مخصصة لفريق التشغيل الداخلي');
+        $response->assertSeeText('هذه الصفحة مخصصة لفريق التشغيل الداخلي في المنصة');
         $response->assertSeeText('العودة إلى بوابة الأفراد');
     }
 
@@ -39,7 +39,7 @@ class BrowserGuidanceTest extends TestCase
         $response = $this->actingAs($user, 'web')->get('/b2b/shipments');
 
         $response->assertForbidden();
-        $response->assertSeeText('هذه المنطقة مخصصة لبوابة الأعمال');
+        $response->assertSeeText('هذه المنطقة مخصصة لبوابة الأعمال الخاصة بحسابات المنظمات');
         $response->assertSeeText('العودة إلى بوابة الأفراد');
     }
 

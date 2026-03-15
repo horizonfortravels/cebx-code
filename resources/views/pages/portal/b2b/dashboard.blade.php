@@ -5,11 +5,11 @@
 <div style="display:grid;gap:24px">
     <section style="padding:28px;border-radius:24px;background:linear-gradient(135deg,#0f172a,#1d4ed8);color:#fff">
         <div style="font-size:12px;opacity:.82;margin-bottom:8px">بوابة الأعمال / الرئيسية</div>
-        <h1 style="margin:0 0 10px;font-size:30px">مركز تشغيل الحساب</h1>
+        <h1 style="margin:0 0 10px;font-size:30px">مركز تشغيل حساب المنظمة</h1>
         <p style="margin:0;max-width:760px;line-height:1.9;color:rgba(255,255,255,.9)">
-            هذه الصفحة تجمع ما يحتاجه فريق {{ $account->name }} يوميًا: الشحنات، الطلبات، المستخدمون، والتقارير.
+            هذه الصفحة تجمع ما يحتاجه فريق المنظمة {{ $account->name }} يوميًا: الشحنات، الطلبات، المستخدمون، والتقارير عبر شبكة الناقلين التابعة للمنصة.
             @if($developerTools->isNotEmpty())
-                وإذا كان لديك دور تكاملات أو API فستجد أدوات المطور هنا أيضًا بشكل واضح بدل الاعتماد على مسارات API فقط.
+                وإذا كان لديك دور تكاملات أو API فستجد هنا أدوات تكامل المنصة بشكل واضح بدل الاعتماد على المسارات البرمجية فقط.
             @endif
         </p>
     </section>
@@ -44,7 +44,7 @@
                     <h2 style="margin:0;font-size:24px;color:var(--tx)">مسار واضح لفريق التكامل</h2>
                     <p style="margin:8px 0 0;color:var(--td);line-height:1.8;max-width:760px">
                         هذه الأدوات تظهر فقط للأدوار التي تملك صلاحيات التكاملات أو مفاتيح API أو الويبهوكات.
-                        بعض الإجراءات المتقدمة ما زالت API-only، لكنك ستجد من هنا أين تبدأ وماذا يمكنك إنجازه من المتصفح.
+                        هي مخصصة لتكامل المنظمة مع المنصة فقط، ولا تعني ملكية تكاملات الناقلين أو عقودهم. بعض الإجراءات المتقدمة ما زالت API-only، لكنك ستجد من هنا أين تبدأ وماذا يمكنك إنجازه من المتصفح.
                     </p>
                 </div>
                 <a href="{{ route($developerEntryRoute) }}" class="btn btn-pr">فتح واجهة المطور</a>

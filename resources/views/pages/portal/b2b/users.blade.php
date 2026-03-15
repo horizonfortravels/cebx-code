@@ -9,9 +9,9 @@
             <span style="margin:0 6px">/</span>
             <span>المستخدمون</span>
         </div>
-        <h1 style="font-size:28px;font-weight:800;color:var(--tx);margin:0">نظرة على فريق الحساب</h1>
+        <h1 style="font-size:28px;font-weight:800;color:var(--tx);margin:0">نظرة على فريق المنظمة</h1>
         <p style="color:var(--td);font-size:14px;margin:8px 0 0;max-width:760px">
-            راجع المستخدمين النشطين والأدوار الحالية قبل الانتقال إلى إدارة المستخدمين الكاملة أو إرسال الدعوات.
+            راجع المستخدمين النشطين والأدوار الحالية على حساب المنظمة قبل الانتقال إلى إدارة المستخدمين الكاملة أو إرسال الدعوات.
         </p>
     </div>
     <a href="{{ route('users.index') }}" class="btn btn-pr">فتح إدارة المستخدمين</a>

@@ -14,14 +14,20 @@ It is the product source of truth for shipment flow design. Existing implementat
 - [app/Http/Controllers/Api/V1/TrackingController.php](c:/Users/Ahmed/Desktop/cebx-code/app/Http/Controllers/Api/V1/TrackingController.php)
 
 ## Platform Positioning
+- Terminology lock:
+  - B2C = the platform portal and browser flows for `individual` external accounts only.
+  - B2B = the platform portal and browser flows for `organization` external accounts only.
+  - Internal = a separate internal portal for platform staff only.
 - The platform is the contracting party with carriers.
 - Carriers are integrated and operated by the platform.
-- External users buy shipping through the platform's carrier network.
+- Both B2C and B2B external users buy shipping through the platform's carrier network.
 - External users do not own carrier integrations.
 - If merchant-facing API keys or webhooks remain externally available, they represent platform API access only, not carrier ownership or carrier configuration.
 
 ## Actor Model
 ### External
+- B2C portal audience: `individual` external accounts only.
+- B2B portal audience: `organization_owner`, `organization_admin`, and `staff` under `organization` external accounts only.
 - `individual`
 - `organization_owner`
 - `organization_admin`

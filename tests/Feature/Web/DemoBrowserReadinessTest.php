@@ -48,7 +48,7 @@ class DemoBrowserReadinessTest extends TestCase
         $response = $this->actingAs($user, 'web')->get('/b2c/shipments');
 
         $response->assertOk();
-        $response->assertSeeText('بوابة الأفراد');
+        $response->assertSeeText('بوابة الأفراد للحساب الفردي الحالي');
         $response->assertDontSeeText('أدوات المطور');
         $response->assertDontSeeText('المستخدمون');
         $response->assertDontSeeText('الأدوار');

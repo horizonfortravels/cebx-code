@@ -3,6 +3,12 @@
 ## Purpose
 This document maps the canonical shipment workflow to the correct canonical actors and permission keys.
 
+## Terminology Lock
+- B2C = the platform portal and browser flows for `individual` external accounts only.
+- B2B = the platform portal and browser flows for `organization` external accounts only.
+- Internal = a separate internal portal for platform staff only.
+- Carrier contracts and carrier integrations always belong to the platform, never to external accounts.
+
 ## Canonical Role Model
 ### External
 - `individual`
@@ -80,7 +86,7 @@ Target permission families for the canonical workflow:
 ## Carrier Management Is Internal Only
 - External users never activate or deactivate carriers.
 - External users never configure carrier credentials.
-- External users only consume platform-generated offers and labels.
+- External users in both B2C and B2B only consume platform-generated offers and labels.
 - If external API keys remain, they are platform API keys for merchant access to the platform, not carrier integration credentials.
 
 Related current implementation references:

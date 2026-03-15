@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>لوحة التحكم — بوابة الأفراد (B2C)</title>
+    <title>لوحة الحساب — بوابة الأفراد للحسابات الفردية</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -99,7 +99,7 @@
     <header class="header">
         <div class="header-left">
             <span class="badge-b2c">B2C — بوابة الأفراد</span>
-            <h1>لوحة التحكم</h1>
+            <h1>لوحة الحساب الفردي</h1>
         </div>
         <div class="header-actions">
             <form method="POST" action="{{ route('b2c.logout') }}" class="inline">
@@ -111,18 +111,18 @@
 
     <main class="container">
         <div class="card">
-            <p class="welcome">مرحباً، <strong>{{ Auth::user()->name ?? Auth::user()->email }}</strong></p>
-            <p class="welcome">من هنا يمكنك إدارة شحناتك وتتبعها والوصول للمحفظة والعناوين والدعم.</p>
+            <p class="welcome">مرحبًا، <strong>{{ Auth::user()->name ?? Auth::user()->email }}</strong></p>
+            <p class="welcome">هذه الصفحة مخصصة للحسابات الفردية الخارجية فقط. من هنا يمكنك إدارة شحناتك الشخصية وتتبعها والوصول إلى المحفظة والعناوين والدعم عبر شبكة الناقلين التابعة للمنصة.</p>
         </div>
 
         <div class="card">
-            <h2>القائمة الرئيسية</h2>
+            <h2>الأقسام المتاحة للحساب الفردي</h2>
             <div class="nav-grid">
                 <a href="{{ route('b2c.shipments.index') }}" class="nav-link">📦 الشحنات</a>
-                <a href="{{ route('b2c.tracking.index') }}" class="nav-link">🚚 التتبع</a>
+                <a href="{{ route('b2c.tracking.index') }}" class="nav-link">🔎 التتبع</a>
                 <a href="{{ route('b2c.wallet.index') }}" class="nav-link">💰 المحفظة</a>
                 <a href="{{ route('b2c.addresses.index') }}" class="nav-link">📍 العناوين</a>
-                <a href="{{ route('b2c.support.index') }}" class="nav-link">🎧 الدعم</a>
+                <a href="{{ route('b2c.support.index') }}" class="nav-link">🧾 الدعم</a>
                 <a href="{{ route('b2c.settings.index') }}" class="nav-link">⚙ الإعدادات</a>
             </div>
         </div>

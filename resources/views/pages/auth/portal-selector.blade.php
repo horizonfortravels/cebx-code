@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shipping Gateway — اختر بوابتك</title>
+    <title>Shipping Gateway — اختر البوابة المناسبة لنوع الحساب</title>
     @include('components.pwa-meta')
     <meta name="pwa-sw-url" content="{{ asset('sw.js') }}">
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
@@ -212,7 +212,7 @@
             <span class="logo-fallback" style="display:none;">SG</span>
         </div>
         <h1>Shipping Gateway</h1>
-        <p>اختر بوابتك للدخول إلى نظام إدارة الشحن</p>
+        <p>اختر البوابة المناسبة لنوع الحساب: الأفراد للحسابات الفردية، والأعمال لحسابات المنظمات، والداخلية لموظفي المنصة.</p>
     </div>
 
     <div class="portals-grid">
@@ -221,9 +221,9 @@
             <div class="door-icon">👤</div>
             <span class="door-badge">B2C</span>
             <div class="door-title">بوابة الأفراد</div>
-            <div class="door-subtitle">Personal Shipping</div>
-            <div class="door-desc">أرسل واستلم شحناتك الشخصية بسهولة. تتبع، إدارة العناوين، والمحفظة الإلكترونية.</div>
-            <div class="door-cta">تسجيل الدخول ←</div>
+            <div class="door-subtitle">الحسابات الفردية</div>
+            <div class="door-desc">للحسابات الفردية الخارجية فقط: شحناتك الشخصية، التتبع، المحفظة، والعناوين عبر شبكة الناقلين التابعة للمنصة.</div>
+            <div class="door-cta">دخول الحساب الفردي ←</div>
         </a>
 
         {{-- B2B --}}
@@ -231,24 +231,24 @@
             <div class="door-icon">🏢</div>
             <span class="door-badge">B2B</span>
             <div class="door-title">بوابة الأعمال</div>
-            <div class="door-subtitle">Business Portal</div>
-            <div class="door-desc">إدارة شحنات شركتك، ربط المتاجر، التقارير والتحليلات، وإدارة الفريق.</div>
-            <div class="door-cta">تسجيل الدخول ←</div>
+            <div class="door-subtitle">حسابات المنظمات</div>
+            <div class="door-desc">لحسابات المنظمات الخارجية فقط: إدارة شحنات المنظمة وفريقها وتقاريرها عبر شبكة الناقلين التابعة للمنصة.</div>
+            <div class="door-cta">دخول حساب المنظمة ←</div>
         </a>
 
         {{-- Admin --}}
         <a href="{{ route('admin.login') }}" class="portal-door admin">
             <div class="door-icon">🛡️</div>
             <span class="door-badge">Admin</span>
-            <div class="door-title">لوحة الإدارة</div>
-            <div class="door-subtitle">System Administration</div>
-            <div class="door-desc">إدارة المنظمات، اللوجستيات، الامتثال، التدقيق، والتسعير.</div>
-            <div class="door-cta">تسجيل الدخول ←</div>
+            <div class="door-title">البوابة الداخلية</div>
+            <div class="door-subtitle">موظفو المنصة</div>
+            <div class="door-desc">مساحة منفصلة لموظفي المنصة والإدارة الداخلية، وليست بوابة للعملاء الخارجيين.</div>
+            <div class="door-cta">دخول البوابة الداخلية ←</div>
         </a>
     </div>
 
     <div class="portal-footer">
-        <p>© {{ date('Y') }} Shipping Gateway — بوابة إدارة الشحن الموحّدة</p>
+        <p>© {{ date('Y') }} Shipping Gateway — بوابة إدارة الشحن للحسابات الفردية والمنظمات والفرق الداخلية</p>
     </div>
 </div>
 <script>window.PWA={swUrl:'{{ asset("sw.js") }}',scope:'{{ rtrim(url("/"), "/") }}/'};</script>

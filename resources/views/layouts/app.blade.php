@@ -107,9 +107,9 @@
     $topbarSubtitle = match (true) {
         $isInternalUser && $selectedAccount !== null => 'الحساب المحدد: ' . $selectedAccount->name,
         $isInternalUser => 'تصفح داخلي بصلاحيات ' . ($canAdminAccess ? 'الإدارة' : 'الدعم'),
-        $currentPortal === 'b2c' => 'بوابة الأفراد للحساب الحالي',
-        $currentUser?->account?->name => $currentUser->account->name,
-        default => 'بوابة الأعمال',
+        $currentPortal === 'b2c' => 'بوابة الأفراد للحساب الفردي الحالي',
+        $currentPortal === 'b2b' && $currentUser?->account?->name => 'حساب المنظمة الحالي: ' . $currentUser->account->name,
+        default => 'بوابة الأعمال لحسابات المنظمات',
     };
 @endphp
 <div class="app-layout">

@@ -7,8 +7,11 @@ Key rules:
 - Run tests on MySQL, not sqlite.
 - Run security and feature filters sequentially, not in parallel.
 - Use `SEED_E2E_MATRIX=true` only when you need the full browser/API smoke identities.
+- B2C browser coverage always means the `individual` external-account portal.
+- B2B browser coverage always means the `organization` external-account portal.
 - Internal admin browsing does not use a permanent `account_id`; it uses session-based tenant context selection.
 - Internal platform access relies on `user_type=internal` plus internal RBAC. It does not rely on `account.type=admin`.
+- External API keys and webhooks, where exposed, are platform API access only; carrier integrations remain platform-owned.
 
 ## Create the test database
 
@@ -64,6 +67,12 @@ SEED_E2E_MATRIX=true php artisan migrate:fresh --seed
 ```
 
 This creates stable external and internal smoke users with known emails and `Password123!`.
+
+Portal mapping for smoke tests:
+
+- `/b2c/*` = B2C individual-account browser flows only.
+- `/b2b/*` = B2B organization-account browser flows only.
+- `/admin/*` and `/internal/*` = internal platform staff only.
 
 ## Create the internal super admin
 

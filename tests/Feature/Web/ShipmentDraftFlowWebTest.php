@@ -18,7 +18,7 @@ class ShipmentDraftFlowWebTest extends TestCase
         $this->actingAs($user, 'web')
             ->get('/b2c/shipments/create')
             ->assertOk()
-            ->assertSee('بدء طلب شحنة فردية')
+            ->assertSee('بدء طلب شحنة للحساب الفردي')
             ->assertSee('مراحل هذا التدفق')
             ->assertSee('جاهز للانتقال لاحقًا إلى التسعير');
     }

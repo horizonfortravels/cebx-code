@@ -7,12 +7,18 @@ This document maps the canonical shipment workflow to the current browser and AP
 - `API only`
 - `missing UX entirely`
 
+## Terminology Lock
+- B2C = the platform portal and browser flows for `individual` external accounts only.
+- B2B = the platform portal and browser flows for `organization` external accounts only.
+- Internal = a separate internal portal for platform staff only.
+- Both B2C and B2B consume the platform carrier network; neither owns carrier integrations.
+
 ## Current Browser/API Evidence
-### B2C
+### B2C (`individual` external accounts)
 - [routes/web_b2c.php](c:/Users/Ahmed/Desktop/cebx-code/routes/web_b2c.php)
 - [app/Http/Controllers/Web/PortalWorkspaceController.php](c:/Users/Ahmed/Desktop/cebx-code/app/Http/Controllers/Web/PortalWorkspaceController.php)
 
-### B2B
+### B2B (`organization` external accounts)
 - [routes/web_b2b.php](c:/Users/Ahmed/Desktop/cebx-code/routes/web_b2b.php)
 - [app/Http/Controllers/Web/PortalWorkspaceController.php](c:/Users/Ahmed/Desktop/cebx-code/app/Http/Controllers/Web/PortalWorkspaceController.php)
 
@@ -75,7 +81,7 @@ Current external developer pages are implemented in:
 - [app/Http/Controllers/Web/PortalWorkspaceController.php](c:/Users/Ahmed/Desktop/cebx-code/app/Http/Controllers/Web/PortalWorkspaceController.php)
 
 Interpretation locked in by this document:
-- if these pages are retained, they are merchant-facing platform API access only
+- if these pages are retained, they are merchant-facing platform API access only for `organization` accounts in the B2B portal
 - they are not evidence that external users own carrier integrations
 - carrier activation/configuration belongs to future internal carrier-management surfaces only
 

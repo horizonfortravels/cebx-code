@@ -2,6 +2,12 @@
 
 This file lists the stable internal and external accounts dedicated to browser and API smoke testing.
 
+## Terminology Lock
+
+- B2C = the platform portal and browser flows for `individual` external accounts only.
+- B2B = the platform portal and browser flows for `organization` external accounts only.
+- Internal = the separate internal portal for platform staff only.
+
 ## Preparation
 
 Seed the E2E matrix accounts:
@@ -38,15 +44,15 @@ These come from the standard demo seed path and are useful for lightweight manua
 
 | Email | Password | User Type | Account | Account Type | Status | Role / Model | Primary Use |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| `e2e.a.individual@example.test` | `Password123!` | `external` | E2E Account A | `individual` | `active` | single-user individual account | Canonical B2C smoke coverage |
-| `e2e.b.individual@example.test` | `Password123!` | `external` | E2E Account B | `individual` | `active` | single-user individual account | Cross-tenant isolation target for individual accounts |
-| `e2e.c.organization_owner@example.test` | `Password123!` | `external` | E2E Account C | `organization` | `active` | `organization_owner` | Full B2B same-tenant success coverage |
-| `e2e.c.organization_admin@example.test` | `Password123!` | `external` | E2E Account C | `organization` | `active` | `organization_admin` | Merchant API tools and delegated admin coverage |
+| `e2e.a.individual@example.test` | `Password123!` | `external` | E2E Account A | `individual` | `active` | single-user individual account | Canonical B2C individual-portal smoke coverage |
+| `e2e.b.individual@example.test` | `Password123!` | `external` | E2E Account B | `individual` | `active` | single-user individual account | Cross-tenant isolation target for B2C individual accounts |
+| `e2e.c.organization_owner@example.test` | `Password123!` | `external` | E2E Account C | `organization` | `active` | `organization_owner` | Full B2B organization-portal same-tenant success coverage |
+| `e2e.c.organization_admin@example.test` | `Password123!` | `external` | E2E Account C | `organization` | `active` | `organization_admin` | Platform API tools and delegated admin coverage in B2B |
 | `e2e.c.staff@example.test` | `Password123!` | `external` | E2E Account C | `organization` | `active` | `staff` | Limited-access and denial scenarios |
 | `e2e.c.suspended@example.test` | `Password123!` | `external` | E2E Account C | `organization` | `suspended` | `staff` | Negative login and suspension checks |
 | `e2e.c.disabled@example.test` | `Password123!` | `external` | E2E Account C | `organization` | `disabled` | `staff` | Negative login and disabled-user checks |
-| `e2e.d.organization_owner@example.test` | `Password123!` | `external` | E2E Account D | `organization` | `active` | `organization_owner` | Cross-tenant isolation target for organization accounts |
-| `e2e.d.organization_admin@example.test` | `Password123!` | `external` | E2E Account D | `organization` | `active` | `organization_admin` | Secondary organization admin scenarios |
+| `e2e.d.organization_owner@example.test` | `Password123!` | `external` | E2E Account D | `organization` | `active` | `organization_owner` | Cross-tenant isolation target for B2B organization accounts |
+| `e2e.d.organization_admin@example.test` | `Password123!` | `external` | E2E Account D | `organization` | `active` | `organization_admin` | Secondary B2B organization admin scenarios |
 | `e2e.d.staff@example.test` | `Password123!` | `external` | E2E Account D | `organization` | `active` | `staff` | Organization read-limited secondary tenant |
 
 ## Internal Accounts
@@ -61,8 +67,9 @@ These come from the standard demo seed path and are useful for lightweight manua
 ## Role Notes
 
 - `individual`: account model, not a team persona. The account supports exactly one external user and cannot access user, role, or invitation management.
-- `organization_owner`: highest canonical external role. Used for full same-tenant success paths across organization resources and merchant platform API access.
-- `organization_admin`: delegated organization operator. Can manage day-to-day organization operations and merchant API surfaces, but is not the top ownership role.
+- `individual`: canonical B2C account model. It uses the individual portal only and does not own carrier integrations.
+- `organization_owner`: highest canonical external role for `organization` accounts. Used for full same-tenant success paths across B2B organization resources and merchant platform API access.
+- `organization_admin`: delegated organization operator. Can manage day-to-day organization operations and platform API surfaces in B2B, but is not the top ownership role.
 - `staff`: reduced organization role used for denial and limited-access scenarios.
 - `super_admin`: highest internal platform role. Grants internal admin access and tenant-context selection through internal RBAC only.
 - `e2e_internal_support`: internal support permissions with tenant-context selection.
@@ -75,5 +82,6 @@ These come from the standard demo seed path and are useful for lightweight manua
 - No account in this file relies on `account.type=admin`.
 - Internal platform administration is represented only by internal users plus RBAC role assignment.
 - Merchant API keys and webhooks, where exposed externally, represent access to the platform API only. They do not represent carrier ownership or carrier configuration.
+- Both B2C and B2B accounts consume the same platform carrier network; neither owns carrier integrations.
 - External cross-tenant checks should return `404`, not `403`.
 - Same-tenant requests without the required permission should return `403`.

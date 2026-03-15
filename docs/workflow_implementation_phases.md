@@ -7,6 +7,12 @@ This document defines the phased rollout for aligning the codebase with the cano
 ### Goal
 Freeze canonical names, capture implementation drift, and prevent new work from being built on legacy role language.
 
+### Terminology lock
+- B2C = the platform portal and browser flows for `individual` external accounts only.
+- B2B = the platform portal and browser flows for `organization` external accounts only.
+- Internal = the separate internal portal for platform staff.
+- Carrier contracts and carrier integrations stay platform-owned in every phase.
+
 ### Scope
 - documentation only
 - naming matrix
@@ -29,6 +35,7 @@ Enforce `individual` vs `organization` correctly.
 - no invite/user/role management for `individual`
 - organization roles renamed to canonical names
 - remove `api_developer` as an external business persona
+- keep B2C wording tied only to `individual` accounts and B2B wording tied only to `organization` accounts
 
 ### Likely files
 - [database/seeders/RolesAndPermissionsSeeder.php](c:/Users/Ahmed/Desktop/cebx-code/database/seeders/RolesAndPermissionsSeeder.php)
@@ -49,7 +56,7 @@ Enforce `individual` vs `organization` correctly.
 Unify draft creation, validation, and KYC restrictions into one guided external flow.
 
 ### Required outcomes
-- B2C and B2B shipment wizard shells
+- B2C (`individual`) and B2B (`organization`) shipment wizard shells
 - integrated validation summary
 - KYC restriction feedback before pricing
 - explicit failure guidance for blocked shipments
@@ -155,7 +162,7 @@ Move carrier ownership fully inside the platform.
 - carrier activation/deactivation controls
 - rename internal role to `carrier_manager`
 - remove external implication of carrier ownership
-- if external API keys/webhooks remain, clearly frame them as merchant API access to the platform only
+- if external API keys/webhooks remain, clearly frame them as merchant API access to the platform only inside the B2B organization portal
 
 ### Likely files
 - [app/Http/Controllers/Api/V1/AdminController.php](c:/Users/Ahmed/Desktop/cebx-code/app/Http/Controllers/Api/V1/AdminController.php)
@@ -175,6 +182,8 @@ Move carrier ownership fully inside the platform.
 - No future phase may reintroduce `api_developer` as a canonical external business persona.
 - No future phase may use carrier configuration as an external account capability.
 - Account type remains only `individual` and `organization`.
+- B2C wording always maps only to `individual` external accounts.
+- B2B wording always maps only to `organization` external accounts.
 - Individual-account enforcement is Phase A, not optional follow-up work.
 - Carrier activation/configuration is internal-only.
 - Merchant API keys/webhooks, if retained externally, represent platform API access only.

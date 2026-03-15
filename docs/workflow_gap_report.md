@@ -9,6 +9,13 @@ The current product is not yet aligned to the canonical business model. The bigg
 - carrier ownership boundary drift
 - missing browser-first shipment workflow stages
 
+## Terminology Lock
+- B2C = the platform portal and flows for `individual` external accounts only.
+- B2B = the platform portal and flows for `organization` external accounts only.
+- Internal = the separate internal portal for platform staff.
+- The platform remains the contracting party with carriers for both B2C and B2B.
+- External accounts consume the platform carrier network; they do not own carrier integrations.
+
 ## Current Database Drift
 ### Role drift
 - External roles still seeded as:
@@ -76,4 +83,4 @@ The current product is not yet aligned to the canonical business model. The bigg
 - Replace `tenant_admin` with `organization_admin`.
 - Remove `api_developer` as a business persona.
 - Rename `integration_admin` to `carrier_manager`.
-- Clarify that `customer_api_keys` and merchant webhooks are platform-access surfaces only, not carrier-ownership surfaces.
+- Clarify that `customer_api_keys` and merchant webhooks are platform-access surfaces only, not carrier-ownership surfaces, and that they live only under the B2B organization portal.

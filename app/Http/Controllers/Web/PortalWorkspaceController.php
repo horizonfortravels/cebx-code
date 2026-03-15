@@ -896,9 +896,9 @@ class PortalWorkspaceController extends Controller
     {
         return match ($portal) {
             'b2c' => [
-                'label' => 'بوابة الأفراد',
-                'headline' => 'بدء طلب شحنة فردية',
-                'description' => 'ابدأ طلب الشحنة كمسودة، ثم راجع نتيجة التحقق والقيود قبل الانتقال لاحقًا إلى مرحلة التسعير.',
+                'label' => 'بوابة الأفراد للحسابات الفردية',
+                'headline' => 'بدء طلب شحنة للحساب الفردي',
+                'description' => 'ابدأ طلب الشحنة من الحساب الفردي الخارجي، ثم راجع نتيجة التحقق والقيود قبل الانتقال إلى عروض شبكة الناقلين التابعة للمنصة.',
                 'dashboard_route' => 'b2c.dashboard',
                 'index_route' => 'b2c.shipments.index',
                 'create_route' => 'b2c.shipments.create',
@@ -910,9 +910,9 @@ class PortalWorkspaceController extends Controller
                 'declaration_submit_route' => 'b2c.shipments.declaration.submit',
             ],
             'b2b' => [
-                'label' => 'بوابة الأعمال',
-                'headline' => 'بدء طلب شحنة لفريق العمل',
-                'description' => 'أنشئ طلب الشحنة بصيغة تشغيلية واضحة، ثم راجع نتيجة التحقق وبوابة الامتثال قبل أي تسعير أو تنفيذ لاحق.',
+                'label' => 'بوابة الأعمال لحسابات المنظمات',
+                'headline' => 'بدء طلب شحنة لحساب المنظمة',
+                'description' => 'أنشئ طلب الشحنة لحساب المنظمة الخارجي، ثم راجع التحقق والامتثال قبل الانتقال إلى عروض شبكة الناقلين التابعة للمنصة لفريقك.',
                 'dashboard_route' => 'b2b.dashboard',
                 'index_route' => 'b2b.shipments.index',
                 'create_route' => 'b2b.shipments.create',
@@ -1103,25 +1103,25 @@ class PortalWorkspaceController extends Controller
             [
                 'route' => 'b2b.developer.index',
                 'label' => 'واجهة المطور',
-                'description' => 'ملخص سريع لكل ما يحتاجه فريق التكامل من المتصفح.',
+                'description' => 'ملخص سريع لكل ما يحتاجه فريق تكامل المنظمة مع واجهات المنصة من المتصفح.',
                 'permission' => 'integrations.read',
             ],
             [
                 'route' => 'b2b.developer.integrations',
                 'label' => 'حالة التكاملات',
-                'description' => 'مراجعة الخدمات المربوطة وتشغيل فحص سريع عند الحاجة.',
+                'description' => 'مراجعة تكاملات المنصة المتاحة لهذا الحساب وتشغيل فحص سريع عند الحاجة.',
                 'permission' => 'integrations.read',
             ],
             [
                 'route' => 'b2b.developer.api-keys',
                 'label' => 'مفاتيح API',
-                'description' => 'عرض مفاتيحك، إنشاء مفتاح جديد، أو إلغاء مفتاح نشط.',
+                'description' => 'عرض مفاتيح واجهات المنصة، إنشاء مفتاح جديد، أو إلغاء مفتاح نشط.',
                 'permission' => 'api_keys.read',
             ],
             [
                 'route' => 'b2b.developer.webhooks',
                 'label' => 'الويبهوكات',
-                'description' => 'رؤية نقاط الاستقبال وسجل الأحداث الواردة وآخر المحاولات.',
+                'description' => 'رؤية نقاط استقبال المنصة وسجل الأحداث الواردة وآخر المحاولات.',
                 'permission' => 'webhooks.read',
             ],
         ])->filter(fn (array $item): bool => method_exists($user, 'hasPermission') && $user->hasPermission($item['permission']))->values();

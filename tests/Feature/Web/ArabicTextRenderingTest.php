@@ -64,7 +64,7 @@ class ArabicTextRenderingTest extends TestCase
         $response = $this->actingAs($user)->get('/admin');
 
         $response->assertForbidden();
-        $response->assertSeeText('هذه الصفحة مخصصة لفريق التشغيل الداخلي');
+        $response->assertSeeText('هذه الصفحة مخصصة لفريق التشغيل الداخلي في المنصة');
         $response->assertSeeText('العودة إلى بوابة الأفراد');
         $response->assertDontSeeText('PERMISSION DENIED');
     }

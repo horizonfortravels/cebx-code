@@ -55,7 +55,7 @@
             </form>
 
             <div class="back-link" style="@yield('link-color')">
-                <a href="{{ route('login') }}">← العودة لاختيار البوابة</a>
+                <a href="{{ route('login') }}">← العودة لاختيار البوابة المناسبة لنوع الحساب</a>
             </div>
 
             @yield('demo-credentials')

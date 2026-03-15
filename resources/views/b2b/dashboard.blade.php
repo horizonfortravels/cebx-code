@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>لوحة التحكم — بوابة الأعمال (B2B)</title>
+    <title>لوحة الحساب — بوابة الأعمال لحسابات المنظمات</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -110,7 +110,7 @@
     <header class="header">
         <div class="header-left">
             <span class="badge-b2b">B2B — بوابة الأعمال</span>
-            <h1>لوحة التحكم</h1>
+            <h1>لوحة حساب المنظمة</h1>
         </div>
         <div class="header-actions">
             <form method="POST" action="{{ route('b2b.logout') }}" class="inline">
@@ -122,17 +122,17 @@
 
     <main class="container">
         <div class="card">
-            <p class="welcome">مرحباً، <strong>{{ Auth::user()->name ?? Auth::user()->email }}</strong></p>
-            <p class="welcome">من هنا يمكنك إدارة الشحنات والطلبات والمتاجر والمستخدمين والمحفظة والتقارير.</p>
+            <p class="welcome">مرحبًا، <strong>{{ Auth::user()->name ?? Auth::user()->email }}</strong></p>
+            <p class="welcome">هذه الصفحة مخصصة لحسابات المنظمات الخارجية فقط. من هنا يمكن لفريق المنظمة إدارة الشحنات والطلبات والمتاجر والمستخدمين والمحفظة والتقارير عبر شبكة الناقلين التابعة للمنصة.</p>
         </div>
 
         <div class="card">
-            <h2>القائمة الرئيسية</h2>
+            <h2>الأقسام المتاحة لحساب المنظمة</h2>
             <div class="nav-grid">
                 <a href="{{ route('b2b.shipments.index') }}" class="nav-link">📦 الشحنات</a>
                 <a href="{{ route('b2b.orders.index') }}" class="nav-link">🛒 الطلبات</a>
-                <a href="{{ route('b2b.stores.index') }}" class="nav-link">🏪 المتاجر</a>
-                <a href="{{ route('b2b.users.index') }}" class="nav-link">👥 المستخدمين</a>
+                <a href="{{ route('b2b.stores.index') }}" class="nav-link">🏬 المتاجر</a>
+                <a href="{{ route('b2b.users.index') }}" class="nav-link">👥 المستخدمون</a>
                 <a href="{{ route('b2b.roles.index') }}" class="nav-link">🛡 الأدوار</a>
                 <a href="{{ route('b2b.invitations.index') }}" class="nav-link">📧 الدعوات</a>
                 <a href="{{ route('b2b.wallet.index') }}" class="nav-link">💰 المحفظة</a>
@@ -140,7 +140,7 @@
                 <a href="{{ route('b2b.settings.index') }}" class="nav-link">⚙ الإعدادات</a>
             </div>
             <div class="switch-portal">
-                حساب فردي؟ <a href="{{ route('b2c.login') }}">انتقل إلى بوابة B2C</a>
+                حساب فردي؟ <a href="{{ route('b2c.login') }}">انتقل إلى بوابة الأفراد المخصصة للحسابات الفردية</a>
             </div>
         </div>
     </main>

@@ -9,9 +9,9 @@
             <span style="margin:0 6px">/</span>
             <span>الطلبات</span>
         </div>
-        <h1 style="font-size:28px;font-weight:800;color:var(--tx);margin:0">مركز الطلبات التجارية</h1>
+        <h1 style="font-size:28px;font-weight:800;color:var(--tx);margin:0">مركز طلبات المنظمة</h1>
         <p style="color:var(--td);font-size:14px;margin:8px 0 0;max-width:760px">
-            اعرض الطلبات القادمة من متاجرك، وراجع الحالات الحالية قبل الانتقال إلى شاشة الطلبات الكاملة للمزامنة أو الشحن.
+            اعرض الطلبات القادمة من متاجر منظمتك، وراجع الحالات الحالية قبل الانتقال إلى شاشة الطلبات الكاملة للمزامنة أو إنشاء الشحنات عبر المنصة.
         </p>
     </div>
     <a href="{{ route('orders.index') }}" class="btn btn-pr">فتح إدارة الطلبات</a>
