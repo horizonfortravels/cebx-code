@@ -6,8 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Services\CarrierService;
 use App\Models\Shipment;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * CarrierController — FR-CR-001→008
@@ -193,7 +194,7 @@ class CarrierController extends Controller
     /**
      * FR-CR-008: Download a specific document (secure, no financial data).
      */
-    public function downloadDocument(Request $request, string $shipmentId, string $documentId): Response
+    public function downloadDocument(Request $request, string $shipmentId, string $documentId): Response|RedirectResponse
     {
         $user = $request->user();
         $shipment = Shipment::where('id', $shipmentId)
@@ -204,10 +205,14 @@ class CarrierController extends Controller
 
         $docData = $this->carrierService->getDocumentForDownload($documentId, $shipment, $user);
 
-        return response($docData['content'])
+        if (! empty($docData['download_url']) && empty($docData['content'])) {
+            return redirect()->away((string) $docData['download_url']);
+        }
+
+        return response((string) ($docData['content'] ?? ''))
             ->header('Content-Type', $docData['mime_type'])
             ->header('Content-Disposition', "attachment; filename=\"{$docData['filename']}\"")
-            ->header('Content-Length', $docData['file_size'])
+            ->header('Content-Length', (string) ($docData['file_size'] ?? strlen((string) ($docData['content'] ?? ''))))
             ->header('X-Checksum-SHA256', $docData['checksum'] ?? '');
     }
 

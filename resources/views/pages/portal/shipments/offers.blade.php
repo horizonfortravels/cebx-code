@@ -19,6 +19,10 @@
     $hasOffers = count($offers) > 0;
     $isExpired = (bool) data_get($offersPayload, 'is_expired', false);
     $selectedOptionId = $selectedOptionId !== '' ? $selectedOptionId : (string) data_get($offersPayload, 'selected_rate_option_id', '');
+    $documentsAvailable = $shipment->carrierDocuments()->where('is_available', true)->exists();
+    $documentsRoute = request()->routeIs('b2b.*')
+        ? route('b2b.shipments.documents.index', ['id' => $shipment->id])
+        : route('b2c.shipments.documents.index', ['id' => $shipment->id]);
 @endphp
 
 <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:24px">
@@ -41,6 +45,9 @@
         <a href="{{ route($portalConfig['create_route'], ['draft' => $shipment->id]) }}" class="btn btn-s">العودة إلى المسودة</a>
         @if($selectedOptionId !== '' || in_array($shipment->status, ['declaration_required', 'declaration_complete', 'requires_action'], true))
             <a href="{{ route($portalConfig['declaration_route'], ['id' => $shipment->id]) }}" class="btn btn-s">الانتقال إلى إقرار المحتوى</a>
+        @endif
+        @if($documentsAvailable)
+            <a href="{{ $documentsRoute }}" class="btn btn-s">عرض الوثائق</a>
         @endif
         @if($canRefreshOffers)
             <form method="POST" action="{{ route($portalConfig['offers_fetch_route'], ['id' => $shipment->id]) }}">
@@ -238,4 +245,3 @@
     </x-card>
 @endif
 @endsection
-

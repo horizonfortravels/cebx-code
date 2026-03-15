@@ -21,6 +21,10 @@
     $isBlocked = $declaration?->isBlocked() ?? false;
     $isComplete = (bool) ($declaration?->waiver_accepted && $declaration?->status === \App\Models\ContentDeclaration::STATUS_COMPLETED);
     $canContinue = $workflowReady && ! $isBlocked;
+    $documentsAvailable = $shipment->carrierDocuments()->where('is_available', true)->exists();
+    $documentsRoute = request()->routeIs('b2b.*')
+        ? route('b2b.shipments.documents.index', ['id' => $shipment->id])
+        : route('b2c.shipments.documents.index', ['id' => $shipment->id]);
 @endphp
 
 <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:24px">
@@ -41,6 +45,9 @@
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
         <a href="{{ route($portalConfig['offers_route'], ['id' => $shipment->id]) }}" class="btn btn-s">العودة إلى العروض</a>
+        @if($documentsAvailable)
+            <a href="{{ $documentsRoute }}" class="btn btn-s">عرض الوثائق</a>
+        @endif
     </div>
 </div>
 

@@ -66,6 +66,7 @@ class Shipment extends Model {
     public function carrierShipment(): HasOne { return $this->hasOne(CarrierShipment::class)->latestOfMany(); }
     public function statusHistory(): HasMany { return $this->hasMany(ShipmentStatusHistory::class)->orderByDesc('created_at'); }
     public function claims(): HasMany { return $this->hasMany(Claim::class); }
+    public function carrierDocuments(): HasMany { return $this->hasMany(CarrierDocument::class); }
     public function rateQuote(): BelongsTo { return $this->belongsTo(RateQuote::class, 'rate_quote_id'); }
     public function selectedRateOption(): BelongsTo { return $this->belongsTo(RateOption::class, 'selected_rate_option_id'); }
     public function balanceReservation(): BelongsTo { return $this->belongsTo(WalletHold::class, 'balance_reservation_id'); }

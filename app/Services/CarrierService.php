@@ -9,6 +9,7 @@ use App\Models\CarrierError;
 use App\Models\CarrierShipment;
 use App\Models\ContentDeclaration;
 use App\Models\Shipment;
+use App\Models\ShipmentEvent;
 use App\Models\ShipmentStatusHistory;
 use App\Models\User;
 use App\Models\WalletHold;
@@ -18,6 +19,7 @@ use App\Services\Carriers\FedexShipmentProvider;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
 class CarrierService
@@ -129,6 +131,26 @@ class CarrierService
                     $response,
                     $capturedReservation
                 ));
+
+                $storedDocuments = $this->persistCarrierArtifacts(
+                    $shipment,
+                    $carrierShipment,
+                    $response,
+                    $correlationId,
+                    $idempotencyKey
+                );
+
+                if ($storedDocuments->isNotEmpty()) {
+                    $carrierShipment->update([
+                        'status' => CarrierShipment::STATUS_LABEL_READY,
+                        'carrier_metadata' => array_merge(
+                            is_array($carrierShipment->carrier_metadata ?? null) ? $carrierShipment->carrier_metadata : [],
+                            ['document_count' => $storedDocuments->count()]
+                        ),
+                    ]);
+                } else {
+                    $carrierShipment->update(['status' => CarrierShipment::STATUS_LABEL_PENDING]);
+                }
 
                 $this->recordStatusHistory($shipment, $oldStatus, Shipment::STATUS_PURCHASED, 'system', $user->id, 'Carrier shipment created');
 
@@ -354,13 +376,26 @@ class CarrierService
             ->orderByDesc('created_at')
             ->get()
             ->map(fn (CarrierDocument $doc) => [
-                'id' => $doc->id,
-                'type' => $doc->type,
-                'format' => $doc->format,
-                'filename' => $doc->original_filename,
+                'id' => (string) $doc->id,
+                'carrier_code' => (string) ($doc->carrier_code ?? $shipment->carrier_code ?? ''),
+                'type' => (string) $doc->type,
+                'document_type' => (string) $doc->type,
+                'format' => (string) $doc->format,
+                'file_format' => (string) $doc->format,
+                'mime_type' => (string) $doc->mime_type,
+                'source' => (string) ($doc->source ?? CarrierDocument::SOURCE_CARRIER),
+                'retrieval_mode' => (string) ($doc->retrieval_mode ?? $this->resolveRetrievalMode($doc->getDecodedContent(), $doc->download_url)),
+                'filename' => (string) ($doc->original_filename ?? $this->generateDocFilename($shipment, (string) $doc->type, (string) $doc->format)),
                 'size' => $doc->file_size,
                 'available' => $doc->hasContent() || $doc->hasValidUrl(),
-                'created_at' => $doc->created_at,
+                'carrier_document_type' => (string) data_get($doc->carrier_metadata, 'carrier_document_type', ''),
+                'tracking_number' => (string) data_get($doc->carrier_metadata, 'tracking_number', ''),
+                'notes' => collect((array) data_get($doc->carrier_metadata, 'alerts', []))
+                    ->pluck('message')
+                    ->filter()
+                    ->values()
+                    ->all(),
+                'created_at' => optional($doc->created_at)?->toIso8601String(),
             ])
             ->toArray();
     }
@@ -398,13 +433,14 @@ class CarrierService
 
         return [
             'id' => (string) $document->id,
-            'content' => $document->getDecodedContent() ?? '',
+            'content' => $document->getDecodedContent(),
             'format' => (string) $document->format,
             'mime_type' => (string) $document->mime_type,
             'filename' => (string) ($document->original_filename ?? $this->generateDocFilename($shipment, (string) $document->type, (string) $document->format)),
             'file_size' => $document->file_size,
             'checksum' => $document->checksum,
-            'download_url' => $document->download_url,
+            'download_url' => $document->isDownloadUrlValid() ? $document->download_url : null,
+            'retrieval_mode' => (string) ($document->retrieval_mode ?? $this->resolveRetrievalMode($document->getDecodedContent(), $document->download_url)),
         ];
     }
 
@@ -433,14 +469,26 @@ class CarrierService
         $labelDoc = $storedDocs->firstWhere('type', CarrierDocument::TYPE_LABEL);
 
         if ($labelDoc) {
-            $shipment->update([
-                'label_url' => $labelDoc->download_url ?? route('api.v1.shipments.documents.download', [
-                    'shipment' => $shipment->id,
-                    'document' => $labelDoc->id,
-                ]),
-                'label_format' => $labelDoc->format,
-                'label_created_at' => now(),
-            ]);
+            $updates = [];
+
+            if (Schema::hasColumn('shipments', 'label_url')) {
+                $updates['label_url'] = $labelDoc->download_url ?: route('api.v1.carrier.document-download', [
+                    'shipmentId' => $shipment->id,
+                    'documentId' => $labelDoc->id,
+                ]);
+            }
+
+            if (Schema::hasColumn('shipments', 'label_format')) {
+                $updates['label_format'] = $labelDoc->format;
+            }
+
+            if (Schema::hasColumn('shipments', 'label_created_at')) {
+                $updates['label_created_at'] = now();
+            }
+
+            if ($updates !== []) {
+                $shipment->update($updates);
+            }
         }
     }
 
@@ -450,28 +498,243 @@ class CarrierService
 
         foreach ($documents as $doc) {
             $type = $this->mapDocumentType((string) ($doc['type'] ?? 'label'));
-            $format = (string) ($doc['format'] ?? $carrierShipment->label_format);
-            $content = $doc['content'] ?? null;
+            $format = $this->normalizeDocumentFormat((string) ($doc['format'] ?? $carrierShipment->label_format));
+            $content = trim((string) ($doc['content'] ?? ''));
+            $downloadUrl = trim((string) ($doc['url'] ?? ''));
+            $binary = $content !== '' ? base64_decode($content, true) : false;
+
+            if ($binary === false) {
+                $binary = null;
+            }
+
+            if ($binary === null && $downloadUrl === '') {
+                continue;
+            }
+
+            $fileName = (string) ($doc['filename'] ?? $this->generateDocFilename($shipment, $type, $format));
+            $retrievalMode = $this->resolveRetrievalMode($binary, $downloadUrl);
+            $storageDisk = null;
+            $storagePath = null;
+            $fileSize = $binary !== null ? strlen($binary) : null;
+            $checksum = $binary !== null ? hash('sha256', $binary) : null;
+
+            if ($binary !== null) {
+                [$storageDisk, $storagePath] = $this->storeCarrierDocumentBinary($shipment, $carrierShipment, $fileName, $binary);
+            }
+
+            $existing = $this->findExistingCarrierDocument(
+                $carrierShipment,
+                $shipment,
+                $type,
+                $format,
+                $checksum,
+                $downloadUrl,
+                $fileName
+            );
+
+            if ($existing) {
+                $stored->push($existing);
+                continue;
+            }
 
             $document = CarrierDocument::create([
                 'carrier_shipment_id' => $carrierShipment->id,
                 'shipment_id' => $shipment->id,
+                'carrier_code' => (string) $carrierShipment->carrier_code,
                 'type' => $type,
                 'format' => $format,
                 'mime_type' => CarrierDocument::getMimeType($format),
-                'original_filename' => $this->generateDocFilename($shipment, $type, $format),
-                'content_base64' => $content,
-                'file_size' => $content ? strlen(base64_decode((string) $content)) : null,
-                'checksum' => $content ? hash('sha256', base64_decode((string) $content)) : null,
-                'download_url' => $doc['url'] ?? null,
+                'source' => CarrierDocument::SOURCE_CARRIER,
+                'retrieval_mode' => $retrievalMode,
+                'storage_path' => $storagePath,
+                'storage_disk' => $storageDisk ?? config('filesystems.default', 'local'),
+                'original_filename' => $fileName,
+                'content_base64' => null,
+                'file_size' => $fileSize,
+                'checksum' => $checksum,
+                'download_url' => $downloadUrl !== '' ? $downloadUrl : null,
                 'download_url_expires_at' => isset($doc['urlExpiry']) ? \Carbon\Carbon::parse($doc['urlExpiry']) : null,
-                'is_available' => ! empty($content) || ! empty($doc['url']),
+                'is_available' => true,
+                'carrier_metadata' => $doc['metadata'] ?? null,
             ]);
 
             $stored->push($document);
         }
 
         return $stored;
+    }
+
+    private function persistCarrierArtifacts(
+        Shipment $shipment,
+        CarrierShipment $carrierShipment,
+        array $response,
+        string $correlationId,
+        string $idempotencyKey
+    ): Collection {
+        $documents = $this->extractCarrierDocuments($response, $carrierShipment);
+        $storedDocuments = $this->storeCarrierDocuments($carrierShipment, $shipment, $documents);
+
+        if ($storedDocuments->isEmpty()) {
+            return $storedDocuments;
+        }
+
+        $this->updateShipmentLabelFromDocuments($shipment, $storedDocuments);
+        $this->recordDocumentAvailabilityEvent($shipment, $carrierShipment, $storedDocuments, $correlationId, $idempotencyKey);
+
+        return $storedDocuments;
+    }
+
+    /**
+     * @param array<string, mixed> $response
+     * @return array<int, array<string, mixed>>
+     */
+    private function extractCarrierDocuments(array $response, CarrierShipment $carrierShipment): array
+    {
+        $documents = [];
+
+        foreach ((array) ($response['documents'] ?? []) as $document) {
+            $documents[] = [
+                'type' => (string) ($document['type'] ?? 'label'),
+                'format' => (string) ($document['format'] ?? $carrierShipment->label_format),
+                'content' => $document['content'] ?? null,
+                'url' => $document['url'] ?? null,
+                'urlExpiry' => $document['urlExpiry'] ?? null,
+                'filename' => $document['filename'] ?? null,
+                'metadata' => is_array($document['metadata'] ?? null) ? $document['metadata'] : null,
+            ];
+        }
+
+        foreach ((array) data_get($response, 'carrier_metadata.shipment_documents', []) as $document) {
+            $type = (string) ($document['docType'] ?? $document['contentKey'] ?? 'label');
+            $documents[] = [
+                'type' => $type,
+                'format' => $this->normalizeDocumentFormat((string) ($document['fileType'] ?? $document['fileFormat'] ?? $carrierShipment->label_format)),
+                'content' => $document['encodedLabel'] ?? null,
+                'url' => $document['url'] ?? $document['documentUrl'] ?? null,
+                'urlExpiry' => $document['urlExpiry'] ?? $document['expirationTime'] ?? null,
+                'filename' => $document['fileName'] ?? null,
+                'metadata' => [
+                    'carrier_document_type' => $type,
+                    'content_key' => $document['contentKey'] ?? null,
+                    'tracking_number' => $document['trackingNumber'] ?? data_get($response, 'tracking_number'),
+                    'alerts' => $document['alerts'] ?? [],
+                    'raw' => $document,
+                ],
+            ];
+        }
+
+        return $documents;
+    }
+
+    private function normalizeDocumentFormat(string $format): string
+    {
+        $normalized = strtolower(trim($format));
+
+        return match ($normalized) {
+            'pdf', 'zpl', 'png', 'epl', 'html' => $normalized,
+            'zplii' => 'zpl',
+            default => 'pdf',
+        };
+    }
+
+    /**
+     * @return array{0: string, 1: string}
+     */
+    private function storeCarrierDocumentBinary(
+        Shipment $shipment,
+        CarrierShipment $carrierShipment,
+        string $filename,
+        string $binary
+    ): array {
+        $disk = (string) config('filesystems.default', 'local');
+        $path = sprintf(
+            'carrier-documents/%s/%s/%s',
+            (string) $shipment->id,
+            (string) $carrierShipment->id,
+            ltrim($filename, '/')
+        );
+
+        Storage::disk($disk)->put($path, $binary);
+
+        return [$disk, $path];
+    }
+
+    private function findExistingCarrierDocument(
+        CarrierShipment $carrierShipment,
+        Shipment $shipment,
+        string $type,
+        string $format,
+        ?string $checksum,
+        string $downloadUrl,
+        string $filename
+    ): ?CarrierDocument {
+        $query = CarrierDocument::query()
+            ->where('carrier_shipment_id', (string) $carrierShipment->id)
+            ->where('shipment_id', (string) $shipment->id)
+            ->where('type', $type)
+            ->where('format', $format);
+
+        if ($checksum) {
+            $query->where('checksum', $checksum);
+        } elseif ($downloadUrl !== '') {
+            $query->where('download_url', $downloadUrl);
+        } else {
+            $query->where('original_filename', $filename);
+        }
+
+        return $query->first();
+    }
+
+    private function resolveRetrievalMode(?string $binary, ?string $downloadUrl): string
+    {
+        if ($binary !== null && $binary !== '') {
+            return CarrierDocument::RETRIEVAL_STORED_OBJECT;
+        }
+
+        if (filled($downloadUrl)) {
+            return CarrierDocument::RETRIEVAL_URL;
+        }
+
+        return CarrierDocument::RETRIEVAL_INLINE;
+    }
+
+    private function recordDocumentAvailabilityEvent(
+        Shipment $shipment,
+        CarrierShipment $carrierShipment,
+        Collection $storedDocuments,
+        string $correlationId,
+        string $idempotencyKey
+    ): void {
+        $existing = ShipmentEvent::query()
+            ->where('shipment_id', (string) $shipment->id)
+            ->where('event_type', 'carrier.documents_available')
+            ->where('idempotency_key', $idempotencyKey)
+            ->first();
+
+        if ($existing) {
+            return;
+        }
+
+        ShipmentEvent::create([
+            'shipment_id' => (string) $shipment->id,
+            'status' => CarrierShipment::STATUS_LABEL_READY,
+            'event_type' => 'carrier.documents_available',
+            'description' => 'Carrier shipment documents are available for download.',
+            'location' => strtoupper((string) $carrierShipment->carrier_code),
+            'event_at' => now(),
+            'payload' => [
+                'carrier_shipment_id' => (string) $carrierShipment->id,
+                'carrier_code' => (string) $carrierShipment->carrier_code,
+                'documents' => $storedDocuments->map(static fn (CarrierDocument $document): array => [
+                    'id' => (string) $document->id,
+                    'type' => (string) $document->type,
+                    'format' => (string) $document->format,
+                    'retrieval_mode' => (string) ($document->retrieval_mode ?? ''),
+                ])->values()->all(),
+            ],
+            'correlation_id' => $correlationId,
+            'idempotency_key' => $idempotencyKey,
+        ]);
     }
 
     private function validateForCarrierCreation(Shipment $shipment): void
@@ -853,12 +1116,13 @@ class CarrierService
 
     private function mapDocumentType(string $type): string
     {
-        return match (strtolower($type)) {
-            'label', 'waybill_doc' => CarrierDocument::TYPE_LABEL,
-            'invoice', 'commercial' => CarrierDocument::TYPE_COMMERCIAL_INVOICE,
-            'customs', 'cn23', 'cn22' => CarrierDocument::TYPE_CUSTOMS_DECLARATION,
+        return match (strtolower(str_replace([' ', '-'], '_', $type))) {
+            'label', 'waybill_doc', 'shipping_label' => CarrierDocument::TYPE_LABEL,
+            'invoice', 'commercial', 'commercial_invoice', 'proforma_invoice' => CarrierDocument::TYPE_COMMERCIAL_INVOICE,
+            'customs', 'customs_declaration', 'cn23', 'cn22', 'certificate_of_origin' => CarrierDocument::TYPE_CUSTOMS_DECLARATION,
             'waybill', 'awb' => CarrierDocument::TYPE_WAYBILL,
             'receipt' => CarrierDocument::TYPE_RECEIPT,
+            'return_label', 'return_instructions' => CarrierDocument::TYPE_RETURN_LABEL,
             default => CarrierDocument::TYPE_OTHER,
         };
     }

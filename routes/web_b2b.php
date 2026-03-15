@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Web\B2BAuthWebController;
 use App\Http\Controllers\Web\PortalWorkspaceController;
+use App\Http\Controllers\Web\ShipmentDocumentWebController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('b2b')->name('b2b.')->middleware('portal:b2b')->group(function (): void {
@@ -21,6 +22,8 @@ Route::prefix('b2b')->name('b2b.')->middleware('portal:b2b')->group(function ():
             Route::post('/{id}/offers/select', [PortalWorkspaceController::class, 'selectB2bShipmentOffer'])->name('offers.select');
             Route::get('/{id}/declaration', [PortalWorkspaceController::class, 'b2bShipmentDeclaration'])->name('declaration');
             Route::post('/{id}/declaration', [PortalWorkspaceController::class, 'submitB2bShipmentDeclaration'])->name('declaration.submit');
+            Route::get('/{id}/documents', [ShipmentDocumentWebController::class, 'b2bIndex'])->name('documents.index');
+            Route::get('/{id}/documents/{documentId}', [ShipmentDocumentWebController::class, 'b2bDownload'])->name('documents.download');
             Route::get('/{id}', function ($id) {
                 return view('b2b.dashboard', ['shipmentId' => $id]);
             })->name('show');

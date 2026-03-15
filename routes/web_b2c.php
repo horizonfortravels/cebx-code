@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Web\B2CAuthWebController;
 use App\Http\Controllers\Web\PortalWorkspaceController;
+use App\Http\Controllers\Web\ShipmentDocumentWebController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -42,6 +43,10 @@ Route::prefix('b2c')->name('b2c.')->middleware('portal:b2c')->group(function () 
                 ->name('declaration');
             Route::post('/{id}/declaration', [PortalWorkspaceController::class, 'submitB2cShipmentDeclaration'])
                 ->name('declaration.submit');
+            Route::get('/{id}/documents', [ShipmentDocumentWebController::class, 'b2cIndex'])
+                ->name('documents.index');
+            Route::get('/{id}/documents/{documentId}', [ShipmentDocumentWebController::class, 'b2cDownload'])
+                ->name('documents.download');
             Route::get('/{id}', function ($id) {
                 return view('b2c.dashboard', ['shipmentId' => $id]);
             })->name('show');

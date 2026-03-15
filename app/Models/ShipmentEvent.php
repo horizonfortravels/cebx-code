@@ -10,6 +10,9 @@ class ShipmentEvent extends Model {
     protected $keyType = 'string';
 
     protected $guarded = [];
-    protected $casts = ['event_at' => 'datetime'];
+    protected $casts = [
+        'event_at' => 'datetime',
+        'payload' => 'array',
+    ];
     public function shipment(): BelongsTo { return $this->belongsTo(Shipment::class); }
 }
