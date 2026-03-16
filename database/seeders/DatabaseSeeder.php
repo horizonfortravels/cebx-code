@@ -11,6 +11,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             DemoSeeder::class,
             RolesAndPermissionsSeeder::class,
+            NotificationTemplateSeeder::class,
             WaiverVersionSeeder::class,
         ]);
 

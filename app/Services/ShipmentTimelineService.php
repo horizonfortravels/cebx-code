@@ -13,6 +13,10 @@ use Illuminate\Support\Facades\Schema;
 
 class ShipmentTimelineService
 {
+    public function __construct(
+        private ShipmentNotificationFanoutService $notificationFanout,
+    ) {}
+
     public function record(Shipment $shipment, array $attributes): ShipmentEvent
     {
         $idempotencyKey = $this->nullableString($attributes['idempotency_key'] ?? null);
@@ -28,7 +32,7 @@ class ShipmentTimelineService
             }
         }
 
-        return ShipmentEvent::query()->create([
+        $event = ShipmentEvent::query()->create([
             'shipment_id' => (string) $shipment->id,
             'account_id' => (string) $shipment->account_id,
             'event_type' => $this->nullableString($attributes['event_type'] ?? null) ?? 'shipment.updated',
@@ -42,6 +46,10 @@ class ShipmentTimelineService
             'idempotency_key' => $idempotencyKey,
             'payload' => $attributes['payload'] ?? $attributes['metadata'] ?? null,
         ]);
+
+        $this->notificationFanout->fanout($shipment, $event);
+
+        return $event;
     }
 
     public function syncCurrentStatus(Shipment $shipment, ?string $status, CarbonInterface|string|null $eventAt = null): void
