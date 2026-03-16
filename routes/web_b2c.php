@@ -47,9 +47,7 @@ Route::prefix('b2c')->name('b2c.')->middleware('portal:b2c')->group(function () 
                 ->name('documents.index');
             Route::get('/{id}/documents/{documentId}', [ShipmentDocumentWebController::class, 'b2cDownload'])
                 ->name('documents.download');
-            Route::get('/{id}', function ($id) {
-                return view('b2c.dashboard', ['shipmentId' => $id]);
-            })->name('show');
+            Route::get('/{id}', [PortalWorkspaceController::class, 'b2cShipmentShow'])->name('show');
         });
 
         Route::prefix('tracking')->name('tracking.')->group(function () {

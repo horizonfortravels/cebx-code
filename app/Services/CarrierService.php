@@ -29,6 +29,7 @@ class CarrierService
         private FedexShipmentProvider $fedexShipmentProvider,
         private AuditService $audit,
         private BillingWalletService $billing,
+        private ShipmentTimelineService $shipmentTimeline,
     ) {}
 
     public function createAtCarrier(
@@ -131,6 +132,26 @@ class CarrierService
                     $response,
                     $capturedReservation
                 ));
+
+                $this->shipmentTimeline->record($shipment, [
+                    'event_type' => 'shipment.purchased',
+                    'status' => Shipment::STATUS_PURCHASED,
+                    'normalized_status' => Shipment::STATUS_PURCHASED,
+                    'description' => 'تم إصدار الشحنة لدى الناقل وربط رقم التتبع الأولي.',
+                    'location' => strtoupper((string) ($response['carrier_code'] ?? $provider->carrierCode())),
+                    'event_at' => now(),
+                    'source' => ShipmentEvent::SOURCE_SYSTEM,
+                    'correlation_id' => $correlationId,
+                    'idempotency_key' => $idempotencyKey . ':shipment.purchased',
+                    'payload' => [
+                        'carrier_shipment_id' => (string) $carrierShipment->id,
+                        'carrier_code' => (string) ($response['carrier_code'] ?? $provider->carrierCode()),
+                        'tracking_number' => $response['tracking_number'] ?? null,
+                        'awb_number' => $response['awb_number'] ?? null,
+                        'initial_carrier_status' => $response['initial_carrier_status'] ?? 'created',
+                    ],
+                ]);
+                $this->shipmentTimeline->syncCurrentStatus($shipment, Shipment::STATUS_PURCHASED, now());
 
                 $storedDocuments = $this->persistCarrierArtifacts(
                     $shipment,
@@ -705,23 +726,14 @@ class CarrierService
         string $correlationId,
         string $idempotencyKey
     ): void {
-        $existing = ShipmentEvent::query()
-            ->where('shipment_id', (string) $shipment->id)
-            ->where('event_type', 'carrier.documents_available')
-            ->where('idempotency_key', $idempotencyKey)
-            ->first();
-
-        if ($existing) {
-            return;
-        }
-
-        ShipmentEvent::create([
-            'shipment_id' => (string) $shipment->id,
-            'status' => CarrierShipment::STATUS_LABEL_READY,
+        $this->shipmentTimeline->record($shipment, [
             'event_type' => 'carrier.documents_available',
-            'description' => 'Carrier shipment documents are available for download.',
+            'status' => CarrierShipment::STATUS_LABEL_READY,
+            'normalized_status' => CarrierShipment::STATUS_LABEL_READY,
+            'description' => 'أصبحت مستندات الشحنة متاحة للتنزيل والطباعة.',
             'location' => strtoupper((string) $carrierShipment->carrier_code),
             'event_at' => now(),
+            'source' => ShipmentEvent::SOURCE_CARRIER,
             'payload' => [
                 'carrier_shipment_id' => (string) $carrierShipment->id,
                 'carrier_code' => (string) $carrierShipment->carrier_code,
@@ -733,8 +745,9 @@ class CarrierService
                 ])->values()->all(),
             ],
             'correlation_id' => $correlationId,
-            'idempotency_key' => $idempotencyKey,
+            'idempotency_key' => $idempotencyKey . ':carrier.documents_available',
         ]);
+        $this->shipmentTimeline->syncCurrentStatus($shipment, CarrierShipment::STATUS_LABEL_READY, now());
     }
 
     private function validateForCarrierCreation(Shipment $shipment): void

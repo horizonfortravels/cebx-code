@@ -24,9 +24,7 @@ Route::prefix('b2b')->name('b2b.')->middleware('portal:b2b')->group(function ():
             Route::post('/{id}/declaration', [PortalWorkspaceController::class, 'submitB2bShipmentDeclaration'])->name('declaration.submit');
             Route::get('/{id}/documents', [ShipmentDocumentWebController::class, 'b2bIndex'])->name('documents.index');
             Route::get('/{id}/documents/{documentId}', [ShipmentDocumentWebController::class, 'b2bDownload'])->name('documents.download');
-            Route::get('/{id}', function ($id) {
-                return view('b2b.dashboard', ['shipmentId' => $id]);
-            })->name('show');
+            Route::get('/{id}', [PortalWorkspaceController::class, 'b2bShipmentShow'])->name('show');
         });
 
         Route::prefix('orders')->name('orders.')->group(function (): void {

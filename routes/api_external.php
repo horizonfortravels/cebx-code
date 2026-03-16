@@ -527,6 +527,14 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'userType:external', 'tenantCon
          ->middleware('permission:tracking.read')
          ->name('api.v1.tracking.timeline');
 
+    Route::get('/shipments/{shipmentId}/tracking/events', [TrackingController::class, 'events'])
+         ->middleware('permission:tracking.read')
+         ->name('api.v1.tracking.events');
+
+    Route::get('/shipments/{shipmentId}/tracking/status', [TrackingController::class, 'status'])
+         ->middleware('permission:tracking.read')
+         ->name('api.v1.tracking.status');
+
     // FR-TR-005: Search/filter by status
     Route::get('/tracking/search', [TrackingController::class, 'search'])
          ->middleware('permission:tracking.read')

@@ -112,14 +112,25 @@ class FedexShipmentCreateApiTest extends TestCase
         $this->assertNotNull($documents->firstWhere('type', 'label')?->storage_path);
         Storage::disk('local')->assertExists((string) $documents->firstWhere('type', 'label')?->storage_path);
 
+        $purchaseEvent = ShipmentEvent::query()
+            ->where('shipment_id', (string) $shipment->id)
+            ->where('event_type', 'shipment.purchased')
+            ->first();
+
+        $this->assertNotNull($purchaseEvent);
+        $this->assertSame('purchased', (string) $purchaseEvent->normalized_status);
+        $this->assertSame('REQ-FDX-CREATE-001', (string) $purchaseEvent->correlation_id);
+        $this->assertSame('SHIP-IDEMP-001:shipment.purchased', (string) $purchaseEvent->idempotency_key);
+
         $event = ShipmentEvent::query()
             ->where('shipment_id', (string) $shipment->id)
             ->where('event_type', 'carrier.documents_available')
             ->first();
 
         $this->assertNotNull($event);
+        $this->assertSame('label_ready', (string) $event->normalized_status);
         $this->assertSame('REQ-FDX-CREATE-001', (string) $event->correlation_id);
-        $this->assertSame('SHIP-IDEMP-001', (string) $event->idempotency_key);
+        $this->assertSame('SHIP-IDEMP-001:carrier.documents_available', (string) $event->idempotency_key);
 
         Http::assertSentCount(2);
     }
@@ -156,6 +167,7 @@ class FedexShipmentCreateApiTest extends TestCase
         $this->assertSame('0.00', number_format((float) $wallet->reserved_balance, 2, '.', ''));
         $this->assertSame('345.15', number_format((float) $wallet->total_debited, 2, '.', ''));
         $this->assertSame(2, CarrierDocument::query()->where('shipment_id', (string) $shipment->id)->count());
+        $this->assertSame(2, ShipmentEvent::query()->where('shipment_id', (string) $shipment->id)->count());
 
         Http::assertSentCount(2);
     }

@@ -18,6 +18,8 @@ use App\Models\WaiverVersion;
 use App\Models\Wallet;
 use App\Models\WalletLedgerEntry;
 use App\Models\WebhookEvent;
+use App\Services\CarrierService;
+use App\Services\ShipmentTimelineService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -144,6 +146,16 @@ class PortalWorkspaceController extends Controller
                 ['icon' => 'TR', 'label' => 'في الطريق', 'value' => number_format(Shipment::query()->where('account_id', $accountId)->whereIn('status', ['picked_up', 'in_transit', 'out_for_delivery'])->count())],
             ],
         ]);
+    }
+
+    public function b2cShipmentShow(Request $request, string $id): View
+    {
+        return $this->shipmentTimelineWorkspace($request, $id, 'b2c');
+    }
+
+    public function b2bShipmentShow(Request $request, string $id): View
+    {
+        return $this->shipmentTimelineWorkspace($request, $id, 'b2b');
     }
 
     public function b2cShipmentDraft(): View
@@ -831,6 +843,42 @@ class PortalWorkspaceController extends Controller
             ->firstOrFail();
     }
 
+    private function shipmentTimelineWorkspace(Request $request, string $shipmentId, string $portal): View
+    {
+        $account = $this->currentAccount();
+        $shipment = Shipment::query()
+            ->where('account_id', (string) $account->id)
+            ->where('id', $shipmentId)
+            ->with([
+                'carrierShipment',
+                'selectedRateOption',
+                'rateQuote.selectedOption',
+            ])
+            ->firstOrFail();
+
+        abort_unless(method_exists($request->user(), 'hasPermission') && $request->user()->hasPermission('tracking.read'), 403);
+        $this->authorize('view', $shipment);
+
+        $timeline = app(ShipmentTimelineService::class)->present($shipment);
+        $documents = collect(app(CarrierService::class)->listDocuments($shipment))
+            ->map(function (array $document) use ($portal, $shipment): array {
+                return array_merge($document, [
+                    'download_route' => route($portal . '.shipments.documents.download', [
+                        'id' => (string) $shipment->id,
+                        'documentId' => (string) $document['id'],
+                    ]),
+                ]);
+            })
+            ->all();
+
+        return view('pages.portal.shipments.show', [
+            'portalConfig' => $this->shipmentTimelinePortalConfig($portal),
+            'shipment' => $shipment,
+            'timeline' => $timeline,
+            'documents' => $documents,
+        ]);
+    }
+
     private function resolveSelectedOffer(Shipment $shipment): ?\App\Models\RateOption
     {
         if ($shipment->selectedRateOption) {
@@ -925,6 +973,28 @@ class PortalWorkspaceController extends Controller
             ],
             default => abort(404),
         };
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function shipmentTimelinePortalConfig(string $portal): array
+    {
+        if ($portal === 'b2b') {
+            return [
+                'label' => 'بوابة الأعمال',
+                'dashboard_route' => 'b2b.dashboard',
+                'shipments_index_route' => 'b2b.shipments.index',
+                'documents_route' => 'b2b.shipments.documents.index',
+            ];
+        }
+
+        return [
+            'label' => 'بوابة الأفراد',
+            'dashboard_route' => 'b2c.dashboard',
+            'shipments_index_route' => 'b2c.shipments.index',
+            'documents_route' => 'b2c.shipments.documents.index',
+        ];
     }
 
     private function resolveShipmentDeclaration(Shipment $shipment, User $user): ?ContentDeclaration
