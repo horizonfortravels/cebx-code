@@ -203,6 +203,16 @@ class PortalWorkspaceController extends Controller
         return $this->submitShipmentDeclarationWorkspace($request, $id, 'b2c');
     }
 
+    public function triggerB2cShipmentWalletPreflight(Request $request, string $id): RedirectResponse
+    {
+        return $this->walletPreflightWorkspace($request, $id, 'b2c');
+    }
+
+    public function issueB2cShipmentAtCarrier(Request $request, string $id): RedirectResponse
+    {
+        return $this->issueShipmentWorkspace($request, $id, 'b2c');
+    }
+
     public function b2bShipmentOffers(Request $request, string $id): View
     {
         return $this->shipmentOffersWorkspace($request, $id, 'b2b');
@@ -226,6 +236,16 @@ class PortalWorkspaceController extends Controller
     public function submitB2bShipmentDeclaration(Request $request, string $id): RedirectResponse
     {
         return $this->submitShipmentDeclarationWorkspace($request, $id, 'b2b');
+    }
+
+    public function triggerB2bShipmentWalletPreflight(Request $request, string $id): RedirectResponse
+    {
+        return $this->walletPreflightWorkspace($request, $id, 'b2b');
+    }
+
+    public function issueB2bShipmentAtCarrier(Request $request, string $id): RedirectResponse
+    {
+        return $this->issueShipmentWorkspace($request, $id, 'b2b');
     }
 
     public function b2bOrders(): View
@@ -810,7 +830,7 @@ class PortalWorkspaceController extends Controller
                 ->with('shipment_declaration_feedback', [
                     'level' => 'success',
                     'message' => 'تم حفظ الإقرار القانوني بنجاح وربطه بهذه الشحنة.',
-                    'next_action' => 'أصبحت الشحنة جاهزة للمرحلة التالية من التدفق عند فتحها.',
+                    'next_action' => 'انتقل إلى صفحة الشحنة لتفعيل فحص رصيد المحفظة، ثم متابعة الإصدار لدى الناقل.',
                 ]);
         } catch (BusinessException $exception) {
             return redirect()
@@ -822,6 +842,139 @@ class PortalWorkspaceController extends Controller
                     'next_action' => data_get($exception->getContext(), 'next_action'),
                 ]);
         }
+    }
+
+    private function walletPreflightWorkspace(Request $request, string $shipmentId, string $portal): RedirectResponse
+    {
+        $account = $this->currentAccount();
+        $accountId = (string) $account->id;
+        $config = $this->shipmentPortalConfig($portal);
+        $shipment = $this->findShipmentForPortal($accountId, $shipmentId);
+
+        $this->authorize('paymentPreflight', $shipment);
+
+        try {
+            $result = app(\App\Services\ShipmentService::class)->createWalletPreflightReservation(
+                $accountId,
+                (string) $shipment->id,
+                $request->user(),
+                []
+            );
+
+            return redirect()
+                ->route($config['show_route'], ['id' => (string) $shipment->id])
+                ->with('shipment_completion_feedback', [
+                    'level' => 'success',
+                    'message' => (bool) ($result['created'] ?? false)
+                        ? 'تم حجز مبلغ الشحنة من المحفظة بنجاح.'
+                        : 'يوجد حجز محفظة نشط مسبقًا لهذه الشحنة وتمت إعادة استخدامه.',
+                    'next_action' => 'يمكنك الآن متابعة إصدار الشحنة لدى الناقل.',
+                    'reservation_id' => (string) ($result['reservation_id'] ?? ''),
+                    'reservation_status' => (string) ($result['reservation_status'] ?? ''),
+                ]);
+        } catch (BusinessException $exception) {
+            return redirect()
+                ->route($config['show_route'], ['id' => (string) $shipment->id])
+                ->with('shipment_completion_feedback', $this->browserCompletionFeedbackFromException($exception));
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return redirect()
+                ->route($config['show_route'], ['id' => (string) $shipment->id])
+                ->with('shipment_completion_feedback', [
+                    'level' => 'warning',
+                    'error_code' => 'ERR_BROWSER_PREFLIGHT_FAILED',
+                    'message' => 'تعذر تنفيذ فحص المحفظة من المتصفح في هذه اللحظة.',
+                    'next_action' => 'أعد المحاولة بعد قليل. إذا استمرت المشكلة، راجع الدعم مع مرجع الشحنة.',
+                ]);
+        }
+    }
+
+    private function issueShipmentWorkspace(Request $request, string $shipmentId, string $portal): RedirectResponse
+    {
+        $account = $this->currentAccount();
+        $accountId = (string) $account->id;
+        $config = $this->shipmentPortalConfig($portal);
+        $shipment = $this->findShipmentForPortal($accountId, $shipmentId);
+
+        $this->authorize('issueAtCarrier', $shipment);
+
+        try {
+            $carrierShipment = app(CarrierService::class)->createAtCarrier($shipment, $request->user());
+
+            return redirect()
+                ->route($config['show_route'], ['id' => (string) $shipment->id])
+                ->with('shipment_completion_feedback', [
+                    'level' => 'success',
+                    'message' => 'تم إصدار الشحنة لدى الناقل بنجاح.',
+                    'next_action' => 'راجع المستندات المتاحة وتابع الحالة الزمنية من نفس الصفحة.',
+                    'carrier_shipment_id' => (string) $carrierShipment->id,
+                    'tracking_number' => (string) ($carrierShipment->tracking_number ?? ''),
+                ]);
+        } catch (BusinessException $exception) {
+            return redirect()
+                ->route($config['show_route'], ['id' => (string) $shipment->id])
+                ->with('shipment_completion_feedback', $this->browserCompletionFeedbackFromException($exception));
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return redirect()
+                ->route($config['show_route'], ['id' => (string) $shipment->id])
+                ->with('shipment_completion_feedback', [
+                    'level' => 'warning',
+                    'error_code' => 'ERR_BROWSER_CARRIER_CREATE_FAILED',
+                    'message' => 'تعذر إكمال إصدار الشحنة لدى الناقل من المتصفح.',
+                    'next_action' => 'أعد المحاولة بعد قليل. إذا استمرت المشكلة، راجع الدعم مع مرجع الشحنة.',
+                ]);
+        }
+    }
+
+    /**
+     * @return array<string, string|null>
+     */
+    private function browserCompletionFeedbackFromException(BusinessException $exception): array
+    {
+        $context = $exception->getContext();
+
+        $map = [
+            'ERR_INSUFFICIENT_BALANCE' => [
+                'message' => 'رصيد المحفظة غير كافٍ لهذه الشحنة.',
+                'next_action' => 'اشحن المحفظة أو اختر عرضًا أقل تكلفة ثم أعد المحاولة.',
+            ],
+            'ERR_DG_DECLARATION_INCOMPLETE' => [
+                'message' => 'يجب إكمال إقرار المواد الخطرة قبل متابعة الدفع أو الإصدار.',
+                'next_action' => 'ارجع إلى خطوة إقرار المحتوى ثم أتم الموافقة القانونية المطلوبة.',
+            ],
+            'ERR_DG_HOLD_REQUIRED' => [
+                'message' => 'هذه الشحنة متوقفة وتتطلب معالجة يدوية قبل أي متابعة.',
+                'next_action' => 'تواصل مع فريق الدعم أو العمليات لمعالجة حالة المواد الخطرة.',
+            ],
+            'ERR_WALLET_RESERVATION_REQUIRED' => [
+                'message' => 'يجب تنفيذ فحص المحفظة وإنشاء حجز مالي قبل الإصدار لدى الناقل.',
+                'next_action' => 'نفذ خطوة فحص المحفظة أولًا ثم أعد محاولة الإصدار.',
+            ],
+            'ERR_INVALID_STATE' => [
+                'message' => 'حالة الشحنة الحالية لا تسمح بهذه الخطوة.',
+                'next_action' => 'أكمل الخطوات السابقة في التسلسل ثم أعد المحاولة.',
+            ],
+            'ERR_INVALID_STATE_FOR_CARRIER' => [
+                'message' => 'هذه الشحنة ليست جاهزة بعد للإصدار لدى الناقل.',
+                'next_action' => 'أكمل الإقرار وفحص المحفظة أولًا ثم أعد المحاولة.',
+            ],
+            'ERR_CARRIER_CREATE_FAILED' => [
+                'message' => 'فشل إصدار الشحنة لدى الناقل.',
+                'next_action' => 'أعد المحاولة لاحقًا. إذا استمرت المشكلة، راجع الدعم مع مرجع الشحنة.',
+            ],
+        ];
+
+        $mapped = $map[$exception->getErrorCode()] ?? null;
+
+        return [
+            'level' => 'warning',
+            'error_code' => $exception->getErrorCode(),
+            'message' => $mapped['message'] ?? $exception->getMessage(),
+            'next_action' => $mapped['next_action'] ?? data_get($context, 'next_action'),
+        ];
     }
 
     /**
@@ -839,7 +992,13 @@ class PortalWorkspaceController extends Controller
         return Shipment::query()
             ->where('account_id', $accountId)
             ->where('id', $shipmentId)
-            ->with(['rateQuote.selectedOption', 'selectedRateOption', 'contentDeclaration.waiverVersion'])
+            ->with([
+                'rateQuote.selectedOption',
+                'selectedRateOption',
+                'contentDeclaration.waiverVersion',
+                'balanceReservation',
+                'carrierShipment',
+            ])
             ->firstOrFail();
     }
 
@@ -853,6 +1012,8 @@ class PortalWorkspaceController extends Controller
                 'carrierShipment',
                 'selectedRateOption',
                 'rateQuote.selectedOption',
+                'balanceReservation',
+                'contentDeclaration.waiverVersion',
             ])
             ->firstOrFail();
 
@@ -872,10 +1033,16 @@ class PortalWorkspaceController extends Controller
             ->all();
 
         return view('pages.portal.shipments.show', [
-            'portalConfig' => $this->shipmentTimelinePortalConfig($portal),
+            'portalConfig' => array_merge(
+                $this->shipmentPortalConfig($portal),
+                $this->shipmentTimelinePortalConfig($portal)
+            ),
             'shipment' => $shipment,
             'timeline' => $timeline,
             'documents' => $documents,
+            'completionFeedback' => session('shipment_completion_feedback'),
+            'canTriggerWalletPreflight' => $request->user()?->can('paymentPreflight', $shipment) ?? false,
+            'canIssueShipment' => $request->user()?->can('issueAtCarrier', $shipment) ?? false,
         ]);
     }
 
@@ -956,6 +1123,9 @@ class PortalWorkspaceController extends Controller
                 'offers_select_route' => 'b2c.shipments.offers.select',
                 'declaration_route' => 'b2c.shipments.declaration',
                 'declaration_submit_route' => 'b2c.shipments.declaration.submit',
+                'show_route' => 'b2c.shipments.show',
+                'preflight_route' => 'b2c.shipments.preflight',
+                'issue_route' => 'b2c.shipments.issue',
             ],
             'b2b' => [
                 'label' => 'بوابة الأعمال لحسابات المنظمات',
@@ -970,6 +1140,9 @@ class PortalWorkspaceController extends Controller
                 'offers_select_route' => 'b2b.shipments.offers.select',
                 'declaration_route' => 'b2b.shipments.declaration',
                 'declaration_submit_route' => 'b2b.shipments.declaration.submit',
+                'show_route' => 'b2b.shipments.show',
+                'preflight_route' => 'b2b.shipments.preflight',
+                'issue_route' => 'b2b.shipments.issue',
             ],
             default => abort(404),
         };

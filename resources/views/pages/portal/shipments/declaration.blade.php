@@ -191,6 +191,10 @@
                     نسخة الإقرار: {{ $declaration->waiverVersion->version }} / {{ strtoupper($declaration->waiverVersion->locale) }}
                 </div>
             @endif
+            <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+                <a href="{{ route($portalConfig['show_route'], ['id' => $shipment->id]) }}" class="btn btn-pr" data-testid="shipment-completion-link">الانتقال إلى خطوة المحفظة والإصدار</a>
+                <a href="{{ route($portalConfig['offers_route'], ['id' => $shipment->id]) }}" class="btn btn-s">مراجعة العرض المختار</a>
+            </div>
         </div>
     </x-card>
 @else

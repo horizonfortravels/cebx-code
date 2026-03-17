@@ -5,6 +5,31 @@
     $timeline = $timeline ?? ['events' => [], 'current_status' => null, 'current_status_label' => null, 'last_updated' => null];
     $events = $timeline['events'] ?? [];
     $documents = $documents ?? [];
+    $completionFeedback = $completionFeedback ?? session('shipment_completion_feedback');
+    $reservation = $shipment->balanceReservation;
+    $reservationStatus = $reservation?->status;
+    $reservationStatusLabels = [
+        \App\Models\WalletHold::STATUS_ACTIVE => 'حجز نشط',
+        \App\Models\WalletHold::STATUS_CAPTURED => 'تم الالتقاط',
+        \App\Models\WalletHold::STATUS_RELEASED => 'تم الإفراج',
+        \App\Models\WalletHold::STATUS_EXPIRED => 'منتهي',
+    ];
+    $selectedOfferAmount = ($shipment->selectedRateOption ?? $shipment->rateQuote?->selectedOption)?->retail_rate ?? $shipment->reserved_amount ?? $shipment->total_charge ?? null;
+    $selectedOfferCurrency = ($shipment->selectedRateOption ?? $shipment->rateQuote?->selectedOption)?->currency ?? $shipment->currency ?? 'SAR';
+    $canTriggerWalletPreflight = $canTriggerWalletPreflight ?? false;
+    $canIssueShipment = $canIssueShipment ?? false;
+    $showWalletPreflightAction = $canTriggerWalletPreflight
+        && (
+            $shipment->status === \App\Models\Shipment::STATUS_DECLARATION_COMPLETE
+            || ($shipment->status === \App\Models\Shipment::STATUS_PAYMENT_PENDING && $reservationStatus === null)
+        )
+        && ! $shipment->carrierShipment
+        && $reservationStatus !== \App\Models\WalletHold::STATUS_CAPTURED
+        && $reservationStatus !== \App\Models\WalletHold::STATUS_ACTIVE;
+    $showCarrierIssueAction = $canIssueShipment
+        && $shipment->status === \App\Models\Shipment::STATUS_PAYMENT_PENDING
+        && $reservationStatus === \App\Models\WalletHold::STATUS_ACTIVE
+        && ! $shipment->carrierShipment;
     $selectedOffer = $shipment->selectedRateOption ?? $shipment->rateQuote?->selectedOption;
     $trackingNumber = $shipment->tracking_number ?? $shipment->carrierShipment?->tracking_number ?? $shipment->carrier_tracking_number ?? 'غير متاح بعد';
 @endphp
@@ -31,6 +56,22 @@
         @endif
     </div>
 </div>
+
+@if($completionFeedback)
+    @php($isSuccessFeedback = ($completionFeedback['level'] ?? 'warning') === 'success')
+    <div style="margin-bottom:20px;padding:18px;border-radius:18px;border:1px solid {{ $isSuccessFeedback ? 'rgba(4,120,87,.22)' : 'rgba(185,28,28,.18)' }};background:{{ $isSuccessFeedback ? 'rgba(4,120,87,.08)' : 'rgba(185,28,28,.06)' }}">
+        <div style="font-size:20px;font-weight:800;color:var(--tx)">{{ $completionFeedback['message'] ?? 'تم تحديث مرحلة إكمال الشحنة.' }}</div>
+        @if(!empty($completionFeedback['next_action']))
+            <div style="margin-top:10px;color:var(--td);font-size:14px">
+                <strong style="color:var(--tx)">الخطوة التالية:</strong>
+                {{ $completionFeedback['next_action'] }}
+            </div>
+        @endif
+        @if(!empty($completionFeedback['error_code']))
+            <div class="td-mono" style="margin-top:10px;font-size:12px;color:var(--tm)">{{ $completionFeedback['error_code'] }}</div>
+        @endif
+    </div>
+@endif
 
 <div class="grid-2" style="margin-bottom:24px">
     <x-card title="الملخص الحالي">
@@ -78,6 +119,78 @@
         </div>
     </x-card>
 </div>
+
+<x-card title="إكمال الشحنة" style="margin-bottom:24px">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;align-items:start">
+        <div style="padding:14px;border:1px solid var(--bd);border-radius:16px;background:white">
+            <div style="font-size:12px;color:var(--tm);margin-bottom:4px">حالة الحجز المالي</div>
+            <div style="font-weight:800;color:var(--tx)">
+                {{ $reservationStatus ? ($reservationStatusLabels[$reservationStatus] ?? $reservationStatus) : 'لا يوجد حجز بعد' }}
+            </div>
+            <div style="font-size:13px;color:var(--td);margin-top:6px">
+                @if($selectedOfferAmount !== null)
+                    {{ number_format((float) $selectedOfferAmount, 2) }} {{ $selectedOfferCurrency }}
+                @else
+                    لم يتم تحديد قيمة قابلة للحجز بعد.
+                @endif
+            </div>
+        </div>
+
+        <div style="padding:14px;border:1px solid var(--bd);border-radius:16px;background:white">
+            <div style="font-size:12px;color:var(--tm);margin-bottom:4px">حالة الإصدار</div>
+            <div style="font-weight:800;color:var(--tx)">
+                {{ $shipment->carrierShipment ? 'تم الإصدار لدى الناقل' : 'لم يتم الإصدار بعد' }}
+            </div>
+            <div style="font-size:13px;color:var(--td);margin-top:6px">
+                {{ $shipment->carrierShipment?->tracking_number ? 'رقم التتبع: ' . $shipment->carrierShipment->tracking_number : 'سيظهر رقم التتبع هنا بعد نجاح الإصدار.' }}
+            </div>
+        </div>
+
+        <div style="padding:14px;border:1px solid var(--bd);border-radius:16px;background:rgba(15,23,42,.02)">
+            @if($showWalletPreflightAction)
+                <div style="font-size:16px;font-weight:800;color:var(--tx);margin-bottom:8px">فحص المحفظة قبل الإصدار</div>
+                <div style="color:var(--td);font-size:14px;margin-bottom:12px">
+                    نفّذ الحجز المالي لهذه الشحنة قبل محاولة الإصدار لدى الناقل.
+                </div>
+                <form method="POST" action="{{ route($portalConfig['preflight_route'], ['id' => $shipment->id]) }}">
+                    @csrf
+                    <button type="submit" class="btn btn-pr" data-testid="wallet-preflight-button">تنفيذ فحص المحفظة</button>
+                </form>
+            @elseif($showCarrierIssueAction)
+                <div style="font-size:16px;font-weight:800;color:var(--tx);margin-bottom:8px">الإصدار لدى الناقل</div>
+                <div style="color:var(--td);font-size:14px;margin-bottom:12px">
+                    الحجز المالي نشط، ويمكنك الآن إرسال الشحنة إلى الناقل وإكمال الإصدار.
+                </div>
+                <form method="POST" action="{{ route($portalConfig['issue_route'], ['id' => $shipment->id]) }}">
+                    @csrf
+                    <button type="submit" class="btn btn-pr" data-testid="carrier-issue-button">إصدار الشحنة لدى الناقل</button>
+                </form>
+            @elseif($shipment->carrierShipment)
+                <div style="font-size:16px;font-weight:800;color:var(--tx);margin-bottom:8px">اكتمل الإصدار</div>
+                <div style="color:var(--td);font-size:14px">
+                    تم ربط هذه الشحنة بالناقل، ويمكنك الآن تنزيل المستندات ومتابعة الحالة الزمنية.
+                </div>
+            @elseif($shipment->status === \App\Models\Shipment::STATUS_REQUIRES_ACTION)
+                <div style="font-size:16px;font-weight:800;color:var(--tx);margin-bottom:8px">الشحنة متوقفة</div>
+                <div style="color:var(--td);font-size:14px">
+                    توجد متطلبات امتثال أو مراجعة يدوية تمنع المتابعة الذاتية لهذه الشحنة حاليًا.
+                </div>
+                <div style="margin-top:12px">
+                    <a href="{{ route($portalConfig['declaration_route'], ['id' => $shipment->id]) }}" class="btn btn-s">مراجعة إقرار المحتوى</a>
+                </div>
+            @else
+                <div style="font-size:16px;font-weight:800;color:var(--tx);margin-bottom:8px">أكمل الخطوات السابقة أولًا</div>
+                <div style="color:var(--td);font-size:14px">
+                    لا يمكن تشغيل فحص المحفظة أو الإصدار قبل اكتمال اختيار العرض وإقرار المحتوى لهذه الشحنة.
+                </div>
+                <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
+                    <a href="{{ route($portalConfig['offers_route'], ['id' => $shipment->id]) }}" class="btn btn-s">العودة إلى العروض</a>
+                    <a href="{{ route($portalConfig['declaration_route'], ['id' => $shipment->id]) }}" class="btn btn-s">مراجعة الإقرار</a>
+                </div>
+            @endif
+        </div>
+    </div>
+</x-card>
 
 <div class="grid-2">
     <x-card title="التسلسل الزمني">
