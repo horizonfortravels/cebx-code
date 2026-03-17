@@ -5,6 +5,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\{BelongsTo, HasMany, HasOne};
+use Illuminate\Database\QueryException;
 class Shipment extends Model {
     use HasFactory, HasUuids, BelongsToAccount;
 
@@ -73,12 +74,34 @@ class Shipment extends Model {
     public function contentDeclaration(): HasOne { return $this->hasOne(ContentDeclaration::class, 'shipment_id'); }
 
     public static function generateRef(): string {
-        return 'SHP-' . date('Y') . str_pad(static::count() + 1, 4, '0', STR_PAD_LEFT);
+        $prefix = 'SHP-' . now()->format('Y');
+        $lastReference = static::withoutGlobalScopes()
+            ->where('reference_number', 'like', $prefix . '%')
+            ->orderByDesc('reference_number')
+            ->value('reference_number');
+
+        if (! is_string($lastReference) || ! preg_match('/^' . preg_quote($prefix, '/') . '(\d{4,})$/', $lastReference, $matches)) {
+            return $prefix . '0001';
+        }
+
+        $nextSequence = ((int) $matches[1]) + 1;
+        $padding = max(4, strlen($matches[1]));
+
+        return $prefix . str_pad((string) $nextSequence, $padding, '0', STR_PAD_LEFT);
     }
 
     public static function generateReference(): string
     {
         return static::generateRef();
+    }
+
+    public static function isReferenceConflict(QueryException $exception): bool
+    {
+        $message = $exception->getMessage();
+
+        return str_contains($message, 'shipments_reference_number_unique')
+            || str_contains($message, 'Duplicate entry')
+            || str_contains($message, 'UNIQUE constraint failed: shipments.reference_number');
     }
 
     public function isDraft(): bool

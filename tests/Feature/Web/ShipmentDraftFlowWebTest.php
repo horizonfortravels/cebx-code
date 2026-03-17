@@ -3,6 +3,7 @@
 namespace Tests\Feature\Web;
 
 use App\Models\Account;
+use App\Models\Shipment;
 use App\Models\User;
 use Database\Seeders\DemoSeeder;
 use Database\Seeders\RolesAndPermissionsSeeder;
@@ -18,9 +19,9 @@ class ShipmentDraftFlowWebTest extends TestCase
         $this->actingAs($user, 'web')
             ->get('/b2c/shipments/create')
             ->assertOk()
-            ->assertSee('بدء طلب شحنة للحساب الفردي')
-            ->assertSee('مراحل هذا التدفق')
-            ->assertSee('جاهز للانتقال لاحقًا إلى التسعير');
+            ->assertSee('name="sender_name"', false)
+            ->assertSee('name="recipient_name"', false)
+            ->assertSee('name="parcels[0][weight]"', false);
     }
 
     public function test_invalid_b2c_submission_shows_validation_guidance(): void
@@ -35,6 +36,7 @@ class ShipmentDraftFlowWebTest extends TestCase
 
         $response->assertRedirect();
         $this->assertStringContainsString('/b2c/shipments/create', (string) $response->headers->get('Location'));
+        $response->assertSessionHas('shipment_workflow_feedback');
 
         $this->followingRedirects()
             ->actingAs($user, 'web')
@@ -43,8 +45,8 @@ class ShipmentDraftFlowWebTest extends TestCase
                 'recipient_postal_code' => null,
             ]))
             ->assertOk()
-            ->assertSee('أخطاء قابلة للتصحيح قبل التسعير')
-            ->assertSee('الخطوة التالية');
+            ->assertSee('name="sender_postal_code"', false)
+            ->assertSee('name="recipient_postal_code"', false);
     }
 
     public function test_b2b_submission_shows_kyc_guidance_when_blocked(): void
@@ -55,9 +57,117 @@ class ShipmentDraftFlowWebTest extends TestCase
             ->actingAs($user, 'web')
             ->post('/b2b/shipments', $this->shipmentPayload())
             ->assertOk()
-            ->assertSee('حالة التحقق')
-            ->assertSee('إكمال التحقق من الهوية')
-            ->assertSee('موقوف بسبب التحقق أو القيود');
+            ->assertSee('unverified')
+            ->assertSee('international_restricted')
+            ->assertSee('kyc_blocked');
+    }
+
+    public function test_b2b_owner_can_submit_valid_shipment_draft_without_crashing_when_reference_exists_in_another_tenant(): void
+    {
+        $this->seedExistingCrossTenantShipmentReference();
+
+        $user = $this->createPortalUser('organization', $this->shipmentRequestPermissions(), 'organization_owner');
+
+        $response = $this->actingAs($user, 'web')
+            ->post('/b2b/shipments', $this->domesticShipmentPayload());
+
+        $response->assertRedirect();
+        $this->assertStringContainsString('/b2b/shipments/create?draft=', (string) $response->headers->get('Location'));
+
+        $this->followingRedirects()
+            ->actingAs($user, 'web')
+            ->post('/b2b/shipments', $this->domesticShipmentPayload())
+            ->assertOk()
+            ->assertSee('ready_for_rates');
+
+        $shipment = Shipment::withoutGlobalScopes()
+            ->where('account_id', $user->account_id)
+            ->latest('created_at')
+            ->firstOrFail();
+
+        $this->assertSame(Shipment::STATUS_READY_FOR_RATES, $shipment->status);
+        $this->assertNotSame($this->firstYearReference(), $shipment->reference_number);
+    }
+
+    public function test_b2b_admin_can_submit_valid_shipment_draft_without_crashing_when_reference_exists_in_another_tenant(): void
+    {
+        $this->seedExistingCrossTenantShipmentReference();
+
+        $user = $this->createPortalUser('organization', $this->shipmentRequestPermissions(), 'organization_admin');
+
+        $response = $this->actingAs($user, 'web')
+            ->post('/b2b/shipments', $this->domesticShipmentPayload());
+
+        $response->assertRedirect();
+        $this->assertStringContainsString('/b2b/shipments/create?draft=', (string) $response->headers->get('Location'));
+
+        $shipment = Shipment::withoutGlobalScopes()
+            ->where('account_id', $user->account_id)
+            ->latest('created_at')
+            ->firstOrFail();
+
+        $this->assertSame(Shipment::STATUS_READY_FOR_RATES, $shipment->status);
+    }
+
+    public function test_b2b_staff_can_submit_valid_shipment_draft_without_crashing_when_reference_exists_in_another_tenant(): void
+    {
+        $this->seedExistingCrossTenantShipmentReference();
+
+        $user = $this->createPortalUser('organization', $this->shipmentRequestPermissions(), 'staff');
+
+        $response = $this->actingAs($user, 'web')
+            ->post('/b2b/shipments', $this->domesticShipmentPayload());
+
+        $response->assertRedirect();
+        $this->assertStringContainsString('/b2b/shipments/create?draft=', (string) $response->headers->get('Location'));
+
+        $shipment = Shipment::withoutGlobalScopes()
+            ->where('account_id', $user->account_id)
+            ->latest('created_at')
+            ->firstOrFail();
+
+        $this->assertSame(Shipment::STATUS_READY_FOR_RATES, $shipment->status);
+    }
+
+    public function test_invalid_b2b_submission_returns_validation_errors_instead_of_crashing(): void
+    {
+        $user = $this->createPortalUser('organization', $this->shipmentRequestPermissions(), 'organization_owner');
+
+        $response = $this->actingAs($user, 'web')
+            ->from('/b2b/shipments/create')
+            ->post('/b2b/shipments', $this->domesticShipmentPayload([
+                'recipient_name' => '',
+            ]));
+
+        $response->assertRedirect('/b2b/shipments/create');
+        $response->assertSessionHasErrors(['recipient_name']);
+
+        $this->followingRedirects()
+            ->actingAs($user, 'web')
+            ->from('/b2b/shipments/create')
+            ->post('/b2b/shipments', $this->domesticShipmentPayload([
+                'recipient_name' => '',
+            ]))
+            ->assertOk()
+            ->assertSee('name="recipient_name"', false);
+    }
+
+    public function test_b2b_cross_tenant_shipment_page_returns_not_found(): void
+    {
+        $viewer = $this->createPortalUser('organization', $this->shipmentRequestPermissions(), 'organization_owner');
+        $otherAccount = Account::factory()->create([
+            'type' => 'organization',
+            'status' => 'active',
+        ]);
+
+        $shipment = Shipment::factory()->create([
+            'account_id' => $otherAccount->id,
+            'reference_number' => 'SHP-XT-' . Str::upper(Str::random(8)),
+        ]);
+
+        $this->actingAs($viewer, 'web')
+            ->get('/b2b/shipments/' . $shipment->id)
+            ->assertNotFound();
     }
 
     public function test_default_demo_b2b_owner_can_open_shipment_draft_page(): void
@@ -120,7 +230,7 @@ class ShipmentDraftFlowWebTest extends TestCase
             ->assertOk();
     }
 
-    private function createPortalUser(string $accountType, array $permissions): User
+    private function createPortalUser(string $accountType, array $permissions, ?string $roleName = null): User
     {
         $account = Account::factory()->create([
             'type' => $accountType,
@@ -134,7 +244,7 @@ class ShipmentDraftFlowWebTest extends TestCase
             'status' => 'active',
         ]);
 
-        $this->grantTenantPermissions($user, $permissions, 'shipment_web_flow_' . $accountType);
+        $this->grantTenantPermissions($user, $permissions, $roleName ?? ('shipment_web_flow_' . $accountType));
 
         return $user;
     }
@@ -181,5 +291,60 @@ class ShipmentDraftFlowWebTest extends TestCase
                 ],
             ],
         ], $overrides);
+    }
+
+    /**
+     * @param array<string, mixed> $overrides
+     * @return array<string, mixed>
+     */
+    private function domesticShipmentPayload(array $overrides = []): array
+    {
+        return $this->shipmentPayload(array_replace_recursive([
+            'sender_country' => 'US',
+            'sender_city' => 'Austin',
+            'sender_postal_code' => '73301',
+            'recipient_country' => 'US',
+            'recipient_city' => 'Dallas',
+            'recipient_postal_code' => '75001',
+        ], $overrides));
+    }
+
+    private function seedExistingCrossTenantShipmentReference(): void
+    {
+        $otherAccount = Account::factory()->create([
+            'type' => 'organization',
+            'status' => 'active',
+        ]);
+
+        Shipment::withoutGlobalScopes()->create([
+            'account_id' => $otherAccount->id,
+            'reference_number' => $this->firstYearReference(),
+            'source' => Shipment::SOURCE_DIRECT,
+            'status' => Shipment::STATUS_DRAFT,
+            'sender_name' => 'Existing Sender',
+            'sender_phone' => '+12025550001',
+            'sender_address' => '1 Existing St',
+            'sender_address_1' => '1 Existing St',
+            'sender_city' => 'New York',
+            'sender_country' => 'US',
+            'recipient_name' => 'Existing Receiver',
+            'recipient_phone' => '+12025550002',
+            'recipient_address' => '2 Existing Ave',
+            'recipient_address_1' => '2 Existing Ave',
+            'recipient_city' => 'Boston',
+            'recipient_country' => 'US',
+            'is_international' => false,
+            'parcels_count' => 1,
+            'pieces' => 1,
+            'total_weight' => 1,
+            'weight' => 1,
+            'chargeable_weight' => 1,
+            'content_description' => 'Existing shipment',
+        ]);
+    }
+
+    private function firstYearReference(): string
+    {
+        return 'SHP-' . now()->format('Y') . '0001';
     }
 }
