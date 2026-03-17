@@ -18,6 +18,12 @@
     $shipmentStatusLabel = $shipmentStatusLabels[$shipment->status] ?? $shipment->status;
     $selectedOffer = $selectedOffer ?? null;
     $declaration = $declaration ?? null;
+    $declarationStatusLabels = [
+        \App\Models\ContentDeclaration::STATUS_PENDING => 'قيد الانتظار',
+        \App\Models\ContentDeclaration::STATUS_COMPLETED => 'مكتمل',
+        \App\Models\ContentDeclaration::STATUS_HOLD_DG => 'متوقف بسبب مواد خطرة',
+        \App\Models\ContentDeclaration::STATUS_REQUIRES_ACTION => 'متوقف ويتطلب مراجعة',
+    ];
     $isBlocked = $declaration?->isBlocked() ?? false;
     $isComplete = (bool) ($declaration?->waiver_accepted && $declaration?->status === \App\Models\ContentDeclaration::STATUS_COMPLETED);
     $canContinue = $workflowReady && ! $isBlocked;
@@ -25,6 +31,14 @@
     $documentsRoute = request()->routeIs('b2b.*')
         ? route('b2b.shipments.documents.index', ['id' => $shipment->id])
         : route('b2c.shipments.documents.index', ['id' => $shipment->id]);
+@endphp
+
+@php
+    $declarationFeedbackMessage = $declarationFeedback['message'] ?? 'تم تحديث حالة الإقرار.';
+    $declarationFeedbackNextAction = $declarationFeedback['next_action'] ?? null;
+    if (($declarationFeedback['level'] ?? 'warning') === 'success' && $shipment->status === 'declaration_complete') {
+        $declarationFeedbackNextAction = 'انتقل إلى صفحة الشحنة لتفعيل فحص رصيد المحفظة ثم متابعة الإصدار لدى الناقل.';
+    }
 @endphp
 
 <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:24px">
@@ -66,11 +80,11 @@
 @if($declarationFeedback)
     @php($isSuccessFeedback = ($declarationFeedback['level'] ?? 'warning') === 'success')
     <div style="margin-bottom:20px;padding:18px;border-radius:18px;border:1px solid {{ $isSuccessFeedback ? 'rgba(4,120,87,.22)' : 'rgba(185,28,28,.18)' }};background:{{ $isSuccessFeedback ? 'rgba(4,120,87,.08)' : 'rgba(185,28,28,.06)' }}">
-        <div style="font-size:18px;font-weight:800;color:var(--tx)">{{ $declarationFeedback['message'] ?? 'تم تحديث حالة الإقرار.' }}</div>
-        @if(!empty($declarationFeedback['next_action']))
+        <div style="font-size:18px;font-weight:800;color:var(--tx)">{{ $declarationFeedbackMessage }}</div>
+        @if(!empty($declarationFeedbackNextAction))
             <div style="margin-top:10px;color:var(--td);font-size:14px">
                 <strong style="color:var(--tx)">الإجراء التالي:</strong>
-                {{ $declarationFeedback['next_action'] }}
+                {{ $declarationFeedbackNextAction }}
             </div>
         @endif
         @if(!empty($declarationFeedback['error_code']))
@@ -121,7 +135,7 @@
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
             <div>
                 <div style="font-size:12px;color:var(--tm);margin-bottom:4px">حالة الإقرار</div>
-                <div style="font-weight:700;color:var(--tx)">{{ $declaration?->status ?? 'لم يبدأ بعد' }}</div>
+                <div style="font-weight:700;color:var(--tx)">{{ $declaration ? ($declarationStatusLabels[$declaration->status] ?? $declaration->status) : 'لم يبدأ بعد' }}</div>
             </div>
             <div>
                 <div style="font-size:12px;color:var(--tm);margin-bottom:4px">تم تحديد وجود مواد خطرة</div>

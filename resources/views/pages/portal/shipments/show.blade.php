@@ -9,6 +9,19 @@
     $completionFeedback = $completionFeedback ?? session('shipment_completion_feedback');
     $reservation = $shipment->balanceReservation;
     $reservationStatus = $reservation?->status;
+    $workflowStatusLabels = [
+        \App\Models\Shipment::STATUS_DRAFT => 'مسودة',
+        \App\Models\Shipment::STATUS_VALIDATED => 'تم التحقق من البيانات',
+        \App\Models\Shipment::STATUS_KYC_BLOCKED => 'موقوف بسبب التحقق أو القيود',
+        \App\Models\Shipment::STATUS_READY_FOR_RATES => 'جاهز لطلب العروض',
+        \App\Models\Shipment::STATUS_RATED => 'تم تجهيز العروض',
+        \App\Models\Shipment::STATUS_OFFER_SELECTED => 'تم تثبيت العرض',
+        \App\Models\Shipment::STATUS_DECLARATION_REQUIRED => 'إقرار المحتوى مطلوب',
+        \App\Models\Shipment::STATUS_DECLARATION_COMPLETE => 'اكتمل إقرار المحتوى',
+        \App\Models\Shipment::STATUS_REQUIRES_ACTION => 'تتطلب هذه الشحنة إجراءً إضافيًا',
+        \App\Models\Shipment::STATUS_PAYMENT_PENDING => 'بانتظار تأكيد الحجز المالي',
+        \App\Models\Shipment::STATUS_PURCHASED => 'تم الإصدار لدى الناقل',
+    ];
     $reservationStatusLabels = [
         \App\Models\WalletHold::STATUS_ACTIVE => 'حجز نشط',
         \App\Models\WalletHold::STATUS_CAPTURED => 'تم الالتقاط',
@@ -34,6 +47,39 @@
         && ! $shipment->carrierShipment;
     $selectedOffer = $shipment->selectedRateOption ?? $shipment->rateQuote?->selectedOption;
     $trackingNumber = $shipment->tracking_number ?? $shipment->carrierShipment?->tracking_number ?? $shipment->carrier_tracking_number ?? 'غير متاح بعد';
+    $completionFeedbackMessage = $completionFeedback['message'] ?? 'تم تحديث مرحلة إكمال الشحنة.';
+    $completionFeedbackNextAction = $completionFeedback['next_action'] ?? null;
+    $completionFeedbackErrorCode = $completionFeedback['error_code'] ?? null;
+    $completionFeedbackErrorMap = [
+        'ERR_WALLET_NOT_AVAILABLE' => [
+            'message' => 'لا توجد محفظة متاحة بعملة هذه الشحنة.',
+            'next_action' => 'أنشئ محفظة أو موّل محفظة بعملة الشحنة قبل متابعة الحجز والإصدار.',
+        ],
+        'ERR_INSUFFICIENT_BALANCE' => [
+            'message' => 'رصيد المحفظة غير كافٍ لإتمام الحجز المسبق لهذه الشحنة.',
+            'next_action' => 'أضف رصيدًا كافيًا إلى المحفظة ثم أعد تنفيذ فحص المحفظة.',
+        ],
+        'ERR_INVALID_STATE' => [
+            'message' => 'لا يمكن تنفيذ هذه الخطوة من حالة الشحنة الحالية.',
+            'next_action' => 'أكمل اختيار العرض وإقرار المحتوى أولًا ثم أعد المحاولة.',
+        ],
+        'ERR_WALLET_RESERVATION_REQUIRED' => [
+            'message' => 'يجب وجود حجز مالي نشط قبل محاولة الإصدار لدى الناقل.',
+            'next_action' => 'نفّذ فحص المحفظة أولًا ثم أعد محاولة الإصدار.',
+        ],
+        'ERR_DG_DECLARATION_INCOMPLETE' => [
+            'message' => 'لا يمكن متابعة الشحنة قبل اكتمال إقرار المحتوى.',
+            'next_action' => 'افتح صفحة إقرار المحتوى وأكمل التصريح القانوني أولًا.',
+        ],
+        'ERR_DG_HOLD_REQUIRED' => [
+            'message' => 'هذه الشحنة متوقفة حاليًا بسبب قيد امتثال أو مواد خطرة.',
+            'next_action' => 'راجع صفحة إقرار المحتوى أو تواصل مع فريق الدعم لاستكمال المعالجة اليدوية.',
+        ],
+    ];
+    if ($completionFeedbackErrorCode && isset($completionFeedbackErrorMap[$completionFeedbackErrorCode])) {
+        $completionFeedbackMessage = $completionFeedbackErrorMap[$completionFeedbackErrorCode]['message'];
+        $completionFeedbackNextAction = $completionFeedbackErrorMap[$completionFeedbackErrorCode]['next_action'];
+    }
 @endphp
 
 @section('content')
@@ -65,11 +111,11 @@
 @if($completionFeedback)
     @php($isSuccessFeedback = ($completionFeedback['level'] ?? 'warning') === 'success')
     <div style="margin-bottom:20px;padding:18px;border-radius:18px;border:1px solid {{ $isSuccessFeedback ? 'rgba(4,120,87,.22)' : 'rgba(185,28,28,.18)' }};background:{{ $isSuccessFeedback ? 'rgba(4,120,87,.08)' : 'rgba(185,28,28,.06)' }}">
-        <div style="font-size:20px;font-weight:800;color:var(--tx)">{{ $completionFeedback['message'] ?? 'تم تحديث مرحلة إكمال الشحنة.' }}</div>
-        @if(!empty($completionFeedback['next_action']))
+        <div style="font-size:20px;font-weight:800;color:var(--tx)">{{ $completionFeedbackMessage }}</div>
+        @if(!empty($completionFeedbackNextAction))
             <div style="margin-top:10px;color:var(--td);font-size:14px">
                 <strong style="color:var(--tx)">الخطوة التالية:</strong>
-                {{ $completionFeedback['next_action'] }}
+                {{ $completionFeedbackNextAction }}
             </div>
         @endif
         @if(!empty($completionFeedback['error_code']))
@@ -115,7 +161,7 @@
             </div>
             <div>
                 <div style="font-size:12px;color:var(--tm);margin-bottom:4px">حالة سير العمل</div>
-                <div style="font-weight:800;color:var(--tx)">{{ $shipment->status ?? 'غير متاحة' }}</div>
+                <div style="font-weight:800;color:var(--tx)">{{ $workflowStatusLabels[$shipment->status] ?? ($shipment->status ?? 'غير متاحة') }}</div>
             </div>
             <div>
                 <div style="font-size:12px;color:var(--tm);margin-bottom:4px">عدد الأحداث</div>

@@ -6,6 +6,19 @@
     $documents = $documents ?? [];
     $hasDocuments = count($documents) > 0;
     $selectedOffer = $shipment->selectedRateOption;
+    $workflowStatusLabels = [
+        \App\Models\Shipment::STATUS_DRAFT => 'مسودة',
+        \App\Models\Shipment::STATUS_VALIDATED => 'تم التحقق من البيانات',
+        \App\Models\Shipment::STATUS_KYC_BLOCKED => 'موقوف بسبب التحقق أو القيود',
+        \App\Models\Shipment::STATUS_READY_FOR_RATES => 'جاهز لطلب العروض',
+        \App\Models\Shipment::STATUS_RATED => 'تم تجهيز العروض',
+        \App\Models\Shipment::STATUS_OFFER_SELECTED => 'تم تثبيت العرض',
+        \App\Models\Shipment::STATUS_DECLARATION_REQUIRED => 'إقرار المحتوى مطلوب',
+        \App\Models\Shipment::STATUS_DECLARATION_COMPLETE => 'اكتمل إقرار المحتوى',
+        \App\Models\Shipment::STATUS_REQUIRES_ACTION => 'تتطلب هذه الشحنة إجراءً إضافيًا',
+        \App\Models\Shipment::STATUS_PAYMENT_PENDING => 'بانتظار تأكيد الحجز المالي',
+        \App\Models\Shipment::STATUS_PURCHASED => 'تم الإصدار لدى الناقل',
+    ];
 @endphp
 
 <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:24px">
@@ -37,7 +50,7 @@
             </div>
             <div>
                 <div style="font-size:12px;color:var(--tm);margin-bottom:4px">حالة الشحنة</div>
-                <div style="font-weight:700;color:var(--tx)">{{ $shipment->status }}</div>
+                <div style="font-weight:700;color:var(--tx)">{{ $workflowStatusLabels[$shipment->status] ?? $shipment->status }}</div>
             </div>
             <div>
                 <div style="font-size:12px;color:var(--tm);margin-bottom:4px">الناقل</div>

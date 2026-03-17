@@ -27,7 +27,7 @@
             <p class="login-form-subtitle">@yield('form-subtitle', 'أدخل بياناتك للدخول')</p>
 
             @if ($errors->any())
-                <div class="login-errors">
+                <div class="login-errors" role="alert" aria-live="polite" id="login-errors">
                     @foreach ($errors->all() as $error)
                         <div>{{ $error }}</div>
                     @endforeach
@@ -37,16 +37,42 @@
             <form method="POST" action="@yield('form-action')" class="login-form">
                 @csrf
                 <div class="form-group">
-                    <label class="form-label">البريد الإلكتروني</label>
-                    <input type="email" name="email" value="{{ old('email') }}" placeholder="@yield('email-placeholder', 'you@company.sa')" class="form-input" required autofocus style="@yield('input-focus-style')">
+                    <label class="form-label" for="login-email">البريد الإلكتروني</label>
+                    <input
+                        id="login-email"
+                        type="email"
+                        name="email"
+                        value="{{ old('email') }}"
+                        placeholder="@yield('email-placeholder', 'you@company.sa')"
+                        class="form-input"
+                        inputmode="email"
+                        autocomplete="username"
+                        aria-describedby="{{ $errors->any() ? 'login-errors' : 'login-email-hint' }}"
+                        aria-invalid="{{ $errors->has('email') ? 'true' : 'false' }}"
+                        required
+                        autofocus
+                        style="@yield('input-focus-style')"
+                    >
+                    <div id="login-email-hint" class="form-hint">استخدم البريد المرتبط بالحساب الذي تريد الدخول إليه.</div>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">كلمة المرور</label>
-                    <input type="password" name="password" placeholder="••••••••" class="form-input" required>
+                    <label class="form-label" for="login-password">كلمة المرور</label>
+                    <input
+                        id="login-password"
+                        type="password"
+                        name="password"
+                        placeholder="••••••••"
+                        class="form-input"
+                        autocomplete="current-password"
+                        aria-describedby="{{ $errors->any() ? 'login-errors' : 'login-password-hint' }}"
+                        aria-invalid="{{ $errors->has('password') ? 'true' : 'false' }}"
+                        required
+                    >
+                    <div id="login-password-hint" class="form-hint">أدخل كلمة المرور الحالية لهذا الحساب.</div>
                 </div>
                 <div class="login-form-options">
-                    <label class="login-remember">
-                        <input type="checkbox" name="remember"> تذكرني
+                    <label class="login-remember" for="login-remember">
+                        <input id="login-remember" type="checkbox" name="remember"> تذكرني على هذا الجهاز
                     </label>
                 </div>
                 <button type="submit" class="login-submit-btn" style="@yield('btn-style', 'background:var(--pr);color:#fff')">
@@ -135,6 +161,11 @@
     color: #991B1B;
 }
 .login-form .form-group { margin-bottom: 18px; }
+.form-hint {
+    margin-top: 6px;
+    font-size: 12px;
+    color: var(--tm, #94A3B8);
+}
 .login-form-options { margin-bottom: 20px; }
 .login-remember { font-size: 13px; color: var(--td); cursor: pointer; display: flex; align-items: center; gap: 8px; }
 .login-submit-btn {
