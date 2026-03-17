@@ -19,7 +19,7 @@ return [
     'fedex' => [
         'client_id' => env('FEDEX_CLIENT_ID'),
         'client_secret' => env('FEDEX_CLIENT_SECRET'),
-        'account_number' => env('FEDEX_ACCOUNT_NUMBER'),
+        'account_number' => env('FEDEX_ACCOUNT_NUMBER', env('FEDEX_SHIPPER_ACCOUNT', env('FEDEX_BILL_TO_ACCOUNT'))),
         'base_url' => env('FEDEX_BASE_URL', 'https://apis-sandbox.fedex.com'),
         'oauth_url' => env('FEDEX_OAUTH_URL', 'https://apis-base.test.cloud.fedex.com/oauth/token'),
         'locale' => env('FEDEX_LOCALE', 'en_US'),

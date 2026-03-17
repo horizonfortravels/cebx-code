@@ -56,7 +56,8 @@ class RateService
         }
 
         return DB::transaction(function () use ($shipment, $account, $performer, $carrierCode): RateQuote {
-            $context = $this->buildContext($shipment, $carrierCode);
+            $resolvedCarrierCode = $this->carrierAdapter->resolveCarrierCode($carrierCode);
+            $context = $this->buildContext($shipment, $resolvedCarrierCode);
 
             $quote = RateQuote::create([
                 'account_id' => $account->id,
