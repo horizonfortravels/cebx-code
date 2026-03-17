@@ -8,6 +8,7 @@ use App\Models\Account;
 use App\Models\ContentDeclaration;
 use App\Models\CustomerApiKey;
 use App\Models\IntegrationHealthLog;
+use App\Models\Notification;
 use App\Models\Order;
 use App\Models\Role;
 use App\Models\RateQuote;
@@ -907,7 +908,7 @@ class PortalWorkspaceController extends Controller
                 ->with('shipment_completion_feedback', [
                     'level' => 'success',
                     'message' => 'تم إصدار الشحنة لدى الناقل بنجاح.',
-                    'next_action' => 'راجع المستندات المتاحة وتابع الحالة الزمنية من نفس الصفحة.',
+                    'next_action' => 'راجع المستندات والحالة الزمنية من نفس الصفحة، ثم افتح مركز الإشعارات لمتابعة آخر التحديثات.',
                     'carrier_shipment_id' => (string) $carrierShipment->id,
                     'tracking_number' => (string) ($carrierShipment->tracking_number ?? ''),
                 ]);
@@ -1031,6 +1032,35 @@ class PortalWorkspaceController extends Controller
                 ]);
             })
             ->all();
+        $canViewNotifications = method_exists($request->user(), 'hasPermission')
+            && $request->user()->hasPermission('notifications.read');
+        $shipmentNotifications = [];
+
+        if ($canViewNotifications) {
+            $shipmentNotifications = Notification::query()
+                ->where('account_id', (string) $account->id)
+                ->where('user_id', (string) $request->user()->id)
+                ->where('channel', Notification::CHANNEL_IN_APP)
+                ->where('entity_type', 'shipment')
+                ->where('entity_id', (string) $shipment->id)
+                ->latest()
+                ->limit(5)
+                ->get()
+                ->map(static fn (Notification $notification): array => [
+                    'id' => (string) $notification->id,
+                    'event_type' => (string) $notification->event_type,
+                    'subject' => (string) ($notification->subject
+                        ?? data_get($notification->event_data, 'title')
+                        ?? $notification->event_type
+                        ?? 'إشعار شحنة'),
+                    'body' => (string) ($notification->body
+                        ?? data_get($notification->event_data, 'event_description')
+                        ?? ''),
+                    'created_at' => optional($notification->created_at)?->toIso8601String(),
+                    'read_at' => optional($notification->read_at)?->toIso8601String(),
+                ])
+                ->all();
+        }
 
         return view('pages.portal.shipments.show', [
             'portalConfig' => array_merge(
@@ -1043,6 +1073,8 @@ class PortalWorkspaceController extends Controller
             'completionFeedback' => session('shipment_completion_feedback'),
             'canTriggerWalletPreflight' => $request->user()?->can('paymentPreflight', $shipment) ?? false,
             'canIssueShipment' => $request->user()?->can('issueAtCarrier', $shipment) ?? false,
+            'canViewNotifications' => $canViewNotifications,
+            'shipmentNotifications' => $shipmentNotifications,
         ]);
     }
 

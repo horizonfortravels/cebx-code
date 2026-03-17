@@ -5,6 +5,7 @@
     $timeline = $timeline ?? ['events' => [], 'current_status' => null, 'current_status_label' => null, 'last_updated' => null];
     $events = $timeline['events'] ?? [];
     $documents = $documents ?? [];
+    $shipmentNotifications = $shipmentNotifications ?? [];
     $completionFeedback = $completionFeedback ?? session('shipment_completion_feedback');
     $reservation = $shipment->balanceReservation;
     $reservationStatus = $reservation?->status;
@@ -18,6 +19,7 @@
     $selectedOfferCurrency = ($shipment->selectedRateOption ?? $shipment->rateQuote?->selectedOption)?->currency ?? $shipment->currency ?? 'SAR';
     $canTriggerWalletPreflight = $canTriggerWalletPreflight ?? false;
     $canIssueShipment = $canIssueShipment ?? false;
+    $canViewNotifications = $canViewNotifications ?? false;
     $showWalletPreflightAction = $canTriggerWalletPreflight
         && (
             $shipment->status === \App\Models\Shipment::STATUS_DECLARATION_COMPLETE
@@ -53,6 +55,9 @@
         <a href="{{ route($portalConfig['shipments_index_route']) }}" class="btn btn-s">العودة إلى الشحنات</a>
         @if(!empty($documents))
             <a href="{{ route($portalConfig['documents_route'], ['id' => $shipment->id]) }}" class="btn btn-pr">عرض المستندات</a>
+        @endif
+        @if($canViewNotifications)
+            <a href="{{ route('notifications.index') }}" class="btn btn-s" data-testid="shipment-notifications-link">عرض الإشعارات</a>
         @endif
     </div>
 </div>
@@ -269,4 +274,45 @@
         @endif
     </x-card>
 </div>
+
+@if($canViewNotifications)
+    <x-card title="الإشعارات المرتبطة بالشحنة" style="margin-top:24px">
+        @if($shipmentNotifications === [])
+            <div style="padding:16px;border:1px dashed var(--bd);border-radius:16px;background:rgba(15,23,42,.02)">
+                <div style="font-size:18px;font-weight:800;color:var(--tx);margin-bottom:8px">لا توجد إشعارات مرتبطة بهذه الشحنة حتى الآن</div>
+                <div style="color:var(--td);font-size:14px;margin-bottom:12px">
+                    عند وصول أي تحديث معياري جديد لهذه الشحنة سيظهر هنا، كما سيظل متاحًا من مركز الإشعارات العام.
+                </div>
+                <a href="{{ route('notifications.index') }}" class="btn btn-s">فتح مركز الإشعارات</a>
+            </div>
+        @else
+            <div style="display:flex;flex-direction:column;gap:12px">
+                @foreach($shipmentNotifications as $notification)
+                    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px;border:1px solid var(--bd);border-radius:16px;background:white">
+                        <div style="max-width:720px">
+                            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                                <div style="font-weight:800;color:var(--tx)">{{ $notification['subject'] }}</div>
+                                @if(empty($notification['read_at']))
+                                    <span style="font-size:12px;padding:4px 8px;border-radius:999px;background:rgba(15,118,110,.12);color:#0f766e">جديد</span>
+                                @endif
+                            </div>
+                            @if(!empty($notification['body']))
+                                <div style="font-size:13px;color:var(--td);margin-top:6px">{{ $notification['body'] }}</div>
+                            @endif
+                            <div class="td-mono" style="font-size:12px;color:var(--tm);margin-top:8px">{{ $notification['event_type'] }}</div>
+                        </div>
+                        <div style="text-align:left;min-width:150px">
+                            <div style="font-size:13px;color:var(--td)">
+                                {{ !empty($notification['created_at']) ? \Illuminate\Support\Carbon::parse($notification['created_at'])->format('Y-m-d H:i') : 'غير محدد' }}
+                            </div>
+                            <div style="margin-top:10px">
+                                <a href="{{ route('notifications.index') }}" class="btn btn-s">عرض الكل</a>
+                            </div>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        @endif
+    </x-card>
+@endif
 @endsection
