@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Account;
+use App\Models\BillingWallet;
 use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\E2EUserMatrixSeeder;
@@ -183,6 +184,20 @@ class CanonicalExternalAccountModelTest extends TestCase
             'individual_account_holder',
             $this->primaryRoleNameForUserEmail('e2e.b.individual@example.test')
         );
+
+        $walletA = BillingWallet::withoutGlobalScopes()
+            ->where('account_id', (string) $accountA->id)
+            ->where('currency', 'USD')
+            ->first();
+        $walletC = BillingWallet::withoutGlobalScopes()
+            ->where('account_id', (string) $accountC->id)
+            ->where('currency', 'USD')
+            ->first();
+
+        $this->assertNotNull($walletA);
+        $this->assertNotNull($walletC);
+        $this->assertSame('1000.00', (string) $walletA?->available_balance);
+        $this->assertSame('1000.00', (string) $walletC?->available_balance);
     }
 
     /**

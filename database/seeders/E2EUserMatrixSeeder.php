@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Account;
+use App\Models\BillingWallet;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -234,9 +235,12 @@ class E2EUserMatrixSeeder extends Seeder
             assignedBy: (string) $internalSuperAdmin->id
         );
 
+        $this->seedDeterministicWallets($accounts);
+
         $this->command?->info('E2E user matrix seeded successfully.');
         $this->command?->line('Seeded accounts: A/B as single-user individual accounts, C/D as organization team accounts, plus internal users.');
         $this->command?->line('Login password for all seeded users: Password123!');
+        $this->command?->line('Funded E2E billing wallets: account A (individual) and account C (organization) in USD for browser completion checks.');
     }
 
     private function cleanupLegacyMatrixUsers(): void
@@ -280,6 +284,30 @@ class E2EUserMatrixSeeder extends Seeder
         }
 
         User::query()->withoutGlobalScopes()->whereIn('id', $userIds)->delete();
+    }
+
+    /**
+     * @param array<string, Account> $accounts
+     */
+    private function seedDeterministicWallets(array $accounts): void
+    {
+        foreach (['a', 'c'] as $accountKey) {
+            BillingWallet::query()->withoutGlobalScopes()->updateOrCreate(
+                [
+                    'account_id' => (string) $accounts[$accountKey]->id,
+                    'currency' => 'USD',
+                ],
+                [
+                    'organization_id' => null,
+                    'available_balance' => 1000.00,
+                    'reserved_balance' => 0.00,
+                    'total_credited' => 1000.00,
+                    'total_debited' => 0.00,
+                    'status' => 'active',
+                    'allow_negative' => false,
+                ]
+            );
+        }
     }
 
     private function upsertAccount(string $slug, string $name, string $requestedType): Account

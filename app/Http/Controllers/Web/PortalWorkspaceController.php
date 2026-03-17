@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Exceptions\BusinessException;
 use App\Http\Controllers\Controller;
 use App\Models\Account;
+use App\Models\BillingWallet;
 use App\Models\ContentDeclaration;
 use App\Models\CustomerApiKey;
 use App\Models\IntegrationHealthLog;
@@ -16,7 +17,6 @@ use App\Models\Shipment;
 use App\Models\Store;
 use App\Models\User;
 use App\Models\WaiverVersion;
-use App\Models\Wallet;
 use App\Models\WalletLedgerEntry;
 use App\Models\WebhookEvent;
 use App\Services\CarrierService;
@@ -58,7 +58,7 @@ class PortalWorkspaceController extends Controller
     {
         $account = $this->currentAccount();
         $accountId = (string) $account->id;
-        $wallet = Wallet::query()->where('account_id', $accountId)->first();
+        $wallet = $this->preferredBillingWallet($accountId);
 
         return view('pages.portal.b2c.wallet', [
             'account' => $account,
@@ -276,7 +276,7 @@ class PortalWorkspaceController extends Controller
     {
         $account = $this->currentAccount();
         $accountId = (string) $account->id;
-        $wallet = Wallet::query()->where('account_id', $accountId)->first();
+        $wallet = $this->preferredBillingWallet($accountId);
 
         return view('pages.portal.b2b.wallet', [
             'account' => $account,
@@ -1237,7 +1237,18 @@ class PortalWorkspaceController extends Controller
             ?? $service->getActiveWaiver('ar');
     }
 
-    private function walletEntries(?Wallet $wallet): Collection
+    private function preferredBillingWallet(string $accountId): ?BillingWallet
+    {
+        return BillingWallet::query()
+            ->where('account_id', $accountId)
+            ->orderByRaw("case when status = 'active' then 0 else 1 end")
+            ->orderByDesc('available_balance')
+            ->orderByDesc('reserved_balance')
+            ->oldest('created_at')
+            ->first();
+    }
+
+    private function walletEntries(?BillingWallet $wallet): Collection
     {
         if (! $wallet) {
             return collect();
