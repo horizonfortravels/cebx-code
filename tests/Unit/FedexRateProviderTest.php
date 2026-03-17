@@ -3,6 +3,7 @@
 namespace Tests\Unit;
 
 use App\Services\Carriers\FedexRateProvider;
+use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
@@ -42,6 +43,29 @@ class FedexRateProviderTest extends TestCase
         $this->assertSame('2026-03-15T18:00:00Z', $offers[0]['estimated_delivery_at']);
         $this->assertTrue($offers[0]['virtualized_response']);
         $this->assertNotEmpty($offers[0]['carrier_alerts']);
+
+        Http::assertSent(function (Request $request): bool {
+            if ($request->url() !== 'https://apis-sandbox.fedex.com/availability/v1/packageandserviceoptions') {
+                return false;
+            }
+
+            return data_get($request->data(), 'requestedShipment.recipient') === null
+                && data_get($request->data(), 'requestedShipment.recipients.0.address.countryCode') === 'US'
+                && data_get($request->data(), 'requestedShipment.recipients.0.address.stateOrProvinceCode') === 'NY'
+                && data_get($request->data(), 'requestedShipment.packagingType') === 'YOUR_PACKAGING';
+        });
+
+        Http::assertSent(function (Request $request): bool {
+            if ($request->url() !== 'https://apis-sandbox.fedex.com/rate/v1/rates/quotes') {
+                return false;
+            }
+
+            return data_get($request->data(), 'requestedShipment.rateRequestType.0') === 'ACCOUNT'
+                && data_get($request->data(), 'requestedShipment.rateRequestTypes') === null
+                && data_get($request->data(), 'requestedShipment.shipper.address.countryCode') === 'SA'
+                && data_get($request->data(), 'requestedShipment.recipient.address.countryCode') === 'US'
+                && data_get($request->data(), 'requestedShipment.packagingType') === 'YOUR_PACKAGING';
+        });
     }
 
     public function test_virtualized_response_alert_is_tolerated_gracefully(): void
@@ -95,12 +119,13 @@ class FedexRateProviderTest extends TestCase
             'recipient_city' => 'New York',
             'recipient_postal_code' => '10001',
             'recipient_country' => 'US',
+            'recipient_state' => 'NY',
             'parcels' => [[
                 'weight' => 1.5,
                 'length' => 20,
                 'width' => 15,
                 'height' => 10,
-                'packaging_type' => 'YOUR_PACKAGING',
+                'packaging_type' => 'custom',
             ]],
             'total_weight' => 1.5,
             'chargeable_weight' => 1.5,

@@ -644,6 +644,25 @@ class CarrierService
             ];
         }
 
+        foreach ((array) data_get($response, 'carrier_metadata.package_documents', []) as $document) {
+            $type = (string) ($document['contentType'] ?? $document['docType'] ?? $document['contentKey'] ?? 'label');
+            $documents[] = [
+                'type' => $type,
+                'format' => $this->normalizeDocumentFormat((string) ($document['docType'] ?? $document['fileType'] ?? $document['fileFormat'] ?? $document['contentType'] ?? $carrierShipment->label_format)),
+                'content' => $document['encodedLabel'] ?? $document['content'] ?? null,
+                'url' => $document['url'] ?? $document['documentUrl'] ?? null,
+                'urlExpiry' => $document['urlExpiry'] ?? $document['expirationTime'] ?? null,
+                'filename' => $document['fileName'] ?? null,
+                'metadata' => [
+                    'carrier_document_type' => $type,
+                    'content_key' => $document['contentKey'] ?? null,
+                    'tracking_number' => $document['trackingNumber'] ?? data_get($response, 'tracking_number'),
+                    'copies_to_print' => $document['copiesToPrint'] ?? null,
+                    'raw' => $document,
+                ],
+            ];
+        }
+
         return $documents;
     }
 

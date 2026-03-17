@@ -110,6 +110,8 @@ class FedexShipmentCreateApiTest extends TestCase
         $this->assertSame(['commercial_invoice', 'label'], $documents->pluck('type')->sort()->values()->all());
         $this->assertSame(['stored_object', 'url'], $documents->pluck('retrieval_mode')->sort()->values()->all());
         $this->assertNotNull($documents->firstWhere('type', 'label')?->storage_path);
+        $this->assertSame('LABEL', data_get($documents->firstWhere('type', 'label')?->carrier_metadata, 'raw.contentType'));
+        $this->assertSame('PDF', data_get($documents->firstWhere('type', 'label')?->carrier_metadata, 'raw.docType'));
         Storage::disk('local')->assertExists((string) $documents->firstWhere('type', 'label')?->storage_path);
 
         $purchaseEvent = ShipmentEvent::query()
@@ -346,6 +348,13 @@ class FedexShipmentCreateApiTest extends TestCase
             $attributes['recipient_state'] = 'NY';
         }
 
+        if (Schema::hasColumn('shipments', 'sender_state')) {
+            $attributes['sender_state'] = 'RI';
+            $attributes['sender_city'] = 'Providence';
+            $attributes['sender_postal_code'] = '02903';
+            $attributes['sender_country'] = 'US';
+        }
+
         if (Schema::hasColumn('shipments', 'total_charge')) {
             $attributes['total_charge'] = 345.15;
         } elseif (Schema::hasColumn('shipments', 'total_cost')) {
@@ -510,16 +519,18 @@ class FedexShipmentCreateApiTest extends TestCase
                     'pieceResponses' => [[
                         'trackingNumber' => '794699999999',
                         'alerts' => $alerts,
+                        'packageDocuments' => [[
+                            'docType' => 'PDF',
+                            'contentType' => 'LABEL',
+                            'copiesToPrint' => 1,
+                            'encodedLabel' => base64_encode('fake-fedex-label'),
+                        ]],
                     ]],
                     'completedShipmentDetail' => [
                         'carrierCode' => 'FDXE',
                         'masterTrackingNumber' => '794699999999',
                     ],
                     'shipmentDocuments' => [[
-                        'contentKey' => 'LABEL',
-                        'copiesToPrint' => 1,
-                        'encodedLabel' => base64_encode('fake-fedex-label'),
-                    ], [
                         'docType' => 'COMMERCIAL_INVOICE',
                         'url' => 'https://sandbox-docs.fedex.test/invoice-001.pdf',
                     ]],

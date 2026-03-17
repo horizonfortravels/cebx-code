@@ -97,7 +97,9 @@ class FedexRateProvider implements CarrierRateProvider
             'carrierCodes' => $this->requestedCarrierCodes($context),
             'requestedShipment' => [
                 'shipper' => $this->fedexParty($context, 'sender'),
-                'recipient' => $this->fedexParty($context, 'recipient'),
+                'recipients' => [
+                    $this->fedexParty($context, 'recipient'),
+                ],
                 'packagingType' => $this->resolvePackagingType($context),
                 'requestedPackageLineItems' => $this->requestedPackageLineItems($context),
             ],
@@ -140,7 +142,7 @@ class FedexRateProvider implements CarrierRateProvider
                 'shipper' => $this->fedexParty($context, 'sender', true),
                 'recipient' => $this->fedexParty($context, 'recipient'),
                 'pickupType' => 'USE_SCHEDULED_PICKUP',
-                'rateRequestTypes' => ['ACCOUNT'],
+                'rateRequestType' => ['ACCOUNT'],
                 'preferredCurrency' => (string) ($context['currency'] ?? 'USD'),
                 'shipDateStamp' => now()->toDateString(),
                 'packagingType' => $this->resolvePackagingType($context),
@@ -160,7 +162,12 @@ class FedexRateProvider implements CarrierRateProvider
             'contact' => [
                 'personName' => (string) ($context["{$prefix}_name"] ?? ucfirst($prefix)),
                 'phoneNumber' => (string) ($context["{$prefix}_phone"] ?? '+0000000000'),
-                'companyName' => (string) ($context["{$prefix}_company_name"] ?? $context["{$prefix}_name"] ?? ucfirst($prefix)),
+                'companyName' => (string) (
+                    $context["{$prefix}_company_name"]
+                    ?? $context["{$prefix}_company"]
+                    ?? $context["{$prefix}_name"]
+                    ?? ucfirst($prefix)
+                ),
             ],
         ];
 
@@ -179,9 +186,13 @@ class FedexRateProvider implements CarrierRateProvider
      */
     private function fedexAddress(array $context, string $prefix): array
     {
+        $cityFallback = $prefix === 'sender' ? 'origin_city' : 'destination_city';
+        $countryFallback = $prefix === 'sender' ? 'origin_country' : 'destination_country';
+        $stateFallback = $prefix === 'sender' ? 'origin_state' : 'destination_state';
+
         $address = [
-            'city' => (string) ($context["{$prefix}_city"] ?? ''),
-            'countryCode' => (string) ($context["{$prefix}_country"] ?? ''),
+            'city' => (string) ($context["{$prefix}_city"] ?? $context[$cityFallback] ?? ''),
+            'countryCode' => (string) ($context["{$prefix}_country"] ?? $context[$countryFallback] ?? ''),
             'postalCode' => (string) ($context["{$prefix}_postal_code"] ?? ''),
             'streetLines' => array_values(array_filter([
                 (string) ($context["{$prefix}_address_1"] ?? ''),
@@ -189,7 +200,7 @@ class FedexRateProvider implements CarrierRateProvider
             ])),
         ];
 
-        $state = (string) ($context["{$prefix}_state"] ?? '');
+        $state = (string) ($context["{$prefix}_state"] ?? $context[$stateFallback] ?? '');
         if ($state !== '') {
             $address['stateOrProvinceCode'] = $state;
         }
@@ -264,9 +275,14 @@ class FedexRateProvider implements CarrierRateProvider
     private function resolvePackagingType(array $context): string
     {
         $parcels = is_array($context['parcels'] ?? null) ? $context['parcels'] : [];
-        $firstPackagingType = strtoupper((string) ($parcels[0]['packaging_type'] ?? ''));
+        $firstPackagingType = strtoupper(trim((string) ($parcels[0]['packaging_type'] ?? '')));
 
-        return $firstPackagingType !== '' ? $firstPackagingType : 'YOUR_PACKAGING';
+        return match ($firstPackagingType) {
+            'BOX', 'CUSTOM', '' => 'YOUR_PACKAGING',
+            'ENVELOPE' => 'FEDEX_ENVELOPE',
+            'TUBE' => 'FEDEX_TUBE',
+            default => $firstPackagingType,
+        };
     }
 
     /**
