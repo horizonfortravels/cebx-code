@@ -7,6 +7,7 @@ use App\Models\BillingWallet;
 use App\Models\CarrierShipment;
 use App\Models\ContentDeclaration;
 use App\Models\Parcel;
+use App\Models\PricingRule;
 use App\Models\RateOption;
 use App\Models\RateQuote;
 use App\Models\Shipment;
@@ -56,6 +57,105 @@ class ShipmentCompletionFlowWebTest extends TestCase
         $shipment->refresh();
         $this->assertSame(Shipment::STATUS_PAYMENT_PENDING, (string) $shipment->status);
         $this->assertNotNull($shipment->balance_reservation_id);
+    }
+
+    public function test_b2b_owner_browser_created_us_shipment_persists_state_codes_through_issue_flow(): void
+    {
+        $this->configureFedex();
+
+        Storage::fake('local');
+        Http::preventStrayRequests();
+        Http::fake($this->fedexRateAndShipFakeResponses($this->shipSuccessBody()));
+
+        $user = $this->createCompletionUser('organization', 'organization_owner');
+        BillingWallet::factory()->funded(1000)->create([
+            'account_id' => (string) $user->account_id,
+            'currency' => 'USD',
+        ]);
+        PricingRule::factory()->create([
+            'account_id' => $user->account_id,
+            'is_active' => true,
+            'is_default' => true,
+            'markup_type' => 'fixed',
+            'markup_fixed' => 0,
+            'markup_percentage' => 0,
+            'service_fee_fixed' => 0,
+            'service_fee_percentage' => 0,
+            'min_profit' => 0,
+            'min_retail_price' => 0,
+            'rounding_mode' => 'none',
+            'rounding_precision' => 1,
+        ]);
+
+        $createResponse = $this->actingAs($user, 'web')
+            ->post('/b2b/shipments', $this->browserUsShipmentPayload());
+
+        $createResponse->assertRedirect();
+        $this->assertStringContainsString('/b2b/shipments/create?draft=', (string) $createResponse->headers->get('Location'));
+
+        $shipment = Shipment::query()
+            ->where('account_id', $user->account_id)
+            ->latest('created_at')
+            ->firstOrFail();
+
+        $this->assertSame('RI', (string) $shipment->sender_state);
+        $this->assertSame('NY', (string) $shipment->recipient_state);
+        $this->assertSame(Shipment::STATUS_READY_FOR_RATES, (string) $shipment->status);
+
+        $this->actingAs($user, 'web')
+            ->post('/b2b/shipments/' . $shipment->id . '/offers/fetch')
+            ->assertRedirect('/b2b/shipments/' . $shipment->id . '/offers');
+
+        $quote = RateQuote::query()
+            ->where('shipment_id', (string) $shipment->id)
+            ->with('options')
+            ->latest('created_at')
+            ->firstOrFail();
+        $option = $quote->options->firstWhere('is_available', true);
+
+        $this->assertNotNull($option);
+
+        $this->actingAs($user, 'web')
+            ->post('/b2b/shipments/' . $shipment->id . '/offers/select', [
+                'option_id' => (string) $option->id,
+            ])
+            ->assertRedirect('/b2b/shipments/' . $shipment->id . '/declaration');
+
+        $this->actingAs($user, 'web')
+            ->post('/b2b/shipments/' . $shipment->id . '/declaration', [
+                'contains_dangerous_goods' => 'no',
+                'accept_disclaimer' => '1',
+            ])
+            ->assertRedirect('/b2b/shipments/' . $shipment->id . '/declaration');
+
+        $this->actingAs($user, 'web')
+            ->post('/b2b/shipments/' . $shipment->id . '/wallet-preflight')
+            ->assertRedirect('/b2b/shipments/' . $shipment->id);
+
+        $this->actingAs($user, 'web')
+            ->followingRedirects()
+            ->post('/b2b/shipments/' . $shipment->id . '/issue')
+            ->assertOk()
+            ->assertSee('تم الإصدار لدى الناقل')
+            ->assertSee('794699999999');
+
+        $shipment->refresh();
+        $carrierShipment = CarrierShipment::query()->where('shipment_id', (string) $shipment->id)->firstOrFail();
+
+        $this->assertSame(Shipment::STATUS_PURCHASED, (string) $shipment->status);
+        $this->assertSame(CarrierShipment::STATUS_LABEL_READY, (string) $carrierShipment->status);
+        $this->assertSame('794699999999', (string) $carrierShipment->tracking_number);
+        $this->assertSame('RI', (string) $shipment->sender_state);
+        $this->assertSame('NY', (string) $shipment->recipient_state);
+
+        Http::assertSent(function (\Illuminate\Http\Client\Request $request): bool {
+            if ($request->url() !== 'https://apis-sandbox.fedex.com/ship/v1/shipments') {
+                return false;
+            }
+
+            return data_get($request->data(), 'requestedShipment.shipper.address.stateOrProvinceCode') === 'RI'
+                && data_get($request->data(), 'requestedShipment.recipients.0.address.stateOrProvinceCode') === 'NY';
+        });
     }
 
     #[DataProvider('browserCompletionPersonaProvider')]
@@ -118,12 +218,50 @@ class ShipmentCompletionFlowWebTest extends TestCase
             ->followingRedirects()
             ->post('/b2b/shipments/' . $shipment->id . '/wallet-preflight')
             ->assertOk()
-            ->assertSee('رصيد المحفظة غير كافٍ لهذه الشحنة.')
-            ->assertSee('اشحن المحفظة أو اختر عرضًا أقل تكلفة ثم أعد المحاولة.');
+            ->assertSee('رصيد المحفظة غير كافٍ لإتمام الحجز المسبق لهذه الشحنة.')
+            ->assertSee('أضف رصيدًا كافيًا إلى المحفظة ثم أعد تنفيذ فحص المحفظة.');
 
         $shipment->refresh();
         $this->assertSame(Shipment::STATUS_DECLARATION_COMPLETE, (string) $shipment->status);
         $this->assertNull($shipment->balance_reservation_id);
+    }
+
+    public function test_failed_browser_issuance_does_not_render_success_copy(): void
+    {
+        $this->configureFedex();
+
+        Http::preventStrayRequests();
+        Http::fake($this->fedexShipFakeResponses([
+            'transactionId' => 'fedex-ship-fail-001',
+            'errors' => [[
+                'code' => 'ACCOUNTNUMBER.REGISTRATION.REQUIRED',
+                'message' => 'Please enter a valid 9-digit FedEx account number or register for a new FedEx account number.',
+            ]],
+        ], 400));
+
+        $user = $this->createCompletionUser('organization', 'organization_owner');
+        BillingWallet::factory()->funded(1000)->create([
+            'account_id' => (string) $user->account_id,
+            'currency' => 'USD',
+        ]);
+
+        $shipment = $this->createDeclarationCompleteShipment($user);
+
+        $this->actingAs($user, 'web')
+            ->post('/b2b/shipments/' . $shipment->id . '/wallet-preflight')
+            ->assertRedirect('/b2b/shipments/' . $shipment->id);
+
+        $this->actingAs($user, 'web')
+            ->followingRedirects()
+            ->post('/b2b/shipments/' . $shipment->id . '/issue')
+            ->assertOk()
+            ->assertSee('ERR_CARRIER_CREATE_FAILED')
+            ->assertSee('تعذر إصدار الشحنة لدى الناقل')
+            ->assertDontSee('تم الإصدار لدى الناقل')
+            ->assertDontSee('اكتمل الإصدار');
+
+        $shipment->refresh();
+        $this->assertSame(Shipment::STATUS_FAILED, (string) $shipment->status);
     }
 
     public function test_same_tenant_missing_completion_permissions_gets_403(): void
@@ -383,6 +521,35 @@ class ShipmentCompletionFlowWebTest extends TestCase
     }
 
     /**
+     * @return array<string, mixed>
+     */
+    private function browserUsShipmentPayload(): array
+    {
+        return [
+            'sender_name' => 'US Sender',
+            'sender_phone' => '+14015550101',
+            'sender_address_1' => '1 Market Street',
+            'sender_city' => 'Providence',
+            'sender_state' => 'RI',
+            'sender_postal_code' => '02903',
+            'sender_country' => 'US',
+            'recipient_name' => 'US Recipient',
+            'recipient_phone' => '+12125550123',
+            'recipient_address_1' => '350 5th Ave',
+            'recipient_city' => 'New York',
+            'recipient_state' => 'NY',
+            'recipient_postal_code' => '10118',
+            'recipient_country' => 'US',
+            'parcels' => [[
+                'weight' => 1.5,
+                'length' => 20,
+                'width' => 15,
+                'height' => 10,
+            ]],
+        ];
+    }
+
+    /**
      * @param array<string, mixed> $shipBody
      * @return array<string, \Closure>
      */
@@ -395,6 +562,65 @@ class ShipmentCompletionFlowWebTest extends TestCase
                 'expires_in' => 3600,
             ], 200),
             'https://apis-sandbox.fedex.com/ship/v1/shipments' => fn () => Http::response($shipBody, $shipStatus),
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $shipBody
+     * @return array<string, \Closure>
+     */
+    private function fedexRateAndShipFakeResponses(array $shipBody): array
+    {
+        return [
+            'https://apis-base.test.cloud.fedex.com/oauth/token' => fn () => Http::response([
+                'access_token' => 'fedex-access-token',
+                'token_type' => 'bearer',
+                'expires_in' => 3600,
+            ], 200),
+            'https://apis-sandbox.fedex.com/availability/v1/packageandserviceoptions' => fn () => Http::response([
+                'output' => [
+                    'serviceOptions' => [
+                        ['key' => 'FEDEX_GROUND', 'displayText' => 'FedEx Ground'],
+                    ],
+                ],
+            ], 200),
+            'https://apis-sandbox.fedex.com/availability/v1/transittimes' => fn () => Http::response([
+                'output' => [
+                    'transitTimes' => [[
+                        'transitTimeDetails' => [[
+                            'serviceType' => 'FEDEX_GROUND',
+                            'serviceName' => 'FedEx Ground',
+                            'commit' => [
+                                'commitDate' => now()->addDays(2)->toIso8601String(),
+                                'transitTime' => 'TWO_DAYS',
+                                'transitDays' => 2,
+                            ],
+                        ]],
+                    ]],
+                ],
+            ], 200),
+            'https://apis-sandbox.fedex.com/rate/v1/rates/quotes' => fn () => Http::response([
+                'output' => [
+                    'rateReplyDetails' => [[
+                        'serviceType' => 'FEDEX_GROUND',
+                        'serviceName' => 'FedEx Ground',
+                        'operationalDetail' => [
+                            'commitDate' => now()->addDays(2)->toIso8601String(),
+                            'transitTime' => 'TWO_DAYS',
+                        ],
+                        'ratedShipmentDetails' => [[
+                            'rateType' => 'ACCOUNT',
+                            'totalBaseCharge' => 100.00,
+                            'totalNetCharge' => 100.00,
+                            'shipmentRateDetail' => [
+                                'currency' => 'USD',
+                                'surCharges' => [],
+                            ],
+                        ]],
+                    ]],
+                ],
+            ], 200),
+            'https://apis-sandbox.fedex.com/ship/v1/shipments' => fn () => Http::response($shipBody, 200),
         ];
     }
 

@@ -21,6 +21,7 @@
         \App\Models\Shipment::STATUS_REQUIRES_ACTION => 'تتطلب هذه الشحنة إجراءً إضافيًا',
         \App\Models\Shipment::STATUS_PAYMENT_PENDING => 'بانتظار تأكيد الحجز المالي',
         \App\Models\Shipment::STATUS_PURCHASED => 'تم الإصدار لدى الناقل',
+        \App\Models\Shipment::STATUS_FAILED => 'تعذر الإصدار',
     ];
     $reservationStatusLabels = [
         \App\Models\WalletHold::STATUS_ACTIVE => 'حجز نشط',
@@ -33,6 +34,14 @@
     $canTriggerWalletPreflight = $canTriggerWalletPreflight ?? false;
     $canIssueShipment = $canIssueShipment ?? false;
     $canViewNotifications = $canViewNotifications ?? false;
+    $carrierShipmentStatus = (string) ($shipment->carrierShipment?->status ?? '');
+    $issuanceSucceeded = (string) $shipment->status === \App\Models\Shipment::STATUS_PURCHASED
+        || in_array($carrierShipmentStatus, [
+            \App\Models\CarrierShipment::STATUS_CREATED,
+            \App\Models\CarrierShipment::STATUS_LABEL_READY,
+        ], true);
+    $issuanceFailed = (string) $shipment->status === \App\Models\Shipment::STATUS_FAILED
+        || $carrierShipmentStatus === \App\Models\CarrierShipment::STATUS_FAILED;
     $showWalletPreflightAction = $canTriggerWalletPreflight
         && (
             $shipment->status === \App\Models\Shipment::STATUS_DECLARATION_COMPLETE
@@ -47,6 +56,10 @@
         && ! $shipment->carrierShipment;
     $selectedOffer = $shipment->selectedRateOption ?? $shipment->rateQuote?->selectedOption;
     $trackingNumber = $shipment->tracking_number ?? $shipment->carrierShipment?->tracking_number ?? $shipment->carrier_tracking_number ?? 'غير متاح بعد';
+    $currentStatusLabel = $timeline['current_status_label']
+        ?? ($issuanceFailed ? 'تعذر الإصدار' : ($workflowStatusLabels[$shipment->status] ?? 'غير متاحة'));
+    $currentStatusCode = $timeline['current_status']
+        ?? ($issuanceFailed ? 'failed' : ((string) $shipment->status !== '' ? (string) $shipment->status : 'unknown'));
     $completionFeedbackMessage = $completionFeedback['message'] ?? 'تم تحديث مرحلة إكمال الشحنة.';
     $completionFeedbackNextAction = $completionFeedback['next_action'] ?? null;
     $completionFeedbackErrorCode = $completionFeedback['error_code'] ?? null;
@@ -137,8 +150,8 @@
             </div>
             <div>
                 <div style="font-size:12px;color:var(--tm);margin-bottom:4px">الحالة المعيارية الحالية</div>
-                <div style="font-weight:800;color:var(--tx)">{{ $timeline['current_status_label'] ?? 'غير متاحة' }}</div>
-                <div class="td-mono" style="font-size:12px;color:var(--tm);margin-top:4px">{{ $timeline['current_status'] ?? 'unknown' }}</div>
+                <div style="font-weight:800;color:var(--tx)">{{ $currentStatusLabel }}</div>
+                <div class="td-mono" style="font-size:12px;color:var(--tm);margin-top:4px">{{ $currentStatusCode }}</div>
             </div>
             <div>
                 <div style="font-size:12px;color:var(--tm);margin-bottom:4px">آخر تحديث</div>
@@ -190,10 +203,16 @@
         <div style="padding:14px;border:1px solid var(--bd);border-radius:16px;background:white">
             <div style="font-size:12px;color:var(--tm);margin-bottom:4px">حالة الإصدار</div>
             <div style="font-weight:800;color:var(--tx)">
-                {{ $shipment->carrierShipment ? 'تم الإصدار لدى الناقل' : 'لم يتم الإصدار بعد' }}
+                {{ $issuanceSucceeded ? 'تم الإصدار لدى الناقل' : ($issuanceFailed ? 'تعذر الإصدار لدى الناقل' : 'لم يتم الإصدار بعد') }}
             </div>
             <div style="font-size:13px;color:var(--td);margin-top:6px">
-                {{ $shipment->carrierShipment?->tracking_number ? 'رقم التتبع: ' . $shipment->carrierShipment->tracking_number : 'سيظهر رقم التتبع هنا بعد نجاح الإصدار.' }}
+                @if($shipment->carrierShipment?->tracking_number)
+                    {{ 'رقم التتبع: ' . $shipment->carrierShipment->tracking_number }}
+                @elseif($issuanceFailed)
+                    تعذر الحصول على رقم تتبع لأن الإصدار لدى الناقل لم يكتمل.
+                @else
+                    سيظهر رقم التتبع هنا بعد نجاح الإصدار.
+                @endif
             </div>
         </div>
 
@@ -216,10 +235,15 @@
                     @csrf
                     <button type="submit" class="btn btn-pr" data-testid="carrier-issue-button">إصدار الشحنة لدى الناقل</button>
                 </form>
-            @elseif($shipment->carrierShipment)
+            @elseif($issuanceSucceeded)
                 <div style="font-size:16px;font-weight:800;color:var(--tx);margin-bottom:8px">اكتمل الإصدار</div>
                 <div style="color:var(--td);font-size:14px">
                     تم ربط هذه الشحنة بالناقل، ويمكنك الآن تنزيل المستندات ومتابعة الحالة الزمنية.
+                </div>
+            @elseif($issuanceFailed)
+                <div style="font-size:16px;font-weight:800;color:var(--tx);margin-bottom:8px">تعذر الإصدار</div>
+                <div style="color:var(--td);font-size:14px">
+                    لم تكتمل عملية الإصدار لدى الناقل لهذه الشحنة. راجع رسالة الخطأ الظاهرة أعلى الصفحة ثم صحح البيانات المطلوبة قبل إعادة المحاولة.
                 </div>
             @elseif($shipment->status === \App\Models\Shipment::STATUS_REQUIRES_ACTION)
                 <div style="font-size:16px;font-weight:800;color:var(--tx);margin-bottom:8px">الشحنة متوقفة</div>

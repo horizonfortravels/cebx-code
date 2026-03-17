@@ -6,6 +6,7 @@ use App\Exceptions\BusinessException;
 use App\Http\Controllers\Controller;
 use App\Models\Account;
 use App\Models\BillingWallet;
+use App\Models\CarrierError;
 use App\Models\ContentDeclaration;
 use App\Models\CustomerApiKey;
 use App\Models\IntegrationHealthLog;
@@ -27,6 +28,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class PortalWorkspaceController extends Controller
 {
@@ -936,6 +938,18 @@ class PortalWorkspaceController extends Controller
     private function browserCompletionFeedbackFromException(BusinessException $exception): array
     {
         $context = $exception->getContext();
+        $carrierErrorMessage = null;
+        $carrierErrorCode = null;
+
+        if ($exception->getErrorCode() === 'ERR_CARRIER_CREATE_FAILED') {
+            $carrierErrorId = trim((string) ($context['carrier_error_id'] ?? ''));
+
+            if ($carrierErrorId !== '') {
+                $carrierError = CarrierError::query()->find($carrierErrorId);
+                $carrierErrorMessage = trim((string) ($carrierError?->carrier_error_message ?? ''));
+                $carrierErrorCode = trim((string) ($carrierError?->carrier_error_code ?? ''));
+            }
+        }
 
         $map = [
             'ERR_INSUFFICIENT_BALANCE' => [
@@ -970,11 +984,22 @@ class PortalWorkspaceController extends Controller
 
         $mapped = $map[$exception->getErrorCode()] ?? null;
 
+        $message = $mapped['message'] ?? $exception->getMessage();
+        $nextAction = $mapped['next_action'] ?? data_get($context, 'next_action');
+
+        if ($exception->getErrorCode() === 'ERR_CARRIER_CREATE_FAILED' && $carrierErrorMessage !== '') {
+            $message = 'تعذر إصدار الشحنة لدى الناقل: ' . $carrierErrorMessage;
+
+            if ($carrierErrorCode !== '' && str_contains($carrierErrorCode, 'STATEORPROVINCECODE.INVALID')) {
+                $nextAction = 'راجع رمز الولاية أو المقاطعة في عنواني المرسل والمستلم ثم أعد المحاولة.';
+            }
+        }
+
         return [
             'level' => 'warning',
             'error_code' => $exception->getErrorCode(),
-            'message' => $mapped['message'] ?? $exception->getMessage(),
-            'next_action' => $mapped['next_action'] ?? data_get($context, 'next_action'),
+            'message' => $message,
+            'next_action' => $nextAction,
         ];
     }
 
@@ -1096,7 +1121,12 @@ class PortalWorkspaceController extends Controller
      */
     private function validateShipmentDraftPayload(Request $request): array
     {
-        return $request->validate([
+        $request->merge([
+            'sender_country' => Str::upper(trim((string) $request->input('sender_country'))),
+            'recipient_country' => Str::upper(trim((string) $request->input('recipient_country'))),
+        ]);
+
+        $data = $request->validate([
             'store_id' => 'nullable|uuid',
             'sender_name' => 'required|string|max:200',
             'sender_company' => 'nullable|string|max:200',
@@ -1105,7 +1135,9 @@ class PortalWorkspaceController extends Controller
             'sender_address_1' => 'required|string|max:300',
             'sender_address_2' => 'nullable|string|max:300',
             'sender_city' => 'required|string|max:100',
-            'sender_state' => 'nullable|string|max:100',
+            'sender_state' => ['nullable', 'string', 'max:100', Rule::requiredIf(
+                fn () => Str::upper((string) $request->input('sender_country')) === 'US'
+            )],
             'sender_postal_code' => 'nullable|string|max:20',
             'sender_country' => 'required|string|size:2',
             'sender_address_id' => 'nullable|uuid',
@@ -1116,7 +1148,9 @@ class PortalWorkspaceController extends Controller
             'recipient_address_1' => 'required|string|max:300',
             'recipient_address_2' => 'nullable|string|max:300',
             'recipient_city' => 'required|string|max:100',
-            'recipient_state' => 'nullable|string|max:100',
+            'recipient_state' => ['nullable', 'string', 'max:100', Rule::requiredIf(
+                fn () => Str::upper((string) $request->input('recipient_country')) === 'US'
+            )],
             'recipient_postal_code' => 'nullable|string|max:20',
             'recipient_country' => 'required|string|size:2',
             'recipient_address_id' => 'nullable|uuid',
@@ -1133,7 +1167,26 @@ class PortalWorkspaceController extends Controller
             'parcels.*.packaging_type' => 'nullable|string|in:box,envelope,tube,custom',
             'parcels.*.description' => 'nullable|string|max:300',
             'metadata' => 'nullable|array',
+        ], [
+            'sender_state.required' => 'حقل الولاية أو المقاطعة للمرسل مطلوب عندما تكون دولة المرسل هي الولايات المتحدة.',
+            'recipient_state.required' => 'حقل الولاية أو المقاطعة للمستلم مطلوب عندما تكون دولة المستلم هي الولايات المتحدة.',
         ]);
+
+        foreach (['sender', 'recipient'] as $prefix) {
+            $country = (string) ($data["{$prefix}_country"] ?? '');
+            $state = trim((string) ($data["{$prefix}_state"] ?? ''));
+
+            if ($state === '') {
+                $data["{$prefix}_state"] = null;
+                continue;
+            }
+
+            $data["{$prefix}_state"] = $country === 'US'
+                ? Str::upper($state)
+                : $state;
+        }
+
+        return $data;
     }
 
     /**

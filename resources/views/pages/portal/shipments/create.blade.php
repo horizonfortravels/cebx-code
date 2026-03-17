@@ -129,6 +129,10 @@
                         <input class="f-input" name="sender_city" value="{{ old('sender_city', data_get($draftShipment, 'sender_city')) }}" required>
                     </label>
                     <label>
+                        <span class="f-label">الولاية / المقاطعة</span>
+                        <input class="f-input" name="sender_state" value="{{ old('sender_state', data_get($draftShipment, 'sender_state')) }}" placeholder="مثل NY أو TX">
+                    </label>
+                    <label>
                         <span class="f-label">الرمز البريدي</span>
                         <input class="f-input" name="sender_postal_code" value="{{ old('sender_postal_code', data_get($draftShipment, 'sender_postal_code')) }}">
                     </label>
@@ -136,6 +140,9 @@
                         <span class="f-label">الدولة (ISO-2)</span>
                         <input class="f-input" name="sender_country" maxlength="2" value="{{ old('sender_country', data_get($draftShipment, 'sender_country', 'SA')) }}" required>
                     </label>
+                </div>
+                <div style="margin-top:8px;font-size:12px;color:var(--tm)">
+                    أدخل رمز الولاية أو المقاطعة عندما يكون عنوان المرسل داخل الولايات المتحدة.
                 </div>
             </div>
 
@@ -159,6 +166,10 @@
                         <input class="f-input" name="recipient_city" value="{{ old('recipient_city', data_get($draftShipment, 'recipient_city')) }}" required>
                     </label>
                     <label>
+                        <span class="f-label">الولاية / المقاطعة</span>
+                        <input class="f-input" name="recipient_state" value="{{ old('recipient_state', data_get($draftShipment, 'recipient_state')) }}" placeholder="مثل NY أو CA">
+                    </label>
+                    <label>
                         <span class="f-label">الرمز البريدي</span>
                         <input class="f-input" name="recipient_postal_code" value="{{ old('recipient_postal_code', data_get($draftShipment, 'recipient_postal_code')) }}">
                     </label>
@@ -166,6 +177,9 @@
                         <span class="f-label">الدولة (ISO-2)</span>
                         <input class="f-input" name="recipient_country" maxlength="2" value="{{ old('recipient_country', data_get($draftShipment, 'recipient_country', 'SA')) }}" required>
                     </label>
+                </div>
+                <div style="margin-top:8px;font-size:12px;color:var(--tm)">
+                    أدخل رمز الولاية أو المقاطعة عندما يكون عنوان المستلم داخل الولايات المتحدة.
                 </div>
             </div>
 

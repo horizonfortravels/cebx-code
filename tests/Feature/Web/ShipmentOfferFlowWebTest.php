@@ -38,6 +38,59 @@ class ShipmentOfferFlowWebTest extends TestCase
         $this->assertFalse($quote->options->contains(fn (RateOption $option): bool => in_array((string) $option->carrier_code, ['aramex', 'dhl_express'], true)));
     }
 
+    public function test_b2c_browser_created_us_shipment_fetch_uses_persisted_state_codes_in_real_fedex_path(): void
+    {
+        Http::preventStrayRequests();
+        Http::fake($this->fedexFakeResponses());
+        $this->configureFedex();
+
+        $user = $this->createPortalUser('individual', 'individual');
+        $this->createRetailPricingRule((string) $user->account_id);
+
+        $response = $this->actingAs($user, 'web')
+            ->post('/b2c/shipments', $this->browserUsShipmentPayload());
+
+        $response->assertRedirect();
+        $this->assertStringContainsString('/b2c/shipments/create?draft=', (string) $response->headers->get('Location'));
+
+        $shipment = Shipment::query()
+            ->where('account_id', $user->account_id)
+            ->latest('created_at')
+            ->firstOrFail();
+
+        $this->assertSame('RI', (string) $shipment->sender_state);
+        $this->assertSame('NY', (string) $shipment->recipient_state);
+        $this->assertSame(Shipment::STATUS_READY_FOR_RATES, (string) $shipment->status);
+
+        $this->actingAs($user, 'web')
+            ->post('/b2c/shipments/' . $shipment->id . '/offers/fetch')
+            ->assertRedirect('/b2c/shipments/' . $shipment->id . '/offers');
+
+        $quote = $this->latestQuoteForShipment((string) $shipment->id);
+
+        $this->assertSame('fedex', data_get($quote->request_metadata, 'carrier_code'));
+        $this->assertGreaterThan(0, $quote->options->count());
+        $this->assertTrue($quote->options->every(fn (RateOption $option): bool => (string) $option->carrier_code === 'fedex'));
+
+        Http::assertSent(function (\Illuminate\Http\Client\Request $request): bool {
+            if ($request->url() !== 'https://apis-sandbox.fedex.com/availability/v1/packageandserviceoptions') {
+                return false;
+            }
+
+            return data_get($request->data(), 'requestedShipment.shipper.address.stateOrProvinceCode') === 'RI'
+                && data_get($request->data(), 'requestedShipment.recipients.0.address.stateOrProvinceCode') === 'NY';
+        });
+
+        Http::assertSent(function (\Illuminate\Http\Client\Request $request): bool {
+            if ($request->url() !== 'https://apis-sandbox.fedex.com/rate/v1/rates/quotes') {
+                return false;
+            }
+
+            return data_get($request->data(), 'requestedShipment.shipper.address.stateOrProvinceCode') === 'RI'
+                && data_get($request->data(), 'requestedShipment.recipient.address.stateOrProvinceCode') === 'NY';
+        });
+    }
+
     public function test_b2c_individual_user_can_view_offers_for_own_shipment(): void
     {
         config()->set('features.carrier_fedex', false);
@@ -359,6 +412,35 @@ class ShipmentOfferFlowWebTest extends TestCase
             'recipient_city' => 'Dubai',
             'recipient_postal_code' => '00000',
             'recipient_country' => 'AE',
+            'parcels' => [[
+                'weight' => 2.0,
+                'length' => 25,
+                'width' => 20,
+                'height' => 15,
+            ]],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function browserUsShipmentPayload(): array
+    {
+        return [
+            'sender_name' => 'US Sender',
+            'sender_phone' => '+14015550101',
+            'sender_address_1' => '1 Market Street',
+            'sender_city' => 'Providence',
+            'sender_state' => 'RI',
+            'sender_postal_code' => '02903',
+            'sender_country' => 'US',
+            'recipient_name' => 'US Recipient',
+            'recipient_phone' => '+12125550123',
+            'recipient_address_1' => '350 5th Ave',
+            'recipient_city' => 'New York',
+            'recipient_state' => 'NY',
+            'recipient_postal_code' => '10118',
+            'recipient_country' => 'US',
             'parcels' => [[
                 'weight' => 2.0,
                 'length' => 25,
