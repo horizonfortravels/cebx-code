@@ -1082,6 +1082,7 @@ class PortalWorkspaceController extends Controller
                     'download_route' => route($portal . '.shipments.documents.download', [
                         'id' => (string) $shipment->id,
                         'documentId' => (string) $document['id'],
+                        'downloadName' => (string) $document['filename'],
                     ]),
                 ]);
             })

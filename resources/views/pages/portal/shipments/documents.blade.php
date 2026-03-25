@@ -134,7 +134,7 @@
                                 المستند غير متاح حاليًا.
                             @endif
                         </div>
-                        <a href="{{ $document['download_route'] }}" class="btn btn-pr" @if(!$document['available']) aria-disabled="true" @endif>
+                        <a href="{{ $document['download_route'] }}" class="btn btn-pr" download="{{ $document['filename'] }}" @if(!$document['available']) aria-disabled="true" @endif>
                             تنزيل المستند
                         </a>
                     </div>

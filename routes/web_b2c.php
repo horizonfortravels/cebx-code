@@ -49,7 +49,7 @@ Route::prefix('b2c')->name('b2c.')->middleware('portal:b2c')->group(function () 
                 ->name('issue');
             Route::get('/{id}/documents', [ShipmentDocumentWebController::class, 'b2cIndex'])
                 ->name('documents.index');
-            Route::get('/{id}/documents/{documentId}', [ShipmentDocumentWebController::class, 'b2cDownload'])
+            Route::get('/{id}/documents/{documentId}/{downloadName?}', [ShipmentDocumentWebController::class, 'b2cDownload'])
                 ->name('documents.download');
             Route::get('/{id}', [PortalWorkspaceController::class, 'b2cShipmentShow'])->name('show');
         });

@@ -336,7 +336,7 @@
                             <div class="td-mono" style="font-size:12px;color:var(--tm);margin-top:4px">{{ $document['carrier_code'] }} / {{ $document['file_format'] }}</div>
                         </div>
                         <div style="display:flex;align-items:center">
-                            <a href="{{ $document['download_route'] }}" class="btn btn-s">تنزيل المستند</a>
+                            <a href="{{ $document['download_route'] }}" class="btn btn-s" download="{{ $document['filename'] }}">تنزيل المستند</a>
                         </div>
                     </div>
                 @endforeach

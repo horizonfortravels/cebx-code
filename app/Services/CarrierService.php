@@ -463,6 +463,8 @@ class CarrierService
             'file_size' => $document->file_size,
             'checksum' => $document->checksum,
             'download_url' => $document->isDownloadUrlValid() ? $document->download_url : null,
+            'storage_disk' => $document->storage_disk,
+            'storage_path' => $document->storage_path,
             'retrieval_mode' => (string) ($document->retrieval_mode ?? $this->resolveRetrievalMode($document->getDecodedContent(), $document->download_url)),
         ];
     }

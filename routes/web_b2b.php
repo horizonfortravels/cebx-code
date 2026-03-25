@@ -25,7 +25,7 @@ Route::prefix('b2b')->name('b2b.')->middleware('portal:b2b')->group(function ():
             Route::post('/{id}/wallet-preflight', [PortalWorkspaceController::class, 'triggerB2bShipmentWalletPreflight'])->name('preflight');
             Route::post('/{id}/issue', [PortalWorkspaceController::class, 'issueB2bShipmentAtCarrier'])->name('issue');
             Route::get('/{id}/documents', [ShipmentDocumentWebController::class, 'b2bIndex'])->name('documents.index');
-            Route::get('/{id}/documents/{documentId}', [ShipmentDocumentWebController::class, 'b2bDownload'])->name('documents.download');
+            Route::get('/{id}/documents/{documentId}/{downloadName?}', [ShipmentDocumentWebController::class, 'b2bDownload'])->name('documents.download');
             Route::get('/{id}', [PortalWorkspaceController::class, 'b2bShipmentShow'])->name('show');
         });
 

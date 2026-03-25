@@ -8,6 +8,7 @@ use App\Services\CarrierService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\Response;
 
 class ShipmentDocumentWebController extends Controller
@@ -19,9 +20,9 @@ class ShipmentDocumentWebController extends Controller
         return $this->documentsPage($request, $id, 'b2c');
     }
 
-    public function b2cDownload(Request $request, string $id, string $documentId): Response|RedirectResponse
+    public function b2cDownload(Request $request, string $id, string $documentId, ?string $downloadName = null): Response|RedirectResponse
     {
-        return $this->downloadDocument($request, $id, $documentId);
+        return $this->downloadDocument($request, $id, $documentId, $downloadName);
     }
 
     public function b2bIndex(Request $request, string $id): View
@@ -29,9 +30,9 @@ class ShipmentDocumentWebController extends Controller
         return $this->documentsPage($request, $id, 'b2b');
     }
 
-    public function b2bDownload(Request $request, string $id, string $documentId): Response|RedirectResponse
+    public function b2bDownload(Request $request, string $id, string $documentId, ?string $downloadName = null): Response|RedirectResponse
     {
-        return $this->downloadDocument($request, $id, $documentId);
+        return $this->downloadDocument($request, $id, $documentId, $downloadName);
     }
 
     private function documentsPage(Request $request, string $shipmentId, string $portal): View
@@ -51,6 +52,7 @@ class ShipmentDocumentWebController extends Controller
                     'download_route' => route($portal . '.shipments.documents.download', [
                         'id' => (string) $shipment->id,
                         'documentId' => (string) $document['id'],
+                        'downloadName' => (string) $document['filename'],
                     ]),
                 ]);
             })
@@ -63,7 +65,7 @@ class ShipmentDocumentWebController extends Controller
         ]);
     }
 
-    private function downloadDocument(Request $request, string $shipmentId, string $documentId): Response|RedirectResponse
+    private function downloadDocument(Request $request, string $shipmentId, string $documentId, ?string $downloadName = null): Response|RedirectResponse
     {
         $user = $request->user();
         $shipment = Shipment::query()
@@ -84,13 +86,22 @@ class ShipmentDocumentWebController extends Controller
             'Content-Type' => (string) ($docData['mime_type'] ?? 'application/octet-stream'),
             'Content-Length' => (string) ($docData['file_size'] ?? strlen($content)),
             'X-Checksum-SHA256' => (string) ($docData['checksum'] ?? ''),
+            'X-Content-Type-Options' => 'nosniff',
         ], static fn ($value) => $value !== '');
+
+        if (! empty($docData['storage_path']) && ! empty($docData['storage_disk'])) {
+            return Storage::disk((string) $docData['storage_disk'])->download(
+                (string) $docData['storage_path'],
+                (string) ($docData['filename'] ?? $downloadName ?? 'document.bin'),
+                $headers
+            );
+        }
 
         return response()->streamDownload(
             static function () use ($content): void {
                 echo $content;
             },
-            (string) ($docData['filename'] ?? 'document.bin'),
+            (string) ($docData['filename'] ?? $downloadName ?? 'document.bin'),
             $headers
         );
     }

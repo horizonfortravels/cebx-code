@@ -52,6 +52,48 @@ class ShipmentDocumentFlowWebTest extends TestCase
             ->assertNotFound();
     }
 
+    public function test_cross_tenant_document_download_route_is_denied(): void
+    {
+        $userA = $this->createPortalDocumentUser('organization', 'organization_owner');
+        $userB = $this->createPortalDocumentUser('organization', 'organization_owner');
+        $shipmentB = $this->createIssuedShipmentWithDocument($userB, [
+            'tracking_number' => '794677770099',
+        ]);
+
+        $documentB = CarrierDocument::query()
+            ->where('shipment_id', (string) $shipmentB->id)
+            ->firstOrFail();
+
+        $this->actingAs($userA, 'web')
+            ->get('/b2b/shipments/' . $shipmentB->id . '/documents/' . $documentB->id . '/label_794677770099.pdf')
+            ->assertNotFound();
+    }
+
+    public function test_pdf_label_document_link_renders_browser_safe_filename(): void
+    {
+        $user = $this->createPortalDocumentUser('organization', 'organization_owner');
+        $shipment = $this->createIssuedShipmentWithDocument($user, [
+            'reference_number' => 'DOC-LINK-01',
+            'tracking_number' => '794677770001',
+        ]);
+
+        $document = CarrierDocument::query()
+            ->where('shipment_id', (string) $shipment->id)
+            ->firstOrFail();
+
+        $document->update([
+            'original_filename' => 'a1629e68-7142-4dd0-88c2-508b93fbee14',
+            'format' => 'pdf',
+            'mime_type' => 'application/octet-stream',
+        ]);
+
+        $this->actingAs($user, 'web')
+            ->get('/b2b/shipments/' . $shipment->id . '/documents')
+            ->assertOk()
+            ->assertSee('/b2b/shipments/' . $shipment->id . '/documents/' . $document->id . '/label_794677770001.pdf', false)
+            ->assertSee('download="label_794677770001.pdf"', false);
+    }
+
     public function test_label_download_returns_valid_pdf_with_normalized_filename(): void
     {
         Storage::fake('local');
@@ -94,7 +136,7 @@ class ShipmentDocumentFlowWebTest extends TestCase
         ]);
 
         $response = $this->actingAs($user, 'web')
-            ->get('/b2b/shipments/' . $shipment->id . '/documents/' . $document->id);
+            ->get('/b2b/shipments/' . $shipment->id . '/documents/' . $document->id . '/label_794699991111.pdf');
 
         $content = $response->streamedContent();
 
@@ -142,22 +184,26 @@ class ShipmentDocumentFlowWebTest extends TestCase
         return $user;
     }
 
-    private function createIssuedShipmentWithDocument(User $user): Shipment
+    /**
+     * @param array<string, mixed> $overrides
+     */
+    private function createIssuedShipmentWithDocument(User $user, array $overrides = []): Shipment
     {
-        $shipment = Shipment::factory()->create([
+        $shipment = Shipment::factory()->create(array_filter([
             'account_id' => (string) $user->account_id,
             'user_id' => (string) $user->id,
             'status' => Shipment::STATUS_PURCHASED,
             'sender_name' => 'Sender',
             'recipient_name' => 'Recipient',
-        ]);
+            'reference_number' => $overrides['reference_number'] ?? null,
+        ], static fn ($value): bool => $value !== null));
 
         $carrierShipment = CarrierShipment::factory()->labelReady()->create([
             'shipment_id' => (string) $shipment->id,
             'account_id' => (string) $user->account_id,
             'carrier_code' => 'fedex',
             'carrier_name' => 'FedEx',
-            'tracking_number' => '794699999999',
+            'tracking_number' => (string) ($overrides['tracking_number'] ?? '794699999999'),
         ]);
 
         CarrierDocument::factory()->create([
