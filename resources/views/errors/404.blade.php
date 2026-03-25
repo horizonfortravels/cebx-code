@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ request()->is('b2c/*') || request()->is('b2b/*') || request()->is('notifications') ? __('portal_shipments.errors.external.403.heading') : 'Restricted access' }} - CBEX Shipping Gateway</title>
+    <title>{{ request()->is('b2c/*') || request()->is('b2b/*') || request()->is('notifications') ? __('portal_shipments.errors.external.404.heading') : 'Page unavailable' }} - CBEX Shipping Gateway</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
         :root {
@@ -91,31 +91,24 @@
     $isExternalPortal = $portal !== null;
     $primaryRoute = $portal === 'b2c' ? 'b2c.dashboard' : ($portal === 'b2b' ? 'b2b.dashboard' : null);
     $secondaryRoute = $portal === 'b2c' ? 'b2c.shipments.index' : ($portal === 'b2b' ? 'b2b.shipments.index' : null);
-    $fallbackMessage = $isExternalPortal
-        ? __('portal_shipments.errors.external.403.message')
-        : 'This page is not available with the current account permissions.';
-    $message = trim((string) ($exception->getMessage() ?? ''));
-    if ($message === '' || $message === 'This action is unauthorized.') {
-        $message = $fallbackMessage;
-    }
 @endphp
     <div class="panel">
         <div class="hero">
-            <div class="eyebrow">{{ $isExternalPortal ? __('portal_shipments.errors.external.403.eyebrow') : '403 Restricted access' }}</div>
-            <h1>{{ $isExternalPortal ? __('portal_shipments.errors.external.403.heading') : 'You cannot open this page.' }}</h1>
-            <p>{{ $message }}</p>
+            <div class="eyebrow">{{ $isExternalPortal ? __('portal_shipments.errors.external.404.eyebrow') : '404 Page unavailable' }}</div>
+            <h1>{{ $isExternalPortal ? __('portal_shipments.errors.external.404.heading') : 'The requested page is not available.' }}</h1>
+            <p>{{ $isExternalPortal ? __('portal_shipments.errors.external.404.message') : 'The requested page may not exist or may no longer be available from this path.' }}</p>
         </div>
         <div class="body">
             <div class="summary">
                 {{ $isExternalPortal
-                    ? __('portal_shipments.errors.external.403.message')
-                    : 'Use the correct portal or request the required permission before trying again.' }}
+                    ? __('portal_shipments.errors.external.404.message')
+                    : 'Use the correct portal navigation and open the page again from a current, authorized path.' }}
             </div>
             <div class="actions">
                 <a href="{{ $primaryRoute && \Illuminate\Support\Facades\Route::has($primaryRoute) ? route($primaryRoute) : url('/') }}" class="button button-primary">{{ $isExternalPortal ? __('portal_shipments.errors.external.primary_action') : 'Back to home' }}</a>
-                <a href="{{ $secondaryRoute && \Illuminate\Support\Facades\Route::has($secondaryRoute) ? route($secondaryRoute) : url()->previous() }}" class="button button-secondary">{{ $isExternalPortal ? __('portal_shipments.errors.external.secondary_action') : 'Go back' }}</a>
+                <a href="{{ $secondaryRoute && \Illuminate\Support\Facades\Route::has($secondaryRoute) ? route($secondaryRoute) : url('/') }}" class="button button-secondary">{{ $isExternalPortal ? __('portal_shipments.errors.external.secondary_action') : 'Go back' }}</a>
             </div>
-            <div class="meta">HTTP 403</div>
+            <div class="meta">HTTP 404</div>
         </div>
     </div>
 </body>

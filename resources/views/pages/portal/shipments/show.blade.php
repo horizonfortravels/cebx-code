@@ -151,7 +151,6 @@
             <div>
                 <div style="font-size:12px;color:var(--tm);margin-bottom:4px">الحالة المعيارية الحالية</div>
                 <div style="font-weight:800;color:var(--tx)">{{ $currentStatusLabel }}</div>
-                <div class="td-mono" style="font-size:12px;color:var(--tm);margin-top:4px">{{ $currentStatusCode }}</div>
             </div>
             <div>
                 <div style="font-size:12px;color:var(--tm);margin-bottom:4px">آخر تحديث</div>
@@ -166,11 +165,11 @@
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px">
             <div>
                 <div style="font-size:12px;color:var(--tm);margin-bottom:4px">الناقل</div>
-                <div style="font-weight:800;color:var(--tx)">{{ $shipment->carrierShipment?->carrier_name ?? $selectedOffer?->carrier_name ?? 'غير محدد' }}</div>
+                <div style="font-weight:800;color:var(--tx)">{{ $carrierDisplayLabel ?? ($shipment->carrierShipment?->carrier_name ?? $selectedOffer?->carrier_name ?? 'غير محدد') }}</div>
             </div>
             <div>
                 <div style="font-size:12px;color:var(--tm);margin-bottom:4px">الخدمة</div>
-                <div style="font-weight:800;color:var(--tx)">{{ $shipment->carrierShipment?->service_name ?? $selectedOffer?->service_name ?? $shipment->service_name ?? 'غير محددة' }}</div>
+                <div style="font-weight:800;color:var(--tx)">{{ $serviceDisplayLabel ?? ($shipment->carrierShipment?->service_name ?? $selectedOffer?->service_name ?? $shipment->service_name ?? 'غير محددة') }}</div>
             </div>
             <div>
                 <div style="font-size:12px;color:var(--tm);margin-bottom:4px">حالة سير العمل</div>
@@ -288,7 +287,6 @@
                                     <div style="color:var(--td);font-size:13px;margin-top:4px">{{ $event['description'] ?? '' }}</div>
                                 </div>
                                 <div style="text-align:left;min-width:170px">
-                                    <div class="td-mono" style="font-size:12px;color:var(--tm)">{{ $event['event_type'] ?? '' }}</div>
                                     <div style="font-size:13px;color:var(--td);margin-top:4px">
                                         {{ !empty($event['event_time']) ? \Illuminate\Support\Carbon::parse($event['event_time'])->format('Y-m-d H:i') : 'غير محدد' }}
                                     </div>
@@ -331,9 +329,9 @@
                 @foreach($documents as $document)
                     <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px;border:1px solid var(--bd);border-radius:16px;background:white">
                         <div>
-                            <div style="font-weight:800;color:var(--tx)">{{ $document['document_type'] }}</div>
+                            <div style="font-weight:800;color:var(--tx)">{{ $document['document_type_label'] ?? $document['document_type'] }}</div>
                             <div style="font-size:13px;color:var(--td);margin-top:4px">{{ $document['filename'] }}</div>
-                            <div class="td-mono" style="font-size:12px;color:var(--tm);margin-top:4px">{{ $document['carrier_code'] }} / {{ $document['file_format'] }}</div>
+                            <div class="td-mono" style="font-size:12px;color:var(--tm);margin-top:4px">{{ $document['carrier_label'] ?? $document['carrier_code'] }} / {{ $document['format_label'] ?? $document['file_format'] }}</div>
                         </div>
                         <div style="display:flex;align-items:center">
                             <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -374,7 +372,7 @@
                             @if(!empty($notification['body']))
                                 <div style="font-size:13px;color:var(--td);margin-top:6px">{{ $notification['body'] }}</div>
                             @endif
-                            <div class="td-mono" style="font-size:12px;color:var(--tm);margin-top:8px">{{ $notification['event_type'] }}</div>
+                            <div class="td-mono" style="font-size:12px;color:var(--tm);margin-top:8px">{{ $notification['event_type_label'] ?? $notification['event_type'] }}</div>
                         </div>
                         <div style="text-align:left;min-width:150px">
                             <div style="font-size:13px;color:var(--td)">

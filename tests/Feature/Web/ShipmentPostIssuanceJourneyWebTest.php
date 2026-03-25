@@ -15,6 +15,7 @@ use App\Models\User;
 use App\Models\WaiverVersion;
 use Database\Seeders\NotificationTemplateSeeder;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -65,8 +66,8 @@ class ShipmentPostIssuanceJourneyWebTest extends TestCase
             ->assertOk()
             ->assertSee('تم إصدار الشحنة لدى الناقل بنجاح.')
             ->assertSee('794699999999')
-            ->assertSee('carrier.documents_available')
-            ->assertSee('shipment.purchased')
+            ->assertSee(Lang::get('portal_shipments.events.carrier_documents_available', [], 'ar'))
+            ->assertSee(Lang::get('portal_shipments.events.shipment_purchased', [], 'ar'))
             ->assertSee('data-testid="shipment-notifications-link"', false);
 
         $shipment->refresh();
@@ -87,8 +88,8 @@ class ShipmentPostIssuanceJourneyWebTest extends TestCase
             ->get($routePrefix . $shipment->id)
             ->assertOk()
             ->assertSee('الحالة المعيارية الحالية')
-            ->assertSee('shipment.purchased')
-            ->assertSee('carrier.documents_available')
+            ->assertSee(Lang::get('portal_shipments.events.shipment_purchased', [], 'ar'))
+            ->assertSee(Lang::get('portal_shipments.events.carrier_documents_available', [], 'ar'))
             ->assertSee((string) $document->original_filename)
             ->assertSee('الإشعارات المرتبطة بالشحنة')
             ->assertSee((string) $notification->subject)

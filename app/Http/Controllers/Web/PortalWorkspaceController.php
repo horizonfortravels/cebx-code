@@ -22,6 +22,7 @@ use App\Models\WalletLedgerEntry;
 use App\Models\WebhookEvent;
 use App\Services\CarrierService;
 use App\Services\ShipmentTimelineService;
+use App\Support\PortalShipmentLabeler;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -1075,7 +1076,7 @@ class PortalWorkspaceController extends Controller
         abort_unless(method_exists($request->user(), 'hasPermission') && $request->user()->hasPermission('tracking.read'), 403);
         $this->authorize('view', $shipment);
 
-        $timeline = app(ShipmentTimelineService::class)->present($shipment);
+        $timeline = $this->decorateTimeline(app(ShipmentTimelineService::class)->present($shipment));
         $documents = collect(app(CarrierService::class)->listDocuments($shipment))
             ->map(function (array $document) use ($portal, $shipment): array {
                 $filename = (string) ($document['filename'] ?? 'document.bin');
@@ -1083,7 +1084,7 @@ class PortalWorkspaceController extends Controller
                     || strtolower((string) ($document['mime_type'] ?? '')) === 'application/pdf'
                     || str_ends_with(strtolower($filename), '.pdf');
 
-                return array_merge($document, [
+                return array_merge($this->decorateDocument($document), [
                     'download_route' => route($portal . '.shipments.documents.download', [
                         'id' => (string) $shipment->id,
                         'documentId' => (string) $document['id'],
@@ -1115,6 +1116,12 @@ class PortalWorkspaceController extends Controller
                 ->map(static fn (Notification $notification): array => [
                     'id' => (string) $notification->id,
                     'event_type' => (string) $notification->event_type,
+                    'event_type_label' => PortalShipmentLabeler::event(
+                        (string) $notification->event_type,
+                        (string) ($notification->subject
+                            ?? data_get($notification->event_data, 'title')
+                            ?? '')
+                    ),
                     'subject' => (string) ($notification->subject
                         ?? data_get($notification->event_data, 'title')
                         ?? $notification->event_type
@@ -1127,6 +1134,8 @@ class PortalWorkspaceController extends Controller
                 ])
                 ->all();
         }
+
+        $selectedOption = $shipment->selectedRateOption ?? $shipment->rateQuote?->selectedOption;
 
         return view('pages.portal.shipments.show', [
             'portalConfig' => array_merge(
@@ -1141,6 +1150,71 @@ class PortalWorkspaceController extends Controller
             'canIssueShipment' => $request->user()?->can('issueAtCarrier', $shipment) ?? false,
             'canViewNotifications' => $canViewNotifications,
             'shipmentNotifications' => $shipmentNotifications,
+            'carrierDisplayLabel' => PortalShipmentLabeler::carrier(
+                (string) ($shipment->carrierShipment?->carrier_code ?? $selectedOption?->carrier_code ?? $shipment->carrier_code ?? ''),
+                (string) ($shipment->carrierShipment?->carrier_name ?? $selectedOption?->carrier_name ?? $shipment->carrier_name ?? '')
+            ),
+            'serviceDisplayLabel' => PortalShipmentLabeler::service(
+                (string) ($shipment->carrierShipment?->service_code ?? $selectedOption?->service_code ?? $shipment->service_code ?? ''),
+                (string) ($shipment->carrierShipment?->service_name ?? $selectedOption?->service_name ?? $shipment->service_name ?? '')
+            ),
+        ]);
+    }
+
+    /**
+     * @param array<string, mixed> $timeline
+     * @return array<string, mixed>
+     */
+    private function decorateTimeline(array $timeline): array
+    {
+        $timeline['current_status_label'] = PortalShipmentLabeler::status(
+            (string) ($timeline['current_status'] ?? ''),
+            (string) ($timeline['current_status_label'] ?? '')
+        );
+
+        $timeline['events'] = collect($timeline['events'] ?? [])
+            ->map(static fn (array $event): array => array_merge($event, [
+                'event_type_label' => PortalShipmentLabeler::event(
+                    (string) ($event['event_type'] ?? ''),
+                    (string) ($event['event_type_label'] ?? $event['description'] ?? '')
+                ),
+                'status_label' => PortalShipmentLabeler::status(
+                    (string) ($event['status'] ?? $event['normalized_status'] ?? ''),
+                    (string) ($event['status_label'] ?? '')
+                ),
+                'source_label' => PortalShipmentLabeler::source(
+                    (string) ($event['source'] ?? ''),
+                    (string) ($event['source_label'] ?? '')
+                ),
+            ]))
+            ->all();
+
+        return $timeline;
+    }
+
+    /**
+     * @param array<string, mixed> $document
+     * @return array<string, mixed>
+     */
+    private function decorateDocument(array $document): array
+    {
+        return array_merge($document, [
+            'document_type_label' => PortalShipmentLabeler::documentType(
+                (string) ($document['document_type'] ?? $document['type'] ?? ''),
+                (string) ($document['document_type'] ?? $document['type'] ?? '')
+            ),
+            'carrier_label' => PortalShipmentLabeler::carrier(
+                (string) ($document['carrier_code'] ?? ''),
+                (string) ($document['carrier_name'] ?? '')
+            ),
+            'format_label' => PortalShipmentLabeler::documentFormat(
+                (string) ($document['file_format'] ?? $document['format'] ?? ''),
+                strtoupper((string) ($document['file_format'] ?? $document['format'] ?? ''))
+            ),
+            'retrieval_mode_label' => PortalShipmentLabeler::retrievalMode(
+                (string) ($document['retrieval_mode'] ?? ''),
+                (string) ($document['retrieval_mode'] ?? '')
+            ),
         ]);
     }
 
