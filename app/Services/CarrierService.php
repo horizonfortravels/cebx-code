@@ -406,7 +406,7 @@ class CarrierService
                 'mime_type' => (string) $doc->mime_type,
                 'source' => (string) ($doc->source ?? CarrierDocument::SOURCE_CARRIER),
                 'retrieval_mode' => (string) ($doc->retrieval_mode ?? $this->resolveRetrievalMode($doc->getDecodedContent(), $doc->download_url)),
-                'filename' => (string) ($doc->original_filename ?? $this->generateDocFilename($shipment, (string) $doc->type, (string) $doc->format)),
+                'filename' => $this->buildDocumentDownloadFilename($doc, $shipment),
                 'size' => $doc->file_size,
                 'available' => $doc->hasContent() || $doc->hasValidUrl(),
                 'carrier_document_type' => (string) data_get($doc->carrier_metadata, 'carrier_document_type', ''),
@@ -435,6 +435,8 @@ class CarrierService
             throw BusinessException::documentNotAvailable();
         }
 
+        $content = $document->getDecodedContent();
+
         $document->recordDownload();
 
         $this->audit->info(
@@ -454,10 +456,10 @@ class CarrierService
 
         return [
             'id' => (string) $document->id,
-            'content' => $document->getDecodedContent(),
+            'content' => $content,
             'format' => (string) $document->format,
-            'mime_type' => (string) $document->mime_type,
-            'filename' => (string) ($document->original_filename ?? $this->generateDocFilename($shipment, (string) $document->type, (string) $document->format)),
+            'mime_type' => $this->resolveDocumentDownloadMimeType($document, $content),
+            'filename' => $this->buildDocumentDownloadFilename($document, $shipment),
             'file_size' => $document->file_size,
             'checksum' => $document->checksum,
             'download_url' => $document->isDownloadUrlValid() ? $document->download_url : null,
@@ -1164,6 +1166,56 @@ class CarrierService
         $ref = $shipment->reference_number ?? $shipment->id;
 
         return "{$type}_{$ref}.{$format}";
+    }
+
+    private function buildDocumentDownloadFilename(CarrierDocument $document, Shipment $shipment): string
+    {
+        $format = $this->normalizeDocumentFormat((string) ($document->format ?: 'pdf'));
+        $candidate = trim((string) $document->original_filename);
+
+        if ($candidate !== '') {
+            $baseName = pathinfo($candidate, PATHINFO_FILENAME);
+            $extension = strtolower((string) pathinfo($candidate, PATHINFO_EXTENSION));
+
+            if ($extension === $format && ! $this->isOpaqueDocumentBasename($baseName)) {
+                return $candidate;
+            }
+        }
+
+        $identifier = (string) (
+            $shipment->tracking_number
+            ?? $shipment->carrier_tracking_number
+            ?? $shipment->carrierShipment?->tracking_number
+            ?? $shipment->reference_number
+            ?? $shipment->id
+        );
+
+        $safeIdentifier = trim((string) preg_replace('/[^A-Za-z0-9._-]+/', '_', $identifier), '_');
+        $safeIdentifier = $safeIdentifier !== '' ? $safeIdentifier : (string) $shipment->id;
+
+        return sprintf('%s_%s.%s', (string) $document->type, $safeIdentifier, $format);
+    }
+
+    private function isOpaqueDocumentBasename(string $baseName): bool
+    {
+        $normalized = trim(strtolower($baseName));
+
+        return $normalized === ''
+            || preg_match('/^[a-f0-9-]{16,}$/', $normalized) === 1;
+    }
+
+    private function resolveDocumentDownloadMimeType(CarrierDocument $document, ?string $content): string
+    {
+        if (is_string($content) && str_starts_with($content, '%PDF')) {
+            return 'application/pdf';
+        }
+
+        $mimeType = trim((string) $document->mime_type);
+        if ($mimeType !== '') {
+            return $mimeType;
+        }
+
+        return CarrierDocument::getMimeType($this->normalizeDocumentFormat((string) ($document->format ?: 'pdf')));
     }
 
     private function assertLegacyDhlCarrierShipment(CarrierShipment $carrierShipment, string $operation): void

@@ -32,7 +32,7 @@ use Illuminate\Validation\Rule;
 
 class PortalWorkspaceController extends Controller
 {
-    public function b2cShipments(): View
+        public function b2cShipments(): View
     {
         $account = $this->currentAccount();
         $accountId = (string) $account->id;
@@ -40,22 +40,19 @@ class PortalWorkspaceController extends Controller
         $shipments = Shipment::query()
             ->where('account_id', $accountId)
             ->latest()
-            ->limit(6)
-            ->get();
+            ->paginate(10)
+            ->withQueryString();
 
         return view('pages.portal.b2c.shipments', [
             'account' => $account,
             'shipments' => $shipments,
             'canCreateShipment' => auth()->user()?->can('create', Shipment::class) ?? false,
             'createRoute' => route('b2c.shipments.create'),
-            'stats' => [
-                ['icon' => 'SH', 'label' => 'إجمالي الشحنات', 'value' => number_format(Shipment::query()->where('account_id', $accountId)->count())],
-                ['icon' => 'IP', 'label' => 'قيد التنفيذ', 'value' => number_format(Shipment::query()->where('account_id', $accountId)->whereIn('status', ['pending', 'ready_for_pickup', 'picked_up', 'in_transit', 'out_for_delivery'])->count())],
-                ['icon' => 'OK', 'label' => 'تم التسليم', 'value' => number_format(Shipment::query()->where('account_id', $accountId)->where('status', 'delivered')->count())],
-            ],
+            'showRoute' => 'b2c.shipments.show',
+            'copy' => $this->shipmentIndexCopy('b2c'),
+            'stats' => $this->shipmentIndexStats($accountId, 'b2c'),
         ]);
     }
-
     public function b2cWallet(): View
     {
         $account = $this->currentAccount();
@@ -127,7 +124,7 @@ class PortalWorkspaceController extends Controller
         ]);
     }
 
-    public function b2bShipments(): View
+        public function b2bShipments(): View
     {
         $account = $this->currentAccount();
         $accountId = (string) $account->id;
@@ -135,22 +132,19 @@ class PortalWorkspaceController extends Controller
         $shipments = Shipment::query()
             ->where('account_id', $accountId)
             ->latest()
-            ->limit(8)
-            ->get();
+            ->paginate(10)
+            ->withQueryString();
 
         return view('pages.portal.b2b.shipments', [
             'account' => $account,
             'shipments' => $shipments,
             'canCreateShipment' => auth()->user()?->can('create', Shipment::class) ?? false,
             'createRoute' => route('b2b.shipments.create'),
-            'stats' => [
-                ['icon' => 'SH', 'label' => 'إجمالي الشحنات', 'value' => number_format(Shipment::query()->where('account_id', $accountId)->count())],
-                ['icon' => 'PD', 'label' => 'بانتظار الإجراء', 'value' => number_format(Shipment::query()->where('account_id', $accountId)->whereIn('status', ['draft', 'validated', 'payment_pending'])->count())],
-                ['icon' => 'TR', 'label' => 'في الطريق', 'value' => number_format(Shipment::query()->where('account_id', $accountId)->whereIn('status', ['picked_up', 'in_transit', 'out_for_delivery'])->count())],
-            ],
+            'showRoute' => 'b2b.shipments.show',
+            'copy' => $this->shipmentIndexCopy('b2b'),
+            'stats' => $this->shipmentIndexStats($accountId, 'b2b'),
         ]);
     }
-
     public function b2cShipmentShow(Request $request, string $id): View
     {
         return $this->shipmentTimelineWorkspace($request, $id, 'b2c');
@@ -847,6 +841,41 @@ class PortalWorkspaceController extends Controller
         }
     }
 
+    private function resolveShipmentDeclaration(Shipment $shipment, User $user): ?ContentDeclaration
+    {
+        $declaration = $shipment->contentDeclaration;
+
+        if ($declaration instanceof ContentDeclaration) {
+            return $declaration;
+        }
+
+        if (! $this->resolveSelectedOffer($shipment)) {
+            return null;
+        }
+
+        return app(\App\Services\DgComplianceService::class)->createDeclaration(
+            accountId: (string) $shipment->account_id,
+            shipmentId: (string) $shipment->id,
+            declaredBy: $user->id,
+            locale: (string) ($user->locale ?? 'ar'),
+            ipAddress: request()->ip(),
+            userAgent: request()?->userAgent(),
+        );
+    }
+
+    private function resolveActiveWaiver(?ContentDeclaration $declaration, string $locale): ?WaiverVersion
+    {
+        if ($declaration && $declaration->waiverVersion instanceof WaiverVersion) {
+            return $declaration->waiverVersion;
+        }
+
+        $service = app(\App\Services\DgComplianceService::class);
+
+        return $service->getActiveWaiver($locale)
+            ?? $service->getActiveWaiver('en')
+            ?? $service->getActiveWaiver('ar');
+    }
+
     private function walletPreflightWorkspace(Request $request, string $shipmentId, string $portal): RedirectResponse
     {
         $account = $this->currentAccount();
@@ -1168,8 +1197,8 @@ class PortalWorkspaceController extends Controller
             'parcels.*.description' => 'nullable|string|max:300',
             'metadata' => 'nullable|array',
         ], [
-            'sender_state.required' => 'حقل الولاية أو المقاطعة للمرسل مطلوب عندما تكون دولة المرسل هي الولايات المتحدة.',
-            'recipient_state.required' => 'حقل الولاية أو المقاطعة للمستلم مطلوب عندما تكون دولة المستلم هي الولايات المتحدة.',
+            'sender_state.required' => __('portal_shipments.validation.sender_state_required'),
+            'recipient_state.required' => __('portal_shipments.validation.recipient_state_required'),
         ]);
 
         foreach (['sender', 'recipient'] as $prefix) {
@@ -1192,13 +1221,13 @@ class PortalWorkspaceController extends Controller
     /**
      * @return array<string, string>
      */
-    private function shipmentPortalConfig(string $portal): array
+        private function shipmentPortalConfig(string $portal): array
     {
         return match ($portal) {
             'b2c' => [
-                'label' => 'بوابة الأفراد للحسابات الفردية',
-                'headline' => 'بدء طلب شحنة للحساب الفردي',
-                'description' => 'ابدأ طلب الشحنة من الحساب الفردي الخارجي، ثم راجع نتيجة التحقق والقيود قبل الانتقال إلى عروض شبكة الناقلين التابعة للمنصة.',
+                'label' => __('portal_shipments.workflow.b2c.label'),
+                'headline' => __('portal_shipments.workflow.b2c.headline'),
+                'description' => __('portal_shipments.workflow.b2c.description'),
                 'dashboard_route' => 'b2c.dashboard',
                 'index_route' => 'b2c.shipments.index',
                 'create_route' => 'b2c.shipments.create',
@@ -1213,9 +1242,9 @@ class PortalWorkspaceController extends Controller
                 'issue_route' => 'b2c.shipments.issue',
             ],
             'b2b' => [
-                'label' => 'بوابة الأعمال لحسابات المنظمات',
-                'headline' => 'بدء طلب شحنة لحساب المنظمة',
-                'description' => 'أنشئ طلب الشحنة لحساب المنظمة الخارجي، ثم راجع التحقق والامتثال قبل الانتقال إلى عروض شبكة الناقلين التابعة للمنصة لفريقك.',
+                'label' => __('portal_shipments.workflow.b2b.label'),
+                'headline' => __('portal_shipments.workflow.b2b.headline'),
+                'description' => __('portal_shipments.workflow.b2b.description'),
                 'dashboard_route' => 'b2b.dashboard',
                 'index_route' => 'b2b.shipments.index',
                 'create_route' => 'b2b.shipments.create',
@@ -1232,15 +1261,11 @@ class PortalWorkspaceController extends Controller
             default => abort(404),
         };
     }
-
-    /**
-     * @return array<string, string>
-     */
-    private function shipmentTimelinePortalConfig(string $portal): array
+        private function shipmentTimelinePortalConfig(string $portal): array
     {
         if ($portal === 'b2b') {
             return [
-                'label' => 'بوابة الأعمال',
+                'label' => __('portal_shipments.workflow.b2b.timeline_label'),
                 'dashboard_route' => 'b2b.dashboard',
                 'shipments_index_route' => 'b2b.shipments.index',
                 'documents_route' => 'b2b.shipments.documents.index',
@@ -1248,48 +1273,73 @@ class PortalWorkspaceController extends Controller
         }
 
         return [
-            'label' => 'بوابة الأفراد',
+            'label' => __('portal_shipments.workflow.b2c.timeline_label'),
             'dashboard_route' => 'b2c.dashboard',
             'shipments_index_route' => 'b2c.shipments.index',
             'documents_route' => 'b2c.shipments.documents.index',
         ];
     }
 
-    private function resolveShipmentDeclaration(Shipment $shipment, User $user): ?ContentDeclaration
+    /**
+     * @return array<string, mixed>
+     */
+    private function shipmentIndexCopy(string $portal): array
     {
-        $declaration = $shipment->contentDeclaration;
-
-        if ($declaration instanceof ContentDeclaration) {
-            return $declaration;
-        }
-
-        if (! $this->resolveSelectedOffer($shipment)) {
-            return null;
-        }
-
-        return app(\App\Services\DgComplianceService::class)->createDeclaration(
-            accountId: (string) $shipment->account_id,
-            shipmentId: (string) $shipment->id,
-            declaredBy: $user->id,
-            locale: (string) ($user->locale ?? 'ar'),
-            ipAddress: request()->ip(),
-            userAgent: request()?->userAgent(),
-        );
+        return [
+            'portal_label' => __('portal_shipments.common.portal_' . $portal),
+            'title' => __('portal_shipments.index.' . $portal . '.title'),
+            'description' => __('portal_shipments.index.' . $portal . '.description'),
+            'create_cta' => __('portal_shipments.index.' . $portal . '.create_cta'),
+            'table_title' => __('portal_shipments.index.' . $portal . '.table_title'),
+            'empty_state' => __('portal_shipments.index.' . $portal . '.empty_state'),
+            'guidance_title' => __('portal_shipments.index.' . $portal . '.guidance_title'),
+            'guidance_cards' => __('portal_shipments.index.' . $portal . '.guidance_cards'),
+        ];
     }
 
-    private function resolveActiveWaiver(?ContentDeclaration $declaration, string $locale): ?WaiverVersion
+    /**
+     * @return array<int, array{icon: string, label: string, value: string}>
+     */
+    private function shipmentIndexStats(string $accountId, string $portal): array
     {
-        if ($declaration && $declaration->waiverVersion instanceof WaiverVersion) {
-            return $declaration->waiverVersion;
-        }
-
-        $service = app(\App\Services\DgComplianceService::class);
-
-        return $service->getActiveWaiver($locale)
-            ?? $service->getActiveWaiver('en')
-            ?? $service->getActiveWaiver('ar');
+        return match ($portal) {
+            'b2c' => [
+                [
+                    'icon' => 'SH',
+                    'label' => __('portal_shipments.index.b2c.stats.total'),
+                    'value' => number_format(Shipment::query()->where('account_id', $accountId)->count()),
+                ],
+                [
+                    'icon' => 'IP',
+                    'label' => __('portal_shipments.index.b2c.stats.active'),
+                    'value' => number_format(Shipment::query()->where('account_id', $accountId)->whereIn('status', ['pending', 'ready_for_pickup', 'picked_up', 'in_transit', 'out_for_delivery'])->count()),
+                ],
+                [
+                    'icon' => 'OK',
+                    'label' => __('portal_shipments.index.b2c.stats.delivered'),
+                    'value' => number_format(Shipment::query()->where('account_id', $accountId)->where('status', 'delivered')->count()),
+                ],
+            ],
+            'b2b' => [
+                [
+                    'icon' => 'SH',
+                    'label' => __('portal_shipments.index.b2b.stats.total'),
+                    'value' => number_format(Shipment::query()->where('account_id', $accountId)->count()),
+                ],
+                [
+                    'icon' => 'PD',
+                    'label' => __('portal_shipments.index.b2b.stats.pending'),
+                    'value' => number_format(Shipment::query()->where('account_id', $accountId)->whereIn('status', ['draft', 'validated', 'payment_pending'])->count()),
+                ],
+                [
+                    'icon' => 'TR',
+                    'label' => __('portal_shipments.index.b2b.stats.in_transit'),
+                    'value' => number_format(Shipment::query()->where('account_id', $accountId)->whereIn('status', ['picked_up', 'in_transit', 'out_for_delivery'])->count()),
+                ],
+            ],
+            default => [],
+        };
     }
-
     private function preferredBillingWallet(string $accountId): ?BillingWallet
     {
         return BillingWallet::query()

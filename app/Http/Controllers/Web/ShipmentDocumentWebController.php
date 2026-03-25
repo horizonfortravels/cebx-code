@@ -79,11 +79,20 @@ class ShipmentDocumentWebController extends Controller
             return redirect()->away((string) $docData['download_url']);
         }
 
-        return response((string) ($docData['content'] ?? ''))
-            ->header('Content-Type', (string) $docData['mime_type'])
-            ->header('Content-Disposition', "attachment; filename=\"{$docData['filename']}\"")
-            ->header('Content-Length', (string) ($docData['file_size'] ?? strlen((string) ($docData['content'] ?? ''))))
-            ->header('X-Checksum-SHA256', (string) ($docData['checksum'] ?? ''));
+        $content = (string) ($docData['content'] ?? '');
+        $headers = array_filter([
+            'Content-Type' => (string) ($docData['mime_type'] ?? 'application/octet-stream'),
+            'Content-Length' => (string) ($docData['file_size'] ?? strlen($content)),
+            'X-Checksum-SHA256' => (string) ($docData['checksum'] ?? ''),
+        ], static fn ($value) => $value !== '');
+
+        return response()->streamDownload(
+            static function () use ($content): void {
+                echo $content;
+            },
+            (string) ($docData['filename'] ?? 'document.bin'),
+            $headers
+        );
     }
 
     /**
