@@ -134,9 +134,16 @@
                                 المستند غير متاح حاليًا.
                             @endif
                         </div>
-                        <a href="{{ $document['download_route'] }}" class="btn btn-pr" download="{{ $document['filename'] }}" @if(!$document['available']) aria-disabled="true" @endif>
-                            تنزيل المستند
-                        </a>
+                        <div style="display:flex;flex-direction:column;gap:8px">
+                            @if(!empty($document['previewable']) && !empty($document['preview_route']))
+                                <a href="{{ $document['preview_route'] }}" class="btn btn-s" target="_blank" rel="noopener noreferrer" @if(!$document['available']) aria-disabled="true" @endif>
+                                    &#1593;&#1585;&#1590; &#1575;&#1604;&#1605;&#1587;&#1578;&#1606;&#1583;
+                                </a>
+                            @endif
+                            <a href="{{ $document['download_route'] }}" class="btn btn-pr" download="{{ $document['filename'] }}" @if(!$document['available']) aria-disabled="true" @endif>
+                                &#1578;&#1606;&#1586;&#1610;&#1604; &#1575;&#1604;&#1605;&#1587;&#1578;&#1606;&#1583;
+                            </a>
+                        </div>
                     </div>
                 </div>
             @endforeach

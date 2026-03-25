@@ -336,7 +336,12 @@
                             <div class="td-mono" style="font-size:12px;color:var(--tm);margin-top:4px">{{ $document['carrier_code'] }} / {{ $document['file_format'] }}</div>
                         </div>
                         <div style="display:flex;align-items:center">
-                            <a href="{{ $document['download_route'] }}" class="btn btn-s" download="{{ $document['filename'] }}">تنزيل المستند</a>
+                            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                                @if(!empty($document['previewable']) && !empty($document['preview_route']))
+                                    <a href="{{ $document['preview_route'] }}" class="btn btn-s" target="_blank" rel="noopener noreferrer">عرض المستند</a>
+                                @endif
+                                <a href="{{ $document['download_route'] }}" class="btn btn-s" download="{{ $document['filename'] }}">تنزيل المستند</a>
+                            </div>
                         </div>
                     </div>
                 @endforeach

@@ -98,7 +98,8 @@ class ShipmentPostIssuanceJourneyWebTest extends TestCase
             ->get($routePrefix . $shipment->id . '/documents')
             ->assertOk()
             ->assertSee((string) $document->original_filename)
-            ->assertSee('تنزيل المستند');
+            ->assertSee('/documents/' . $document->id . '/view/', false)
+            ->assertSee('/documents/' . $document->id . '/', false);
 
         $this->actingAs($user, 'web')
             ->get($routePrefix . $shipment->id . '/documents/' . $document->id)

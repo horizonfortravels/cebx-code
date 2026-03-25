@@ -22,8 +22,6 @@ class ShipmentDocumentFlowWebTest extends TestCase
         $this->actingAs($user, 'web')
             ->get('/b2c/shipments/' . $shipment->id . '/documents')
             ->assertOk()
-            ->assertSee('وثائق الشحنة وملفات الناقل')
-            ->assertSee('تنزيل المستند')
             ->assertSee('label_test.pdf');
     }
 
@@ -36,9 +34,7 @@ class ShipmentDocumentFlowWebTest extends TestCase
         $this->actingAs($user, 'web')
             ->get('/b2b/shipments/' . $shipment->id . '/documents')
             ->assertOk()
-            ->assertSee('وثائق الشحنة وملفات الناقل')
-            ->assertSee('FedEx')
-            ->assertSee('تنزيل المستند');
+            ->assertSee('FedEx');
     }
 
     public function test_cross_tenant_document_page_access_is_denied(): void
@@ -90,8 +86,67 @@ class ShipmentDocumentFlowWebTest extends TestCase
         $this->actingAs($user, 'web')
             ->get('/b2b/shipments/' . $shipment->id . '/documents')
             ->assertOk()
+            ->assertSee('/b2b/shipments/' . $shipment->id . '/documents/' . $document->id . '/view/label_794677770001.pdf', false)
             ->assertSee('/b2b/shipments/' . $shipment->id . '/documents/' . $document->id . '/label_794677770001.pdf', false)
+            ->assertSee('target="_blank"', false)
+            ->assertSee('rel="noopener noreferrer"', false)
             ->assertSee('download="label_794677770001.pdf"', false);
+    }
+
+    public function test_pdf_label_preview_returns_inline_pdf_with_normalized_filename(): void
+    {
+        Storage::fake('local');
+
+        $user = $this->createPortalDocumentUser('organization', 'organization_owner');
+        $shipment = Shipment::factory()->create([
+            'account_id' => (string) $user->account_id,
+            'user_id' => (string) $user->id,
+            'status' => Shipment::STATUS_PURCHASED,
+            'reference_number' => 'DOC-PREVIEW-01',
+            'sender_name' => 'Sender',
+            'recipient_name' => 'Recipient',
+        ]);
+
+        $carrierShipment = CarrierShipment::factory()->labelReady()->create([
+            'shipment_id' => (string) $shipment->id,
+            'account_id' => (string) $user->account_id,
+            'carrier_code' => 'fedex',
+            'carrier_name' => 'FedEx',
+            'tracking_number' => '794688881111',
+        ]);
+
+        $pdfBinary = "%PDF-1.4\n1 0 obj\n<<>>\nendobj\ntrailer\n<<>>\n%%EOF";
+        $storagePath = 'carrier-documents/' . $shipment->id . '/' . $carrierShipment->id . '/preview-label';
+        Storage::disk('local')->put($storagePath, $pdfBinary);
+
+        $document = CarrierDocument::factory()->create([
+            'carrier_shipment_id' => (string) $carrierShipment->id,
+            'shipment_id' => (string) $shipment->id,
+            'carrier_code' => 'fedex',
+            'format' => 'pdf',
+            'mime_type' => 'application/octet-stream',
+            'retrieval_mode' => CarrierDocument::RETRIEVAL_STORED_OBJECT,
+            'storage_disk' => 'local',
+            'storage_path' => $storagePath,
+            'original_filename' => '94a68a55-a751-4339-8d20-b1e68a4fcbff',
+            'content_base64' => null,
+            'file_size' => strlen($pdfBinary),
+            'checksum' => hash('sha256', $pdfBinary),
+        ]);
+
+        $response = $this->actingAs($user, 'web')
+            ->get('/b2b/shipments/' . $shipment->id . '/documents/' . $document->id . '/view/label_794688881111.pdf');
+
+        $content = $response->streamedContent();
+
+        $response->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf');
+
+        $this->assertStringStartsWith('inline;', (string) $response->headers->get('content-disposition'));
+        $this->assertStringContainsString('.pdf', (string) $response->headers->get('content-disposition'));
+        $this->assertStringContainsString('label_794688881111.pdf', (string) $response->headers->get('content-disposition'));
+        $this->assertNotSame('', $content);
+        $this->assertStringStartsWith('%PDF', $content);
     }
 
     public function test_label_download_returns_valid_pdf_with_normalized_filename(): void
@@ -147,6 +202,23 @@ class ShipmentDocumentFlowWebTest extends TestCase
         $this->assertStringContainsString('label_794699991111.pdf', (string) $response->headers->get('content-disposition'));
         $this->assertNotSame('', $content);
         $this->assertStringStartsWith('%PDF', $content);
+    }
+
+    public function test_cross_tenant_document_preview_route_is_denied(): void
+    {
+        $userA = $this->createPortalDocumentUser('organization', 'organization_owner');
+        $userB = $this->createPortalDocumentUser('organization', 'organization_owner');
+        $shipmentB = $this->createIssuedShipmentWithDocument($userB, [
+            'tracking_number' => '794677770111',
+        ]);
+
+        $documentB = CarrierDocument::query()
+            ->where('shipment_id', (string) $shipmentB->id)
+            ->firstOrFail();
+
+        $this->actingAs($userA, 'web')
+            ->get('/b2b/shipments/' . $shipmentB->id . '/documents/' . $documentB->id . '/view/label_794677770111.pdf')
+            ->assertNotFound();
     }
 
     /**

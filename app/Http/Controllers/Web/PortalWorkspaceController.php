@@ -1078,12 +1078,23 @@ class PortalWorkspaceController extends Controller
         $timeline = app(ShipmentTimelineService::class)->present($shipment);
         $documents = collect(app(CarrierService::class)->listDocuments($shipment))
             ->map(function (array $document) use ($portal, $shipment): array {
+                $filename = (string) ($document['filename'] ?? 'document.bin');
+                $previewable = strtolower((string) ($document['file_format'] ?? $document['format'] ?? '')) === 'pdf'
+                    || strtolower((string) ($document['mime_type'] ?? '')) === 'application/pdf'
+                    || str_ends_with(strtolower($filename), '.pdf');
+
                 return array_merge($document, [
                     'download_route' => route($portal . '.shipments.documents.download', [
                         'id' => (string) $shipment->id,
                         'documentId' => (string) $document['id'],
-                        'downloadName' => (string) $document['filename'],
+                        'downloadName' => $filename,
                     ]),
+                    'previewable' => $previewable,
+                    'preview_route' => $previewable ? route($portal . '.shipments.documents.preview', [
+                        'id' => (string) $shipment->id,
+                        'documentId' => (string) $document['id'],
+                        'previewName' => $filename,
+                    ]) : null,
                 ]);
             })
             ->all();
