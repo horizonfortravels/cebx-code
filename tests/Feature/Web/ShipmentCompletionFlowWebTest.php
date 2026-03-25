@@ -342,7 +342,7 @@ class ShipmentCompletionFlowWebTest extends TestCase
         config()->set('services.fedex.client_secret', 'fedex-test-secret');
         config()->set('services.fedex.account_number', '123456789');
         config()->set('services.fedex.base_url', 'https://apis-sandbox.fedex.com');
-        config()->set('services.fedex.oauth_url', 'https://apis-base.test.cloud.fedex.com/oauth/token');
+        config()->set('services.fedex.oauth_url', 'https://apis-sandbox.fedex.com/oauth/token');
         config()->set('services.fedex.locale', 'en_US');
         config()->set('services.fedex.carrier_codes', ['FDXE']);
     }
@@ -556,7 +556,7 @@ class ShipmentCompletionFlowWebTest extends TestCase
     private function fedexShipFakeResponses(array $shipBody, int $shipStatus = 200): array
     {
         return [
-            'https://apis-base.test.cloud.fedex.com/oauth/token' => fn () => Http::response([
+            'https://apis-sandbox.fedex.com/oauth/token' => fn () => Http::response([
                 'access_token' => 'fedex-access-token',
                 'token_type' => 'bearer',
                 'expires_in' => 3600,
@@ -572,7 +572,7 @@ class ShipmentCompletionFlowWebTest extends TestCase
     private function fedexRateAndShipFakeResponses(array $shipBody): array
     {
         return [
-            'https://apis-base.test.cloud.fedex.com/oauth/token' => fn () => Http::response([
+            'https://apis-sandbox.fedex.com/oauth/token' => fn () => Http::response([
                 'access_token' => 'fedex-access-token',
                 'token_type' => 'bearer',
                 'expires_in' => 3600,

@@ -4,6 +4,7 @@ namespace App\Services\Carriers;
 
 use App\Exceptions\BusinessException;
 use App\Services\Carriers\Contracts\CarrierShipmentProvider;
+use App\Support\FedexEndpointResolver;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -305,7 +306,7 @@ class FedexShipmentProvider implements CarrierShipmentProvider
 
         $response = Http::timeout((int) config('services.fedex.timeout', 20))
             ->asForm()
-            ->post((string) config('services.fedex.oauth_url'), [
+            ->post(FedexEndpointResolver::oauthUrl(), [
                 'grant_type' => 'client_credentials',
                 'client_id' => (string) config('services.fedex.client_id'),
                 'client_secret' => (string) config('services.fedex.client_secret'),
@@ -324,7 +325,7 @@ class FedexShipmentProvider implements CarrierShipmentProvider
                 [
                     'carrier_code' => 'fedex',
                     'http_status' => 502,
-                    'endpoint_url' => (string) config('services.fedex.oauth_url'),
+                    'endpoint_url' => FedexEndpointResolver::oauthUrl(),
                     'method' => 'POST',
                     'response_body' => $response->json(),
                 ]

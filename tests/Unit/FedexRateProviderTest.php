@@ -9,6 +9,22 @@ use Tests\TestCase;
 
 class FedexRateProviderTest extends TestCase
 {
+    public function test_oauth_requests_use_base_url_derived_endpoint_even_if_legacy_oauth_config_differs(): void
+    {
+        $this->configureFedex();
+        config()->set('services.fedex.oauth_url', 'https://legacy.invalid/oauth/token');
+
+        Http::preventStrayRequests();
+        Http::fake($this->fedexFakeResponses());
+
+        /** @var FedexRateProvider $provider */
+        $provider = app(FedexRateProvider::class);
+
+        $provider->fetchNetRates($this->fedexContext());
+
+        Http::assertSent(fn (Request $request): bool => $request->url() === 'https://apis-sandbox.fedex.com/oauth/token');
+    }
+
     public function test_mocked_fedex_availability_and_rate_parsing_produces_normalized_offers(): void
     {
         $this->configureFedex();
@@ -93,7 +109,7 @@ class FedexRateProviderTest extends TestCase
         config()->set('services.fedex.client_secret', 'fedex-test-secret');
         config()->set('services.fedex.account_number', '123456789');
         config()->set('services.fedex.base_url', 'https://apis-sandbox.fedex.com');
-        config()->set('services.fedex.oauth_url', 'https://apis-base.test.cloud.fedex.com/oauth/token');
+        config()->set('services.fedex.oauth_url', 'https://apis-sandbox.fedex.com/oauth/token');
         config()->set('services.fedex.locale', 'en_US');
         config()->set('services.fedex.carrier_codes', ['FDXE']);
     }
@@ -139,7 +155,7 @@ class FedexRateProviderTest extends TestCase
     private function fedexFakeResponses(): array
     {
         return [
-            'https://apis-base.test.cloud.fedex.com/oauth/token' => fn () => Http::response([
+            'https://apis-sandbox.fedex.com/oauth/token' => fn () => Http::response([
                 'access_token' => 'fedex-access-token',
                 'token_type' => 'bearer',
                 'expires_in' => 3600,
