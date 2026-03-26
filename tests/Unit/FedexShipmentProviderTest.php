@@ -9,6 +9,22 @@ use Tests\TestCase;
 
 class FedexShipmentProviderTest extends TestCase
 {
+    public function test_shipment_auth_uses_base_url_derived_endpoint_even_if_legacy_oauth_config_differs(): void
+    {
+        $this->configureFedex();
+        config()->set('services.fedex.oauth_url', 'https://legacy.invalid/oauth/token');
+
+        Http::preventStrayRequests();
+        Http::fake($this->fedexFakeResponses($this->shipSuccessBody()));
+
+        /** @var FedexShipmentProvider $provider */
+        $provider = app(FedexShipmentProvider::class);
+
+        $provider->createShipment($this->fedexContext());
+
+        Http::assertSent(fn (Request $request): bool => $request->url() === 'https://apis-sandbox.fedex.com/oauth/token');
+    }
+
     public function test_create_shipment_parses_fedex_response_into_normalized_fields(): void
     {
         $this->configureFedex();
@@ -36,16 +52,26 @@ class FedexShipmentProviderTest extends TestCase
         $this->assertFalse((bool) data_get($result, 'carrier_metadata.virtualized_response'));
         $this->assertNotEmpty(data_get($result, 'request_payload.requestedShipment.requestedPackageLineItems'));
         $this->assertNotEmpty(data_get($result, 'response_payload.output.transactionShipments.0.shipmentDocuments'));
+        $this->assertNotEmpty(data_get($result, 'carrier_metadata.package_documents'));
+        $this->assertSame('LABEL', data_get($result, 'carrier_metadata.package_documents.0.contentType'));
+        $this->assertSame('PDF', data_get($result, 'carrier_metadata.package_documents.0.docType'));
 
         Http::assertSent(function (Request $request): bool {
             if ($request->url() !== 'https://apis-sandbox.fedex.com/ship/v1/shipments') {
                 return false;
             }
 
+            $body = $request->body();
+
             return $request->hasHeader('x-customer-transaction-id', 'REQ-FDX-SHIP-001')
-                && data_get($request->data(), 'requestedShipment.serviceType') === 'INTERNATIONAL_PRIORITY'
-                && data_get($request->data(), 'requestedShipment.shippingChargesPayment.paymentType') === 'SENDER'
-                && data_get($request->data(), 'labelResponseOptions') === 'LABEL';
+                && str_contains($body, '"serviceType":"INTERNATIONAL_PRIORITY"')
+                && str_contains($body, '"paymentType":"SENDER"')
+                && str_contains($body, '"labelResponseOptions":"LABEL"')
+                && str_contains($body, '"packagingType":"YOUR_PACKAGING"')
+                && str_contains($body, '"totalWeight":1.5')
+                && ! str_contains($body, '"totalWeight":{"units"')
+                && str_contains($body, '"stateOrProvinceCode":"RI"')
+                && str_contains($body, '"stateOrProvinceCode":"NY"');
         });
     }
 
@@ -74,7 +100,7 @@ class FedexShipmentProviderTest extends TestCase
         config()->set('services.fedex.client_secret', 'fedex-test-secret');
         config()->set('services.fedex.account_number', '123456789');
         config()->set('services.fedex.base_url', 'https://apis-sandbox.fedex.com');
-        config()->set('services.fedex.oauth_url', 'https://apis-base.test.cloud.fedex.com/oauth/token');
+        config()->set('services.fedex.oauth_url', 'https://apis-sandbox.fedex.com/oauth/token');
         config()->set('services.fedex.locale', 'en_US');
         config()->set('services.fedex.carrier_codes', ['FDXE']);
     }
@@ -103,9 +129,10 @@ class FedexShipmentProviderTest extends TestCase
             'sender_phone' => '+966500000001',
             'sender_email' => 'sender@example.test',
             'sender_address_1' => 'Origin Street',
-            'sender_city' => 'Riyadh',
-            'sender_postal_code' => '12211',
-            'sender_country' => 'SA',
+            'sender_city' => 'Providence',
+            'sender_state' => 'RI',
+            'sender_postal_code' => '02903',
+            'sender_country' => 'US',
             'recipient_name' => 'Recipient',
             'recipient_company' => 'Recipient Co',
             'recipient_phone' => '+12025550123',
@@ -122,7 +149,7 @@ class FedexShipmentProviderTest extends TestCase
                 'length' => 20,
                 'width' => 15,
                 'height' => 10,
-                'packaging_type' => 'YOUR_PACKAGING',
+                'packaging_type' => 'custom',
             ]],
         ], $overrides);
     }
@@ -134,7 +161,7 @@ class FedexShipmentProviderTest extends TestCase
     private function fedexFakeResponses(array $shipBody): array
     {
         return [
-            'https://apis-base.test.cloud.fedex.com/oauth/token' => fn () => Http::response([
+            'https://apis-sandbox.fedex.com/oauth/token' => fn () => Http::response([
                 'access_token' => 'fedex-access-token',
                 'token_type' => 'bearer',
                 'expires_in' => 3600,
@@ -167,15 +194,20 @@ class FedexShipmentProviderTest extends TestCase
                     'pieceResponses' => [[
                         'trackingNumber' => '794699999999',
                         'alerts' => $alerts,
+                        'packageDocuments' => [[
+                            'docType' => 'PDF',
+                            'contentType' => 'LABEL',
+                            'copiesToPrint' => 1,
+                            'encodedLabel' => base64_encode('fake-fedex-package-label'),
+                        ]],
                     ]],
                     'completedShipmentDetail' => [
                         'carrierCode' => 'FDXE',
                         'masterTrackingNumber' => '794699999999',
                     ],
                     'shipmentDocuments' => [[
-                        'contentKey' => 'LABEL',
-                        'copiesToPrint' => 1,
-                        'encodedLabel' => base64_encode('fake-fedex-label'),
+                        'docType' => 'COMMERCIAL_INVOICE',
+                        'url' => 'https://sandbox-docs.fedex.test/invoice-001.pdf',
                     ]],
                 ]],
             ],

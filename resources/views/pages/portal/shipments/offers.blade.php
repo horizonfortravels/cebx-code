@@ -19,6 +19,26 @@
     $hasOffers = count($offers) > 0;
     $isExpired = (bool) data_get($offersPayload, 'is_expired', false);
     $selectedOptionId = $selectedOptionId !== '' ? $selectedOptionId : (string) data_get($offersPayload, 'selected_rate_option_id', '');
+    $documentsAvailable = $shipment->carrierDocuments()->where('is_available', true)->exists();
+    $quoteStatusLabels = [
+        'pending' => 'قيد الانتظار',
+        'completed' => 'مكتمل',
+        'expired' => 'منتهي',
+        'failed' => 'فشل الجلب',
+    ];
+    $quoteStatus = data_get($offersPayload, 'quote_status', $hasOffers ? 'completed' : 'pending');
+    $localizedQuoteStatus = $quoteStatusLabels[$quoteStatus] ?? $quoteStatus;
+    $offerEmptyMessage = (string) ($offerError['message'] ?? 'لم يتم توليد عروض لهذه الشحنة بعد. يمكنك طلب العروض عندما تصبح الشحنة جاهزة لطلب العروض.');
+    $offerEmptyNextAction = (string) data_get($offerError, 'next_action', '');
+    if ($offerEmptyMessage === 'No offers are available for this shipment yet.') {
+        $offerEmptyMessage = 'لا توجد عروض متاحة لهذه الشحنة حتى الآن.';
+    }
+    if ($offerEmptyNextAction === 'Fetch shipment rates after the shipment reaches the ready_for_rates stage.') {
+        $offerEmptyNextAction = 'اطلب عروض الشحنة بعد وصولها إلى مرحلة جاهز لطلب العروض.';
+    }
+    $documentsRoute = request()->routeIs('b2b.*')
+        ? route('b2b.shipments.documents.index', ['id' => $shipment->id])
+        : route('b2c.shipments.documents.index', ['id' => $shipment->id]);
 @endphp
 
 <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:24px">
@@ -41,6 +61,9 @@
         <a href="{{ route($portalConfig['create_route'], ['draft' => $shipment->id]) }}" class="btn btn-s">العودة إلى المسودة</a>
         @if($selectedOptionId !== '' || in_array($shipment->status, ['declaration_required', 'declaration_complete', 'requires_action'], true))
             <a href="{{ route($portalConfig['declaration_route'], ['id' => $shipment->id]) }}" class="btn btn-s">الانتقال إلى إقرار المحتوى</a>
+        @endif
+        @if($documentsAvailable)
+            <a href="{{ $documentsRoute }}" class="btn btn-s">عرض الوثائق</a>
         @endif
         @if($canRefreshOffers)
             <form method="POST" action="{{ route($portalConfig['offers_fetch_route'], ['id' => $shipment->id]) }}">
@@ -96,7 +119,7 @@
             </div>
             <div>
                 <div style="font-size:12px;color:var(--tm);margin-bottom:4px">حالة عرض الأسعار</div>
-                <div style="font-weight:700;color:var(--tx)">{{ data_get($offersPayload, 'quote_status', $hasOffers ? 'completed' : 'pending') }}</div>
+                <div style="font-weight:700;color:var(--tx)">{{ $localizedQuoteStatus }}</div>
             </div>
             <div>
                 <div style="font-size:12px;color:var(--tm);margin-bottom:4px">انتهاء الصلاحية</div>
@@ -123,12 +146,12 @@
                     {{ $offerError ? 'الشحنة ليست جاهزة لعرض الأسعار بعد' : 'لا توجد عروض متاحة حاليًا' }}
                 </div>
                 <div style="color:var(--td);font-size:14px;max-width:760px">
-                    {{ $offerError['message'] ?? 'لم يتم توليد عروض لهذه الشحنة بعد. يمكنك طلب العروض عندما تكون الشحنة في حالة ready_for_rates.' }}
+                    {{ $offerEmptyMessage }}
                 </div>
-                @if(!empty($offerError['next_action']))
+                @if($offerEmptyNextAction !== '')
                     <div style="margin-top:10px;color:var(--td);font-size:14px">
                         <strong style="color:var(--tx)">الإجراء المقترح:</strong>
-                        {{ $offerError['next_action'] }}
+                        {{ $offerEmptyNextAction }}
                     </div>
                 @endif
             </div>
@@ -238,4 +261,3 @@
     </x-card>
 @endif
 @endsection
-

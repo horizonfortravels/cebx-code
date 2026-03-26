@@ -24,7 +24,7 @@
     </div>
     <div style="font-size:13px;opacity:.78;margin-top:8px">
         @if($wallet)
-            الرصيد المعلّق: {{ number_format((float) $wallet->locked_balance, 2) }} {{ $wallet->currency ?? 'SAR' }}
+            الرصيد المعلّق: {{ number_format((float) ($wallet->reserved_balance ?? $wallet->locked_balance ?? 0), 2) }} {{ $wallet->currency ?? 'SAR' }}
         @else
             لم يتم إنشاء محفظة لهذا الحساب بعد.
         @endif

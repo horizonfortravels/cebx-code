@@ -1,4 +1,7 @@
 <?php
+
+$fedexBaseUrl = rtrim((string) env('FEDEX_BASE_URL', 'https://apis-sandbox.fedex.com'), '/');
+
 return [
     'dhl' => [
         'api_key' => env('DHL_API_KEY'),
@@ -19,9 +22,9 @@ return [
     'fedex' => [
         'client_id' => env('FEDEX_CLIENT_ID'),
         'client_secret' => env('FEDEX_CLIENT_SECRET'),
-        'account_number' => env('FEDEX_ACCOUNT_NUMBER'),
-        'base_url' => env('FEDEX_BASE_URL', 'https://apis-sandbox.fedex.com'),
-        'oauth_url' => env('FEDEX_OAUTH_URL', 'https://apis-base.test.cloud.fedex.com/oauth/token'),
+        'account_number' => env('FEDEX_ACCOUNT_NUMBER', env('FEDEX_SHIPPER_ACCOUNT', env('FEDEX_BILL_TO_ACCOUNT'))),
+        'base_url' => $fedexBaseUrl,
+        'oauth_url' => $fedexBaseUrl . '/oauth/token',
         'locale' => env('FEDEX_LOCALE', 'en_US'),
         'timeout' => (int) env('FEDEX_TIMEOUT', 20),
         'carrier_codes' => array_values(array_filter(array_map(

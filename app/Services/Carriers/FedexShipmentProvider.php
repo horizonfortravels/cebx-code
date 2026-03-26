@@ -4,6 +4,7 @@ namespace App\Services\Carriers;
 
 use App\Exceptions\BusinessException;
 use App\Services\Carriers\Contracts\CarrierShipmentProvider;
+use App\Support\FedexEndpointResolver;
 use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -78,10 +79,7 @@ class FedexShipmentProvider implements CarrierShipmentProvider
                 'recipients' => [
                     $this->fedexParty($context, 'recipient'),
                 ],
-                'totalWeight' => [
-                    'units' => $this->weightUnits(),
-                    'value' => (float) ($context['total_weight'] ?? $context['chargeable_weight'] ?? 1),
-                ],
+                'totalWeight' => (float) ($context['total_weight'] ?? $context['chargeable_weight'] ?? 1),
                 'labelSpecification' => [
                     'imageType' => $this->mapImageType((string) ($context['label_format'] ?? 'pdf')),
                     'labelStockType' => $this->mapLabelStockType((string) ($context['label_size'] ?? '4x6')),
@@ -103,6 +101,10 @@ class FedexShipmentProvider implements CarrierShipmentProvider
         $transaction = (array) data_get($responseBody, 'output.transactionShipments.0', []);
         $completedDetail = (array) data_get($transaction, 'completedShipmentDetail', []);
         $pieceResponse = (array) data_get($transaction, 'pieceResponses.0', []);
+        $packageDocuments = collect((array) data_get($transaction, 'pieceResponses', []))
+            ->flatMap(static fn (array $piece): array => array_values((array) ($piece['packageDocuments'] ?? [])))
+            ->values()
+            ->all();
 
         $trackingNumber = trim((string) (
             data_get($pieceResponse, 'trackingNumber')
@@ -175,6 +177,7 @@ class FedexShipmentProvider implements CarrierShipmentProvider
                 'job_id' => data_get($responseBody, 'output.jobId'),
                 'transaction_id' => data_get($responseBody, 'transactionId'),
                 'shipment_documents' => data_get($transaction, 'shipmentDocuments', []),
+                'package_documents' => $packageDocuments,
                 'piece_alerts' => data_get($pieceResponse, 'alerts', []),
                 'request_contract' => 'ship/v1/shipments',
             ],
@@ -216,18 +219,22 @@ class FedexShipmentProvider implements CarrierShipmentProvider
      */
     private function fedexAddress(array $context, string $prefix): array
     {
+        $cityFallback = $prefix === 'sender' ? 'origin_city' : 'destination_city';
+        $countryFallback = $prefix === 'sender' ? 'origin_country' : 'destination_country';
+        $stateFallback = $prefix === 'sender' ? 'origin_state' : 'destination_state';
+
         $address = [
             'streetLines' => array_values(array_filter([
                 (string) ($context["{$prefix}_address_1"] ?? ''),
                 (string) ($context["{$prefix}_address_2"] ?? ''),
             ])),
-            'city' => (string) ($context["{$prefix}_city"] ?? ''),
+            'city' => (string) ($context["{$prefix}_city"] ?? $context[$cityFallback] ?? ''),
             'postalCode' => (string) ($context["{$prefix}_postal_code"] ?? ''),
-            'countryCode' => (string) ($context["{$prefix}_country"] ?? ''),
+            'countryCode' => (string) ($context["{$prefix}_country"] ?? $context[$countryFallback] ?? ''),
             'residential' => false,
         ];
 
-        $state = trim((string) ($context["{$prefix}_state"] ?? ''));
+        $state = trim((string) ($context["{$prefix}_state"] ?? $context[$stateFallback] ?? ''));
         if ($state !== '') {
             $address['stateOrProvinceCode'] = $state;
         }
@@ -299,7 +306,7 @@ class FedexShipmentProvider implements CarrierShipmentProvider
 
         $response = Http::timeout((int) config('services.fedex.timeout', 20))
             ->asForm()
-            ->post((string) config('services.fedex.oauth_url'), [
+            ->post(FedexEndpointResolver::oauthUrl(), [
                 'grant_type' => 'client_credentials',
                 'client_id' => (string) config('services.fedex.client_id'),
                 'client_secret' => (string) config('services.fedex.client_secret'),
@@ -318,7 +325,7 @@ class FedexShipmentProvider implements CarrierShipmentProvider
                 [
                     'carrier_code' => 'fedex',
                     'http_status' => 502,
-                    'endpoint_url' => (string) config('services.fedex.oauth_url'),
+                    'endpoint_url' => FedexEndpointResolver::oauthUrl(),
                     'method' => 'POST',
                     'response_body' => $response->json(),
                 ]
@@ -365,9 +372,14 @@ class FedexShipmentProvider implements CarrierShipmentProvider
     private function resolvePackagingType(array $context): string
     {
         $parcels = is_array($context['parcels'] ?? null) ? $context['parcels'] : [];
-        $firstPackagingType = strtoupper((string) ($parcels[0]['packaging_type'] ?? ''));
+        $firstPackagingType = strtoupper(trim((string) ($parcels[0]['packaging_type'] ?? '')));
 
-        return $firstPackagingType !== '' ? $firstPackagingType : 'YOUR_PACKAGING';
+        return match ($firstPackagingType) {
+            'BOX', 'CUSTOM', '' => 'YOUR_PACKAGING',
+            'ENVELOPE' => 'FEDEX_ENVELOPE',
+            'TUBE' => 'FEDEX_TUBE',
+            default => $firstPackagingType,
+        };
     }
 
     private function mapImageType(string $labelFormat): string

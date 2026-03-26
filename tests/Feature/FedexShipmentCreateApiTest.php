@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Account;
 use App\Models\BillingWallet;
+use App\Models\CarrierDocument;
 use App\Models\CarrierError;
 use App\Models\CarrierShipment;
 use App\Models\ContentDeclaration;
@@ -11,10 +12,12 @@ use App\Models\Parcel;
 use App\Models\RateOption;
 use App\Models\RateQuote;
 use App\Models\Shipment;
+use App\Models\ShipmentEvent;
 use App\Models\User;
 use App\Models\WalletHold;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Tests\TestCase;
 
@@ -41,6 +44,7 @@ class FedexShipmentCreateApiTest extends TestCase
     {
         $this->configureFedex();
 
+        Storage::fake('local');
         Http::preventStrayRequests();
         Http::fake($this->fedexShipFakeResponses($this->shipSuccessBody()));
 
@@ -67,13 +71,14 @@ class FedexShipmentCreateApiTest extends TestCase
         $this->assertSame('794699999999', (string) $carrierShipment->carrier_shipment_id);
         $this->assertSame('794699999999', (string) $carrierShipment->tracking_number);
         $this->assertSame('794699999999', (string) $carrierShipment->awb_number);
-        $this->assertSame(CarrierShipment::STATUS_CREATED, (string) $carrierShipment->status);
+        $this->assertSame(CarrierShipment::STATUS_LABEL_READY, (string) $carrierShipment->status);
         $this->assertSame('INTERNATIONAL_PRIORITY', (string) $carrierShipment->service_code);
         $this->assertSame('REQ-FDX-CREATE-001', (string) $carrierShipment->correlation_id);
         $this->assertSame('SHIP-IDEMP-001', (string) $carrierShipment->idempotency_key);
         $this->assertSame('created', (string) data_get($carrierShipment->carrier_metadata, 'initial_carrier_status'));
         $this->assertSame('captured', (string) data_get($carrierShipment->carrier_metadata, 'wallet_reservation.status'));
         $this->assertSame('captured_on_success', (string) data_get($carrierShipment->carrier_metadata, 'wallet_reservation.lifecycle'));
+        $this->assertSame(2, (int) data_get($carrierShipment->carrier_metadata, 'document_count'));
 
         $freshShipment = $shipment->fresh();
         $this->assertSame(Shipment::STATUS_PURCHASED, (string) $freshShipment->status);
@@ -96,6 +101,39 @@ class FedexShipmentCreateApiTest extends TestCase
         $this->assertSame('654.85', number_format((float) $wallet->available_balance, 2, '.', ''));
         $this->assertSame('345.15', number_format((float) $wallet->total_debited, 2, '.', ''));
 
+        $documents = CarrierDocument::query()
+            ->where('shipment_id', (string) $shipment->id)
+            ->orderBy('type')
+            ->get();
+
+        $this->assertCount(2, $documents);
+        $this->assertSame(['commercial_invoice', 'label'], $documents->pluck('type')->sort()->values()->all());
+        $this->assertSame(['stored_object', 'url'], $documents->pluck('retrieval_mode')->sort()->values()->all());
+        $this->assertNotNull($documents->firstWhere('type', 'label')?->storage_path);
+        $this->assertSame('LABEL', data_get($documents->firstWhere('type', 'label')?->carrier_metadata, 'raw.contentType'));
+        $this->assertSame('PDF', data_get($documents->firstWhere('type', 'label')?->carrier_metadata, 'raw.docType'));
+        Storage::disk('local')->assertExists((string) $documents->firstWhere('type', 'label')?->storage_path);
+
+        $purchaseEvent = ShipmentEvent::query()
+            ->where('shipment_id', (string) $shipment->id)
+            ->where('event_type', 'shipment.purchased')
+            ->first();
+
+        $this->assertNotNull($purchaseEvent);
+        $this->assertSame('purchased', (string) $purchaseEvent->normalized_status);
+        $this->assertSame('REQ-FDX-CREATE-001', (string) $purchaseEvent->correlation_id);
+        $this->assertSame('SHIP-IDEMP-001:shipment.purchased', (string) $purchaseEvent->idempotency_key);
+
+        $event = ShipmentEvent::query()
+            ->where('shipment_id', (string) $shipment->id)
+            ->where('event_type', 'carrier.documents_available')
+            ->first();
+
+        $this->assertNotNull($event);
+        $this->assertSame('label_ready', (string) $event->normalized_status);
+        $this->assertSame('REQ-FDX-CREATE-001', (string) $event->correlation_id);
+        $this->assertSame('SHIP-IDEMP-001:carrier.documents_available', (string) $event->idempotency_key);
+
         Http::assertSentCount(2);
     }
 
@@ -103,6 +141,7 @@ class FedexShipmentCreateApiTest extends TestCase
     {
         $this->configureFedex();
 
+        Storage::fake('local');
         Http::preventStrayRequests();
         Http::fake($this->fedexShipFakeResponses($this->shipSuccessBody()));
 
@@ -129,6 +168,8 @@ class FedexShipmentCreateApiTest extends TestCase
         $this->assertSame(WalletHold::STATUS_CAPTURED, (string) $hold->status);
         $this->assertSame('0.00', number_format((float) $wallet->reserved_balance, 2, '.', ''));
         $this->assertSame('345.15', number_format((float) $wallet->total_debited, 2, '.', ''));
+        $this->assertSame(2, CarrierDocument::query()->where('shipment_id', (string) $shipment->id)->count());
+        $this->assertSame(2, ShipmentEvent::query()->where('shipment_id', (string) $shipment->id)->count());
 
         Http::assertSentCount(2);
     }
@@ -137,6 +178,7 @@ class FedexShipmentCreateApiTest extends TestCase
     {
         $this->configureFedex();
 
+        Storage::fake('local');
         Http::preventStrayRequests();
         Http::fake($this->fedexShipFakeResponses($this->shipSuccessBody(true)));
 
@@ -152,6 +194,7 @@ class FedexShipmentCreateApiTest extends TestCase
 
         $carrierShipment = CarrierShipment::query()->where('shipment_id', (string) $shipment->id)->firstOrFail();
         $this->assertTrue((bool) data_get($carrierShipment->carrier_metadata, 'virtualized_response'));
+        $this->assertSame(CarrierShipment::STATUS_LABEL_READY, (string) $carrierShipment->status);
     }
 
     public function test_fedex_error_response_is_normalized_and_persisted(): void
@@ -228,7 +271,7 @@ class FedexShipmentCreateApiTest extends TestCase
         config()->set('services.fedex.client_secret', 'fedex-test-secret');
         config()->set('services.fedex.account_number', '123456789');
         config()->set('services.fedex.base_url', 'https://apis-sandbox.fedex.com');
-        config()->set('services.fedex.oauth_url', 'https://apis-base.test.cloud.fedex.com/oauth/token');
+        config()->set('services.fedex.oauth_url', 'https://apis-sandbox.fedex.com/oauth/token');
         config()->set('services.fedex.locale', 'en_US');
         config()->set('services.fedex.carrier_codes', ['FDXE']);
     }
@@ -303,6 +346,13 @@ class FedexShipmentCreateApiTest extends TestCase
 
         if (Schema::hasColumn('shipments', 'recipient_state')) {
             $attributes['recipient_state'] = 'NY';
+        }
+
+        if (Schema::hasColumn('shipments', 'sender_state')) {
+            $attributes['sender_state'] = 'RI';
+            $attributes['sender_city'] = 'Providence';
+            $attributes['sender_postal_code'] = '02903';
+            $attributes['sender_country'] = 'US';
         }
 
         if (Schema::hasColumn('shipments', 'total_charge')) {
@@ -436,7 +486,7 @@ class FedexShipmentCreateApiTest extends TestCase
     private function fedexShipFakeResponses(array $shipBody, int $shipStatus = 200): array
     {
         return [
-            'https://apis-base.test.cloud.fedex.com/oauth/token' => fn () => Http::response([
+            'https://apis-sandbox.fedex.com/oauth/token' => fn () => Http::response([
                 'access_token' => 'fedex-access-token',
                 'token_type' => 'bearer',
                 'expires_in' => 3600,
@@ -469,15 +519,20 @@ class FedexShipmentCreateApiTest extends TestCase
                     'pieceResponses' => [[
                         'trackingNumber' => '794699999999',
                         'alerts' => $alerts,
+                        'packageDocuments' => [[
+                            'docType' => 'PDF',
+                            'contentType' => 'LABEL',
+                            'copiesToPrint' => 1,
+                            'encodedLabel' => base64_encode('fake-fedex-label'),
+                        ]],
                     ]],
                     'completedShipmentDetail' => [
                         'carrierCode' => 'FDXE',
                         'masterTrackingNumber' => '794699999999',
                     ],
                     'shipmentDocuments' => [[
-                        'contentKey' => 'LABEL',
-                        'copiesToPrint' => 1,
-                        'encodedLabel' => base64_encode('fake-fedex-label'),
+                        'docType' => 'COMMERCIAL_INVOICE',
+                        'url' => 'https://sandbox-docs.fedex.test/invoice-001.pdf',
                     ]],
                 ]],
             ],

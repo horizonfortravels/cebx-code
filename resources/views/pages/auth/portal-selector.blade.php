@@ -208,7 +208,7 @@
 <div class="portal-page">
     <div class="portal-header">
         <div class="logo">
-            <img src="{{ asset('images/logo.png') }}" alt="Shipping Gateway" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <img src="{{ asset('images/logo-auth.png') }}" alt="شعار Shipping Gateway" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
             <span class="logo-fallback" style="display:none;">SG</span>
         </div>
         <h1>Shipping Gateway</h1>

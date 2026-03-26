@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Web\B2BAuthWebController;
 use App\Http\Controllers\Web\PortalWorkspaceController;
+use App\Http\Controllers\Web\ShipmentDocumentWebController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('b2b')->name('b2b.')->middleware('portal:b2b')->group(function (): void {
@@ -21,9 +22,12 @@ Route::prefix('b2b')->name('b2b.')->middleware('portal:b2b')->group(function ():
             Route::post('/{id}/offers/select', [PortalWorkspaceController::class, 'selectB2bShipmentOffer'])->name('offers.select');
             Route::get('/{id}/declaration', [PortalWorkspaceController::class, 'b2bShipmentDeclaration'])->name('declaration');
             Route::post('/{id}/declaration', [PortalWorkspaceController::class, 'submitB2bShipmentDeclaration'])->name('declaration.submit');
-            Route::get('/{id}', function ($id) {
-                return view('b2b.dashboard', ['shipmentId' => $id]);
-            })->name('show');
+            Route::post('/{id}/wallet-preflight', [PortalWorkspaceController::class, 'triggerB2bShipmentWalletPreflight'])->name('preflight');
+            Route::post('/{id}/issue', [PortalWorkspaceController::class, 'issueB2bShipmentAtCarrier'])->name('issue');
+            Route::get('/{id}/documents', [ShipmentDocumentWebController::class, 'b2bIndex'])->name('documents.index');
+            Route::get('/{id}/documents/{documentId}/view/{previewName?}', [ShipmentDocumentWebController::class, 'b2bPreview'])->name('documents.preview');
+            Route::get('/{id}/documents/{documentId}/{downloadName?}', [ShipmentDocumentWebController::class, 'b2bDownload'])->name('documents.download');
+            Route::get('/{id}', [PortalWorkspaceController::class, 'b2bShipmentShow'])->name('show');
         });
 
         Route::prefix('orders')->name('orders.')->group(function (): void {

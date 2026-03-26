@@ -8,6 +8,7 @@ use App\Models\{Role, Invitation, Notification, Address, AuditLog, ApiKey, Featu
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use League\Csv\Writer;
 
 class PageController extends WebController
@@ -72,30 +73,56 @@ class PageController extends WebController
     public function notifications()
     {
         $accountId = auth()->user()->account_id;
-        $notifs = Notification::where('account_id', $accountId)->latest()->paginate(30);
+        $userId = auth()->id();
+        $notifs = Notification::query()
+            ->where('account_id', $accountId)
+            ->where('user_id', $userId)
+            ->where('channel', Notification::CHANNEL_IN_APP)
+            ->latest()
+            ->paginate(30);
+
         return view('pages.notifications.index', [
             'columns' => ['', 'الإشعار', 'الوقت', ''],
             'rows' => $notifs->map(fn($n) => [
                 '<span style="font-size:14px">' . ($n->read_at ? '' : '🔵') . '</span>',
-                '<span style="font-weight:' . ($n->read_at ? '400' : '600') . '">' . e($n->title ?? $n->data['title'] ?? '—') . '</span>',
+                '<div>' .
+                    '<div style="font-weight:' . ($n->read_at ? '400' : '600') . '">' . e($n->subject ?? data_get($n->event_data, 'title') ?? $n->event_type ?? '—') . '</div>' .
+                    '<div style="color:var(--muted);font-size:12px;margin-top:4px">' . e(Str::limit((string) ($n->body ?? data_get($n->event_data, 'event_description') ?? ''), 140)) . '</div>' .
+                '</div>',
                 $n->created_at->diffForHumans(),
-                // FIX #1: كان <a href> (GET) لكن route هو PATCH → خطأ 405
                 '<form action="' . route('notifications.read', $n) . '" method="POST" style="display:inline">' . csrf_field() . method_field('PATCH') . '<button class="btn btn-ghost">✓</button></form>',
             ]),
             'pagination' => $notifs,
-            'subtitle' => Notification::where('account_id', $accountId)->whereNull('read_at')->count() . ' غير مقروءة',
+            'subtitle' => Notification::query()
+                ->where('account_id', $accountId)
+                ->where('user_id', $userId)
+                ->where('channel', Notification::CHANNEL_IN_APP)
+                ->whereNull('read_at')
+                ->count() . ' غير مقروءة',
         ]);
     }
 
     public function notificationsRead(Notification $notification)
     {
+        if ((string) $notification->account_id !== (string) auth()->user()->account_id
+            || ((string) $notification->user_id !== (string) auth()->id())
+            || (string) $notification->channel !== Notification::CHANNEL_IN_APP) {
+            abort(404);
+        }
+
         $notification->update(['read_at' => now()]);
         return back();
     }
 
     public function notificationsReadAll()
     {
-        Notification::whereNull('read_at')->update(['read_at' => now()]);
+        Notification::query()
+            ->where('account_id', auth()->user()->account_id)
+            ->where('user_id', auth()->id())
+            ->where('channel', Notification::CHANNEL_IN_APP)
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
+
         return back()->with('success', 'تم قراءة جميع الإشعارات');
     }
 

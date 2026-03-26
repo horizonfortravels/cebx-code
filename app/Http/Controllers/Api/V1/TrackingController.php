@@ -64,6 +64,36 @@ class TrackingController extends Controller
         ]);
     }
 
+    public function events(Request $request, string $shipmentId): JsonResponse
+    {
+        $user = $request->user();
+        $shipment = Shipment::where('id', $shipmentId)
+            ->where('account_id', $user->account_id)
+            ->firstOrFail();
+
+        $this->authorize('view', $shipment);
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $this->trackingService->getEvents($shipment),
+        ]);
+    }
+
+    public function status(Request $request, string $shipmentId): JsonResponse
+    {
+        $user = $request->user();
+        $shipment = Shipment::where('id', $shipmentId)
+            ->where('account_id', $user->account_id)
+            ->firstOrFail();
+
+        $this->authorize('view', $shipment);
+
+        return response()->json([
+            'status' => 'success',
+            'data' => $this->trackingService->getCurrentStatus($shipment),
+        ]);
+    }
+
     /**
      * FR-TR-005: Search/filter shipments by tracking status.
      */

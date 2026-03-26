@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Web\B2CAuthWebController;
 use App\Http\Controllers\Web\PortalWorkspaceController;
+use App\Http\Controllers\Web\ShipmentDocumentWebController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -42,9 +43,17 @@ Route::prefix('b2c')->name('b2c.')->middleware('portal:b2c')->group(function () 
                 ->name('declaration');
             Route::post('/{id}/declaration', [PortalWorkspaceController::class, 'submitB2cShipmentDeclaration'])
                 ->name('declaration.submit');
-            Route::get('/{id}', function ($id) {
-                return view('b2c.dashboard', ['shipmentId' => $id]);
-            })->name('show');
+            Route::post('/{id}/wallet-preflight', [PortalWorkspaceController::class, 'triggerB2cShipmentWalletPreflight'])
+                ->name('preflight');
+            Route::post('/{id}/issue', [PortalWorkspaceController::class, 'issueB2cShipmentAtCarrier'])
+                ->name('issue');
+            Route::get('/{id}/documents', [ShipmentDocumentWebController::class, 'b2cIndex'])
+                ->name('documents.index');
+            Route::get('/{id}/documents/{documentId}/view/{previewName?}', [ShipmentDocumentWebController::class, 'b2cPreview'])
+                ->name('documents.preview');
+            Route::get('/{id}/documents/{documentId}/{downloadName?}', [ShipmentDocumentWebController::class, 'b2cDownload'])
+                ->name('documents.download');
+            Route::get('/{id}', [PortalWorkspaceController::class, 'b2cShipmentShow'])->name('show');
         });
 
         Route::prefix('tracking')->name('tracking.')->group(function () {

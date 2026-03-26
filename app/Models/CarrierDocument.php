@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Storage;
 
 /**
  * CarrierDocument — FR-CR-002/005/007/008
@@ -23,7 +24,8 @@ class CarrierDocument extends Model
         'file_size', 'checksum', 'content_base64', 'download_url',
         'download_url_expires_at', 'print_count', 'last_printed_at',
         'download_count', 'last_downloaded_at', 'fetch_attempts',
-        'last_fetch_at', 'is_available',
+        'last_fetch_at', 'is_available', 'carrier_code', 'source',
+        'retrieval_mode', 'carrier_metadata',
     ];
 
     protected $casts = [
@@ -32,6 +34,7 @@ class CarrierDocument extends Model
         'last_printed_at'           => 'datetime',
         'last_downloaded_at'        => 'datetime',
         'last_fetch_at'             => 'datetime',
+        'carrier_metadata'          => 'array',
     ];
 
     protected $hidden = ['content_base64']; // Never expose raw content in API
@@ -44,6 +47,12 @@ class CarrierDocument extends Model
     const TYPE_RECEIPT             = 'receipt';
     const TYPE_RETURN_LABEL        = 'return_label';
     const TYPE_OTHER               = 'other';
+
+    const SOURCE_CARRIER           = 'carrier';
+
+    const RETRIEVAL_INLINE         = 'inline';
+    const RETRIEVAL_URL            = 'url';
+    const RETRIEVAL_STORED_OBJECT  = 'stored_object';
 
     // ── Format Constants ─────────────────────────────────────
     const FORMAT_PDF  = 'pdf';
@@ -80,6 +89,11 @@ class CarrierDocument extends Model
     public function hasContent(): bool
     {
         return !empty($this->content_base64) || !empty($this->storage_path);
+    }
+
+    public function hasValidUrl(): bool
+    {
+        return $this->isDownloadUrlValid();
     }
 
     /**
@@ -128,7 +142,18 @@ class CarrierDocument extends Model
      */
     public function getDecodedContent(): ?string
     {
-        return $this->content_base64 ? base64_decode($this->content_base64) : null;
+        if ($this->content_base64) {
+            return base64_decode($this->content_base64);
+        }
+
+        if ($this->storage_path) {
+            $disk = $this->storage_disk ?: config('filesystems.default', 'local');
+            if (Storage::disk($disk)->exists($this->storage_path)) {
+                return Storage::disk($disk)->get($this->storage_path);
+            }
+        }
+
+        return null;
     }
 
     /**

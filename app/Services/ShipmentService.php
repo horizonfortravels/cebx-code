@@ -15,6 +15,7 @@ use App\Models\Store;
 use App\Models\User;
 use App\Models\WalletHold;
 use App\Exceptions\BusinessException;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -57,25 +58,35 @@ class ShipmentService
     {
         $this->assertCanCreateShipmentDraft($performer);
 
-        return DB::transaction(function () use ($accountId, $data, $performer) {
-            $shipment = Shipment::create($this->buildShipmentDraftAttributes($accountId, $data, $performer));
+        for ($attempt = 0; $attempt < 3; $attempt++) {
+            try {
+                return DB::transaction(function () use ($accountId, $data, $performer) {
+                    $shipment = Shipment::create($this->buildShipmentDraftAttributes($accountId, $data, $performer));
 
-            // Create parcels (FR-SH-003)
-            $this->createParcels($shipment, $data['parcels'] ?? [['weight' => $data['weight'] ?? 0.5]]);
+                    // Create parcels (FR-SH-003)
+                    $this->createParcels($shipment, $data['parcels'] ?? [['weight' => $data['weight'] ?? 0.5]]);
 
-            // Record initial status
-            $this->recordStatusChange($shipment, null, Shipment::STATUS_DRAFT, 'system', $performer->id, 'Shipment created');
+                    // Record initial status
+                    $this->recordStatusChange($shipment, null, Shipment::STATUS_DRAFT, 'system', $performer->id, 'Shipment created');
 
-            $this->auditService->info(
-                $accountId, $performer->id,
-                'shipment.created', AuditLog::CATEGORY_ACCOUNT,
-                'Shipment', $shipment->id,
-                null,
-                ['source' => 'direct', 'reference' => $shipment->reference_number]
-            );
+                    $this->auditService->info(
+                        $accountId, $performer->id,
+                        'shipment.created', AuditLog::CATEGORY_ACCOUNT,
+                        'Shipment', $shipment->id,
+                        null,
+                        ['source' => 'direct', 'reference' => $shipment->reference_number]
+                    );
 
-            return $shipment->fresh(['parcels']);
-        });
+                    return $shipment->fresh(['parcels']);
+                });
+            } catch (QueryException $exception) {
+                if (! Shipment::isReferenceConflict($exception) || $attempt === 2) {
+                    throw $exception;
+                }
+            }
+        }
+
+        throw new \RuntimeException('Shipment draft reference generation exhausted retries.');
     }
 
     // ═══════════════════════════════════════════════════════════════

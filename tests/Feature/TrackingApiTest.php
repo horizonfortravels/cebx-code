@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Account;
 use App\Models\Shipment;
 use App\Models\ShipmentException;
+use App\Models\ShipmentEvent;
 use App\Models\StatusMapping;
 use App\Models\TrackingEvent;
 use App\Models\TrackingSubscription;
@@ -12,6 +13,7 @@ use App\Models\User;
 use App\Services\Carriers\DhlApiService;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Schema;
 use Mockery;
 use Tests\TestCase;
@@ -37,6 +39,7 @@ class TrackingApiTest extends TestCase
     private Account $account;
     private User $owner;
     private Shipment $shipment;
+    private string $trackingNumber;
 
     protected function setUp(): void
     {
@@ -45,6 +48,7 @@ class TrackingApiTest extends TestCase
         $this->ensureTrackingSchemaCompatibility();
 
         $this->app->instance(DhlApiService::class, Mockery::mock(DhlApiService::class));
+        $this->trackingNumber = 'TRK-API-' . Str::upper(Str::random(8));
 
         $this->account = Account::factory()->create();
         $this->owner = User::factory()->create([
@@ -55,6 +59,8 @@ class TrackingApiTest extends TestCase
             'shipments.read',
             'shipments.manage',
             'shipments.print_label',
+            'tracking.read',
+            'tracking.manage',
         ], 'tracking_owner');
 
         $shipmentAttributes = [
@@ -63,11 +69,11 @@ class TrackingApiTest extends TestCase
         ];
 
         if (Schema::hasColumn('shipments', 'tracking_number')) {
-            $shipmentAttributes['tracking_number'] = 'TRK-API-TEST';
+            $shipmentAttributes['tracking_number'] = $this->trackingNumber;
         }
 
         if (Schema::hasColumn('shipments', 'carrier_tracking_number')) {
-            $shipmentAttributes['carrier_tracking_number'] = 'TRK-API-TEST';
+            $shipmentAttributes['carrier_tracking_number'] = $this->trackingNumber;
         }
 
         if (Schema::hasColumn('shipments', 'tracking_status')) {
@@ -89,7 +95,7 @@ class TrackingApiTest extends TestCase
     public function test_api_dhl_webhook_accepted(): void
     {
         $response = $this->postJson('/api/v1/webhooks/dhl/tracking', [
-            'trackingNumber' => 'TRK-API-TEST',
+            'trackingNumber' => $this->trackingNumber,
             'events' => [[
                 'status' => 'transit',
                 'description' => 'In transit',
@@ -103,12 +109,34 @@ class TrackingApiTest extends TestCase
     }
 
     #[\PHPUnit\Framework\Attributes\Test]
+    public function test_api_dhl_webhook_persists_canonical_timeline_event(): void
+    {
+        $this->postJson('/api/v1/webhooks/dhl/tracking', [
+            'trackingNumber' => $this->trackingNumber,
+            'events' => [[
+                'status' => 'transit',
+                'description' => 'In transit',
+                'statusCode' => 'DF',
+                'timestamp' => now()->toIso8601String(),
+            ]],
+        ], $this->webhookHeaders())->assertOk();
+
+        $this->assertDatabaseHas('shipment_events', [
+            'shipment_id' => (string) $this->shipment->id,
+            'account_id' => (string) $this->account->id,
+            'event_type' => 'tracking.status_updated',
+            'normalized_status' => TrackingEvent::STATUS_IN_TRANSIT,
+            'source' => ShipmentEvent::SOURCE_CARRIER,
+        ]);
+    }
+
+    #[\PHPUnit\Framework\Attributes\Test]
     public function test_api_dhl_webhook_rejected_bad_signature(): void
     {
         config(['services.dhl.webhook_secret' => 'real-secret']);
 
         $response = $this->postJson('/api/v1/webhooks/dhl/tracking', [
-            'trackingNumber' => 'TRK-API-TEST',
+            'trackingNumber' => $this->trackingNumber,
             'events' => [['status' => 'test']],
         ], ['x-dhl-signature' => 'bad']);
 
@@ -123,9 +151,9 @@ class TrackingApiTest extends TestCase
     #[\PHPUnit\Framework\Attributes\Test]
     public function test_api_get_tracking_timeline(): void
     {
-        TrackingEvent::factory()->count(3)->create([
-            'shipment_id' => $this->shipment->id,
-            'account_id'  => $this->account->id,
+        ShipmentEvent::factory()->count(3)->create([
+            'shipment_id' => (string) $this->shipment->id,
+            'account_id'  => (string) $this->account->id,
         ]);
 
         $response = $this->actingAs($this->owner)
@@ -137,6 +165,40 @@ class TrackingApiTest extends TestCase
     }
 
     #[\PHPUnit\Framework\Attributes\Test]
+    public function test_api_get_current_normalized_tracking_status(): void
+    {
+        ShipmentEvent::factory()->delivered()->create([
+            'shipment_id' => (string) $this->shipment->id,
+            'account_id' => (string) $this->account->id,
+            'event_at' => now(),
+        ]);
+
+        $this->shipment->update([
+            'tracking_status' => TrackingEvent::STATUS_DELIVERED,
+            'tracking_updated_at' => now(),
+        ]);
+
+        $this->actingAs($this->owner)
+            ->getJson("/api/v1/shipments/{$this->shipment->id}/tracking/status")
+            ->assertOk()
+            ->assertJsonPath('data.current_status', TrackingEvent::STATUS_DELIVERED);
+    }
+
+    #[\PHPUnit\Framework\Attributes\Test]
+    public function test_api_get_tracking_events(): void
+    {
+        ShipmentEvent::factory()->count(2)->create([
+            'shipment_id' => (string) $this->shipment->id,
+            'account_id' => (string) $this->account->id,
+        ]);
+
+        $this->actingAs($this->owner)
+            ->getJson("/api/v1/shipments/{$this->shipment->id}/tracking/events")
+            ->assertOk()
+            ->assertJsonCount(2, 'data');
+    }
+
+    #[\PHPUnit\Framework\Attributes\Test]
     public function test_api_timeline_empty_for_new_shipment(): void
     {
         $response = $this->actingAs($this->owner)
@@ -144,6 +206,34 @@ class TrackingApiTest extends TestCase
 
         $response->assertOk()
             ->assertJsonPath('data.total_events', 0);
+    }
+
+    #[\PHPUnit\Framework\Attributes\Test]
+    public function test_api_cross_tenant_timeline_access_returns_404(): void
+    {
+        $otherAccount = Account::factory()->create();
+        $otherUser = User::factory()->create([
+            'account_id' => $otherAccount->id,
+            'user_type' => 'external',
+        ]);
+        $this->grantTenantPermissions($otherUser, ['tracking.read'], 'tracking_reader_other');
+
+        $this->actingAs($otherUser)
+            ->getJson("/api/v1/shipments/{$this->shipment->id}/tracking/timeline")
+            ->assertNotFound();
+    }
+
+    #[\PHPUnit\Framework\Attributes\Test]
+    public function test_api_same_tenant_missing_permission_gets_403_for_timeline(): void
+    {
+        $userWithoutPermission = User::factory()->create([
+            'account_id' => $this->account->id,
+            'user_type' => 'external',
+        ]);
+
+        $this->actingAs($userWithoutPermission)
+            ->getJson("/api/v1/shipments/{$this->shipment->id}/tracking/timeline")
+            ->assertForbidden();
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -168,7 +258,7 @@ class TrackingApiTest extends TestCase
     public function test_api_search_by_tracking_number(): void
     {
         $response = $this->actingAs($this->owner)
-            ->getJson('/api/v1/tracking/search?tracking_number=TRK-API');
+            ->getJson('/api/v1/tracking/search?tracking_number=' . urlencode($this->trackingNumber));
 
         $response->assertOk();
         $this->assertGreaterThanOrEqual(1, $response->json('data.total'));

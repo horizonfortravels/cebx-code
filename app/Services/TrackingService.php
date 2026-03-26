@@ -33,6 +33,7 @@ class TrackingService
     public function __construct(
         private DhlApiService $dhlApi,
         private AuditService $audit,
+        private ShipmentTimelineService $shipmentTimeline,
     ) {}
 
     // â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
@@ -215,6 +216,7 @@ class TrackingService
 
         // â”€â”€ Update shipment status â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         $this->updateShipmentStatus($shipment, $event, $latestEvent);
+        $this->shipmentTimeline->recordTrackingEvent($shipment, $event);
 
         // â”€â”€ FR-TR-006: Update store if needed â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         if ($mapping?->notify_store) {
@@ -244,10 +246,7 @@ class TrackingService
             return; // Out-of-order, don't update main status
         }
 
-        $shipment->update([
-            'tracking_status'      => $newEvent->unified_status,
-            'tracking_updated_at'  => $newEvent->event_time,
-        ]);
+        $this->shipmentTimeline->syncCurrentStatus($shipment, $newEvent->unified_status, $newEvent->event_time);
     }
 
     // â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
@@ -259,16 +258,33 @@ class TrackingService
      */
     public function getTimeline(Shipment $shipment): array
     {
-        $events = TrackingEvent::timeline($shipment->id)->get();
+        return $this->shipmentTimeline->present($shipment);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getCurrentStatus(Shipment $shipment): array
+    {
+        $timeline = $this->shipmentTimeline->present($shipment);
 
         return [
-            'shipment_id'       => $shipment->id,
-            'tracking_number'   => $shipment->tracking_number,
-            'current_status'    => $shipment->tracking_status ?? $shipment->status,
-            'last_updated'      => $shipment->tracking_updated_at,
-            'total_events'      => $events->count(),
-            'events'            => $events->map->toTimeline()->values()->toArray(),
+            'shipment_id' => (string) $shipment->id,
+            'current_status' => $timeline['current_status'],
+            'current_status_label' => $timeline['current_status_label'],
+            'last_updated' => $timeline['last_updated'],
         ];
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function getEvents(Shipment $shipment): array
+    {
+        return $this->shipmentTimeline->list($shipment)
+            ->map(static fn ($event): array => $event->toTimelineItem())
+            ->values()
+            ->all();
     }
 
     /**

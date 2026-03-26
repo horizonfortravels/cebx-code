@@ -18,9 +18,12 @@ class CarrierDocumentFactory extends Factory
         return [
             'carrier_shipment_id' => CarrierShipment::factory(),
             'shipment_id'         => Shipment::factory(),
+            'carrier_code'        => 'fedex',
             'type'                => CarrierDocument::TYPE_LABEL,
             'format'              => 'pdf',
             'mime_type'           => 'application/pdf',
+            'source'              => CarrierDocument::SOURCE_CARRIER,
+            'retrieval_mode'      => CarrierDocument::RETRIEVAL_INLINE,
             'original_filename'   => 'label_test.pdf',
             'file_size'           => strlen(base64_decode($content)),
             'checksum'            => hash('sha256', base64_decode($content)),
@@ -69,8 +72,10 @@ class CarrierDocumentFactory extends Factory
     public function withDownloadUrl(): static
     {
         return $this->state([
+            'content_base64'          => null,
             'download_url'            => 'https://express.api.dhl.com/mydhlapi/labels/download/abc123',
             'download_url_expires_at' => now()->addHour(),
+            'retrieval_mode'          => CarrierDocument::RETRIEVAL_URL,
         ]);
     }
 }

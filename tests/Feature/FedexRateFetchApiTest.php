@@ -9,6 +9,7 @@ use App\Models\PricingRule;
 use App\Models\RateOption;
 use App\Models\RateQuote;
 use App\Models\User;
+use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -67,6 +68,29 @@ class FedexRateFetchApiTest extends TestCase
         $this->assertSame('shipment_quote', data_get($option->rule_evaluation_log, 'pricing_path'));
         $this->assertTrue((bool) data_get($option->rule_evaluation_log, 'virtualized_response'));
 
+        Http::assertSent(function (Request $request): bool {
+            if ($request->url() !== 'https://apis-sandbox.fedex.com/availability/v1/packageandserviceoptions') {
+                return false;
+            }
+
+            return data_get($request->data(), 'requestedShipment.recipient') === null
+                && data_get($request->data(), 'requestedShipment.recipients.0.address.countryCode') === 'US'
+                && data_get($request->data(), 'requestedShipment.recipients.0.address.city') === 'New York'
+                && data_get($request->data(), 'requestedShipment.packagingType') === 'YOUR_PACKAGING';
+        });
+
+        Http::assertSent(function (Request $request): bool {
+            if ($request->url() !== 'https://apis-sandbox.fedex.com/rate/v1/rates/quotes') {
+                return false;
+            }
+
+            return data_get($request->data(), 'requestedShipment.rateRequestType.0') === 'ACCOUNT'
+                && data_get($request->data(), 'requestedShipment.rateRequestTypes') === null
+                && data_get($request->data(), 'requestedShipment.shipper.address.countryCode') === 'SA'
+                && data_get($request->data(), 'requestedShipment.recipient.address.countryCode') === 'US'
+                && data_get($request->data(), 'requestedShipment.packagingType') === 'YOUR_PACKAGING';
+        });
+
         Http::assertSentCount(4);
     }
 
@@ -124,7 +148,7 @@ class FedexRateFetchApiTest extends TestCase
         config()->set('services.fedex.client_secret', 'fedex-test-secret');
         config()->set('services.fedex.account_number', '123456789');
         config()->set('services.fedex.base_url', 'https://apis-sandbox.fedex.com');
-        config()->set('services.fedex.oauth_url', 'https://apis-base.test.cloud.fedex.com/oauth/token');
+        config()->set('services.fedex.oauth_url', 'https://apis-sandbox.fedex.com/oauth/token');
         config()->set('services.fedex.locale', 'en_US');
         config()->set('services.fedex.carrier_codes', ['FDXE']);
     }
@@ -206,6 +230,7 @@ class FedexRateFetchApiTest extends TestCase
             'recipient_city' => 'New York',
             'recipient_postal_code' => '10001',
             'recipient_country' => 'US',
+            'recipient_state' => 'NY',
             'parcels' => [[
                 'weight' => 1.5,
                 'length' => 20,
@@ -221,7 +246,7 @@ class FedexRateFetchApiTest extends TestCase
     private function fedexFakeResponses(): array
     {
         return [
-            'https://apis-base.test.cloud.fedex.com/oauth/token' => fn () => Http::response([
+            'https://apis-sandbox.fedex.com/oauth/token' => fn () => Http::response([
                 'access_token' => 'fedex-access-token',
                 'token_type' => 'bearer',
                 'expires_in' => 3600,

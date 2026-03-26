@@ -56,6 +56,14 @@ class ShipmentPolicy
         return $this->allowsTenantResourceAction($user, 'billing.manage', $shipment->account_id);
     }
 
+    public function issueAtCarrier(User $user, Shipment $shipment): bool
+    {
+        return (
+            $this->allowsTenantResourceAction($user, 'quotes.manage', $shipment->account_id)
+            && $this->allowsTenantResourceAction($user, 'billing.manage', $shipment->account_id)
+        ) || $this->allowsTenantResourceAction($user, 'shipments.manage', $shipment->account_id);
+    }
+
     public function bulkImport(User $user): bool
     {
         return $this->allowsTenantAction($user, 'shipments.manage');

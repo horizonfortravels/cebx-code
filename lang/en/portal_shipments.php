@@ -1,0 +1,116 @@
+<?php
+
+return [
+    'common' => [
+        'portal_b2c' => 'Individuals Portal',
+        'portal_b2b' => 'Organizations Portal',
+        'shipments' => 'Shipments',
+        'current_draft' => 'Current draft',
+        'create_request' => 'Create request',
+        'back_to_shipments' => 'Back to shipments',
+        'not_available' => 'Not available',
+        'not_specified' => 'Not specified',
+        'view' => 'View',
+        'view_details' => 'View details',
+        'page' => 'Page',
+        'of' => 'of',
+        'previous' => 'Previous',
+        'next' => 'Next',
+        'reference' => 'Reference',
+        'status' => 'Status',
+        'created_at' => 'Created at',
+        'actions' => 'Actions',
+        'tracking_number' => 'Tracking number',
+    ],
+    'statuses' => [
+        'draft' => 'Draft',
+        'validated' => 'Validated',
+        'kyc_blocked' => 'Blocked by verification or restrictions',
+        'ready_for_rates' => 'Ready for rates',
+        'rated' => 'Offers prepared',
+        'offer_selected' => 'Offer selected',
+        'declaration_required' => 'Declaration required',
+        'declaration_complete' => 'Declaration complete',
+        'requires_action' => 'Requires action',
+        'payment_pending' => 'Waiting for wallet reservation confirmation',
+        'purchased' => 'Issued at carrier',
+        'failed' => 'Issuance failed',
+        'delivered' => 'Delivered',
+        'in_transit' => 'In transit',
+        'out_for_delivery' => 'Out for delivery',
+        'cancelled' => 'Cancelled',
+    ],
+    'index' => [
+        'b2c' => [
+            'title' => 'Personal shipments workspace',
+            'description' => 'Review your personal shipment history quickly, then open any shipment reference or start a new request when needed.',
+            'create_cta' => 'Start shipment request',
+            'table_title' => 'Shipment history',
+            'empty_state' => 'No shipments yet. Open the shipment form and start your first request.',
+            'destination' => 'Destination',
+            'guidance_title' => 'What can you do here?',
+            'guidance_cards' => [
+                'recent' => [
+                    'title' => 'Quick review',
+                    'body' => 'Track your latest shipments and open the shipment page whenever you need follow-up or documents.',
+                ],
+                'new' => [
+                    'title' => 'Create a new request',
+                    'body' => 'Use the create shipment button to enter shipment details and request offers.',
+                ],
+                'details' => [
+                    'title' => 'Follow the details',
+                    'body' => 'Open any shipment from the table to review declaration, wallet, issuance, documents, and timeline.',
+                ],
+            ],
+            'stats' => [
+                'total' => 'Total shipments',
+                'active' => 'In progress',
+                'delivered' => 'Delivered',
+            ],
+        ],
+        'b2b' => [
+            'title' => 'Shipment operations workspace',
+            'description' => 'This page is built for the organization team. Review the full shipment history and open any shipment from its reference or view action to continue the next steps.',
+            'create_cta' => 'Start a shipment for your team',
+            'table_title' => 'Shipment history',
+            'empty_state' => 'No shipments yet. Use the create shipment button for your team to start the first one.',
+            'recipient' => 'Recipient',
+            'total_charge' => 'Charge',
+            'guidance_title' => 'Team focus',
+            'guidance_cards' => [
+                'follow_up' => [
+                    'title' => 'Review open work',
+                    'body' => 'Open any shipment from the table to continue offers, declaration, or issuance based on its current state.',
+                ],
+                'manage' => [
+                    'title' => 'Review completed shipments',
+                    'body' => 'Issued shipments remain accessible from the same list to review documents, timeline, and notifications.',
+                ],
+            ],
+            'stats' => [
+                'total' => 'Total shipments',
+                'pending' => 'Awaiting action',
+                'in_transit' => 'In transit',
+            ],
+        ],
+    ],
+    'workflow' => [
+        'b2c' => [
+            'label' => 'Individuals Portal',
+            'headline' => 'Start a shipment request for the individual account',
+            'description' => 'Create the shipment request from the external individual account, then review verification and restrictions before moving to network carrier offers.',
+            'timeline_label' => 'Individuals Portal',
+        ],
+        'b2b' => [
+            'label' => 'Organizations Portal',
+            'headline' => 'Start a shipment request for the organization account',
+            'description' => 'Create the shipment request from the external organization account, then review verification and compliance before moving to network carrier offers for your team.',
+            'timeline_label' => 'Organizations Portal',
+        ],
+    ],
+    'validation' => [
+        'sender_state_required' => 'Sender state or province is required when the sender country is the United States.',
+        'recipient_state_required' => 'Recipient state or province is required when the recipient country is the United States.',
+    ],
+];

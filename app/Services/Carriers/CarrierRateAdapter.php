@@ -17,19 +17,30 @@ class CarrierRateAdapter
         protected FedexRateProvider $fedexProvider,
     ) {}
 
+    public function resolveCarrierCode(?string $requestedCarrier = null): ?string
+    {
+        $carrier = strtolower(trim((string) $requestedCarrier));
+
+        if ($carrier !== '') {
+            return $carrier;
+        }
+
+        return $this->fedexProvider->isEnabled() ? 'fedex' : null;
+    }
+
     /**
      * @param array<string, mixed> $params
      * @return array<int, array<string, mixed>>
      */
     public function fetchRates(array $params): array
     {
-        $carrier = strtolower(trim((string) ($params['carrier_code'] ?? '')));
+        $carrier = $this->resolveCarrierCode((string) ($params['carrier_code'] ?? ''));
 
         if ($carrier === 'fedex') {
             return $this->fetchFedexRates($params);
         }
 
-        if ($carrier === '') {
+        if ($carrier === null) {
             if ($this->fedexProvider->isEnabled()) {
                 return $this->fetchFedexRates($params);
             }
