@@ -7,6 +7,7 @@
     $documents = $documents ?? [];
     $shipmentNotifications = $shipmentNotifications ?? [];
     $completionFeedback = $completionFeedback ?? session('shipment_completion_feedback');
+    $canCreateShipment = $canCreateShipment ?? false;
     $reservation = $shipment->balanceReservation;
     $reservationStatus = $reservation?->status;
     $workflowStatusLabels = [
@@ -111,6 +112,13 @@
         </p>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
+        @if($canCreateShipment)
+            <a
+                href="{{ route($portalConfig['create_route'], ['clone' => $shipment->id]) }}"
+                class="btn btn-s"
+                data-testid="shipment-clone-primary"
+            >{{ __('portal_shipments.common.clone_long') }}</a>
+        @endif
         <a href="{{ route($portalConfig['shipments_index_route']) }}" class="btn btn-s">العودة إلى الشحنات</a>
         @if(!empty($documents))
             <a href="{{ route($portalConfig['documents_route'], ['id' => $shipment->id]) }}" class="btn btn-pr">عرض المستندات</a>

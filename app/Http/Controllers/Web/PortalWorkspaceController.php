@@ -49,6 +49,7 @@ class PortalWorkspaceController extends Controller
             'shipments' => $shipments,
             'canCreateShipment' => auth()->user()?->can('create', Shipment::class) ?? false,
             'createRoute' => route('b2c.shipments.create'),
+            'createRouteName' => 'b2c.shipments.create',
             'showRoute' => 'b2c.shipments.show',
             'copy' => $this->shipmentIndexCopy('b2c'),
             'stats' => $this->shipmentIndexStats($accountId, 'b2c'),
@@ -141,6 +142,7 @@ class PortalWorkspaceController extends Controller
             'shipments' => $shipments,
             'canCreateShipment' => auth()->user()?->can('create', Shipment::class) ?? false,
             'createRoute' => route('b2b.shipments.create'),
+            'createRouteName' => 'b2b.shipments.create',
             'showRoute' => 'b2b.shipments.show',
             'copy' => $this->shipmentIndexCopy('b2b'),
             'stats' => $this->shipmentIndexStats($accountId, 'b2b'),
@@ -502,14 +504,30 @@ class PortalWorkspaceController extends Controller
         $accountId = (string) $account->id;
         $config = $this->shipmentPortalConfig($portal);
         $draftId = trim((string) request()->query('draft', ''));
+        $cloneId = trim((string) request()->query('clone', ''));
 
         $draftShipment = null;
+        $cloneSourceShipment = null;
+        $cloneFormDefaults = [];
+        $cloneDropsAdditionalParcels = false;
+
         if ($draftId !== '') {
             $draftShipment = Shipment::query()
                 ->where('account_id', $accountId)
                 ->where('id', $draftId)
                 ->with('parcels')
                 ->firstOrFail();
+        } elseif ($cloneId !== '') {
+            $cloneSourceShipment = Shipment::query()
+                ->where('account_id', $accountId)
+                ->where('id', $cloneId)
+                ->with('parcels')
+                ->firstOrFail();
+
+            $this->authorize('view', $cloneSourceShipment);
+
+            $cloneFormDefaults = $this->buildCloneFormDefaults($cloneSourceShipment);
+            $cloneDropsAdditionalParcels = $cloneSourceShipment->parcels->count() > 1;
         }
 
         $recentDrafts = Shipment::query()
@@ -521,6 +539,9 @@ class PortalWorkspaceController extends Controller
         return view('pages.portal.shipments.create', [
             'account' => $account,
             'draftShipment' => $draftShipment,
+            'cloneSourceShipment' => $cloneSourceShipment,
+            'cloneFormDefaults' => $cloneFormDefaults,
+            'cloneDropsAdditionalParcels' => $cloneDropsAdditionalParcels,
             'portal' => $portal,
             'portalConfig' => $config,
             'recentDrafts' => $recentDrafts,
@@ -1146,6 +1167,7 @@ class PortalWorkspaceController extends Controller
             'timeline' => $timeline,
             'documents' => $documents,
             'completionFeedback' => session('shipment_completion_feedback'),
+            'canCreateShipment' => $request->user()?->can('create', Shipment::class) ?? false,
             'canTriggerWalletPreflight' => $request->user()?->can('paymentPreflight', $shipment) ?? false,
             'canIssueShipment' => $request->user()?->can('issueAtCarrier', $shipment) ?? false,
             'canViewNotifications' => $canViewNotifications,
@@ -1306,6 +1328,71 @@ class PortalWorkspaceController extends Controller
         }
 
         return $data;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildCloneFormDefaults(Shipment $shipment): array
+    {
+        $shipment->loadMissing('parcels');
+
+        $firstParcel = $shipment->parcels
+            ->sortBy('sequence')
+            ->first();
+
+        return [
+            'sender_name' => (string) ($shipment->sender_name ?? ''),
+            'sender_phone' => (string) ($shipment->sender_phone ?? ''),
+            'sender_address_1' => (string) ($shipment->sender_address_1 ?? $shipment->sender_address ?? ''),
+            'sender_city' => (string) ($shipment->sender_city ?? ''),
+            'sender_state' => $this->normalizeCloneState($shipment->sender_country ?? null, $shipment->sender_state ?? null),
+            'sender_postal_code' => $this->nullableCloneString($shipment->sender_postal_code ?? null),
+            'sender_country' => $this->normalizeCloneCountry($shipment->sender_country ?? null) ?? 'SA',
+            'recipient_name' => (string) ($shipment->recipient_name ?? ''),
+            'recipient_phone' => (string) ($shipment->recipient_phone ?? ''),
+            'recipient_address_1' => (string) ($shipment->recipient_address_1 ?? $shipment->recipient_address ?? ''),
+            'recipient_city' => (string) ($shipment->recipient_city ?? ''),
+            'recipient_state' => $this->normalizeCloneState($shipment->recipient_country ?? null, $shipment->recipient_state ?? null),
+            'recipient_postal_code' => $this->nullableCloneString($shipment->recipient_postal_code ?? null),
+            'recipient_country' => $this->normalizeCloneCountry($shipment->recipient_country ?? null) ?? 'SA',
+            'parcels' => [[
+                'weight' => $firstParcel?->weight !== null ? (string) $firstParcel->weight : '1.0',
+                'length' => $firstParcel?->length !== null ? (string) $firstParcel->length : null,
+                'width' => $firstParcel?->width !== null ? (string) $firstParcel->width : null,
+                'height' => $firstParcel?->height !== null ? (string) $firstParcel->height : null,
+            ]],
+        ];
+    }
+
+    private function normalizeCloneCountry(mixed $country): ?string
+    {
+        $value = $this->nullableCloneString($country);
+
+        return $value === null ? null : Str::upper($value);
+    }
+
+    private function normalizeCloneState(mixed $country, mixed $state): ?string
+    {
+        $value = $this->nullableCloneString($state);
+        if ($value === null) {
+            return null;
+        }
+
+        return $this->normalizeCloneCountry($country) === 'US'
+            ? Str::upper($value)
+            : $value;
+    }
+
+    private function nullableCloneString(mixed $value): ?string
+    {
+        if (! is_scalar($value)) {
+            return null;
+        }
+
+        $resolved = trim((string) $value);
+
+        return $resolved === '' ? null : $resolved;
     }
 
     /**

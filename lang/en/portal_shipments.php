@@ -12,6 +12,8 @@ return [
         'not_specified' => 'Not specified',
         'view' => 'View',
         'view_details' => 'View details',
+        'clone_short' => 'Similar shipment',
+        'clone_long' => 'Create similar shipment',
         'page' => 'Page',
         'of' => 'of',
         'previous' => 'Previous',
@@ -108,6 +110,11 @@ return [
             'description' => 'Create the shipment request from the external organization account, then review verification and compliance before moving to network carrier offers for your team.',
             'timeline_label' => 'Organizations Portal',
         ],
+    ],
+    'clone' => [
+        'banner_title' => 'Prefilled from shipment :reference',
+        'banner_body' => 'Review the reusable details and save a new shipment draft. The original shipment will not be changed.',
+        'first_parcel_only' => 'This shipment has multiple parcels. In this phase, only the first parcel is reused in the create form.',
     ],
     'validation' => [
         'sender_state_required' => 'Sender state or province is required when the sender country is the United States.',
