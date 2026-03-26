@@ -207,6 +207,53 @@ class ShipmentNotificationFanoutApiTest extends TestCase
         ]);
     }
 
+    public function test_rolled_back_shipment_event_does_not_persist_notification_projection(): void
+    {
+        [$account, $owner] = $this->createOrganizationAudience();
+        $shipment = $this->createShipment($account, $owner);
+        $eventId = null;
+
+        try {
+            DB::transaction(function () use ($shipment, &$eventId): void {
+                $event = app(ShipmentTimelineService::class)->record($shipment, [
+                    'event_type' => 'shipment.purchased',
+                    'status' => 'purchased',
+                    'normalized_status' => 'purchased',
+                    'description' => 'Shipment purchased at carrier.',
+                    'event_at' => now(),
+                    'source' => 'system',
+                    'idempotency_key' => 'rollback-proof:' . $shipment->id,
+                ]);
+
+                $eventId = (string) $event->id;
+
+                $this->assertDatabaseMissing('notifications', [
+                    'shipment_event_id' => $eventId,
+                ]);
+
+                throw new \RuntimeException('force rollback');
+            });
+
+            $this->fail('Expected rollback exception was not thrown.');
+        } catch (\RuntimeException $exception) {
+            $this->assertSame('force rollback', $exception->getMessage());
+        }
+
+        $this->assertNotNull($eventId);
+        $this->assertDatabaseMissing('shipment_events', [
+            'id' => $eventId,
+        ]);
+        $this->assertDatabaseMissing('notifications', [
+            'shipment_event_id' => $eventId,
+        ]);
+        $this->assertDatabaseMissing('notifications', [
+            'account_id' => (string) $account->id,
+            'entity_type' => 'shipment',
+            'entity_id' => (string) $shipment->id,
+            'channel' => Notification::CHANNEL_IN_APP,
+        ]);
+    }
+
     public function test_same_account_internal_users_do_not_receive_shipment_notifications(): void
     {
         [$account, $owner] = $this->createOrganizationAudience();
