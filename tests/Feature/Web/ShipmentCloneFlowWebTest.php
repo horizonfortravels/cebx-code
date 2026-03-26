@@ -50,6 +50,51 @@ class ShipmentCloneFlowWebTest extends TestCase
     }
 
     #[DataProvider('portalProvider')]
+    public function test_clone_flow_still_works_from_filtered_portal_list(
+        string $accountType,
+        string $persona,
+        string $indexRouteName,
+        string $createRouteName,
+        string $showRouteName,
+        string $storeRouteName
+    ): void {
+        $user = $this->createCloneUser($accountType, $persona . '_filtered');
+        $shipment = $this->createCloneableShipment($user, [
+            'reference_number' => 'FILTER-CLONE-' . Str::upper(Str::random(6)),
+            'status' => Shipment::STATUS_DRAFT,
+            'carrier_code' => 'fedex',
+            'carrier_name' => 'FedEx',
+        ]);
+
+        $this->createCloneableShipment($user, [
+            'reference_number' => 'FILTER-HIDDEN-' . Str::upper(Str::random(6)),
+            'status' => Shipment::STATUS_DELIVERED,
+            'carrier_code' => 'dhl',
+            'carrier_name' => 'DHL',
+        ]);
+
+        $cloneHref = route($createRouteName, ['clone' => (string) $shipment->id]);
+
+        $this->actingAs($user, 'web')
+            ->get(route($indexRouteName, [
+                'search' => 'FILTER-CLONE',
+                'status' => Shipment::STATUS_DRAFT,
+                'carrier' => 'fedex',
+            ]))
+            ->assertOk()
+            ->assertSee($shipment->reference_number)
+            ->assertSee($cloneHref, false)
+            ->assertSee('data-testid="shipment-clone-link-' . $shipment->id . '"', false)
+            ->assertDontSee('FILTER-HIDDEN-');
+
+        $this->actingAs($user, 'web')
+            ->get($cloneHref)
+            ->assertOk()
+            ->assertSee('data-testid="clone-prefill-banner"', false)
+            ->assertSee($shipment->reference_number);
+    }
+
+    #[DataProvider('portalProvider')]
     public function test_clone_create_page_prefills_only_safe_visible_fields_and_flags_multi_parcel_limit(
         string $accountType,
         string $persona,

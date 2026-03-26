@@ -23,37 +23,27 @@ use App\Models\WebhookEvent;
 use App\Services\CarrierService;
 use App\Services\ShipmentTimelineService;
 use App\Support\PortalShipmentLabeler;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use League\Csv\Writer;
 
 class PortalWorkspaceController extends Controller
 {
-        public function b2cShipments(): View
+    public function b2cShipments(Request $request): View
     {
-        $account = $this->currentAccount();
-        $accountId = (string) $account->id;
+        return $this->shipmentIndexWorkspace($request, 'b2c');
+    }
 
-        $shipments = Shipment::query()
-            ->where('account_id', $accountId)
-            ->latest()
-            ->paginate(10)
-            ->withQueryString();
-
-        return view('pages.portal.b2c.shipments', [
-            'account' => $account,
-            'shipments' => $shipments,
-            'canCreateShipment' => auth()->user()?->can('create', Shipment::class) ?? false,
-            'createRoute' => route('b2c.shipments.create'),
-            'createRouteName' => 'b2c.shipments.create',
-            'showRoute' => 'b2c.shipments.show',
-            'copy' => $this->shipmentIndexCopy('b2c'),
-            'stats' => $this->shipmentIndexStats($accountId, 'b2c'),
-        ]);
+    public function exportB2cShipments(Request $request): Response
+    {
+        return $this->shipmentIndexExportWorkspace($request, 'b2c');
     }
     public function b2cWallet(): View
     {
@@ -126,27 +116,14 @@ class PortalWorkspaceController extends Controller
         ]);
     }
 
-        public function b2bShipments(): View
+    public function b2bShipments(Request $request): View
     {
-        $account = $this->currentAccount();
-        $accountId = (string) $account->id;
+        return $this->shipmentIndexWorkspace($request, 'b2b');
+    }
 
-        $shipments = Shipment::query()
-            ->where('account_id', $accountId)
-            ->latest()
-            ->paginate(10)
-            ->withQueryString();
-
-        return view('pages.portal.b2b.shipments', [
-            'account' => $account,
-            'shipments' => $shipments,
-            'canCreateShipment' => auth()->user()?->can('create', Shipment::class) ?? false,
-            'createRoute' => route('b2b.shipments.create'),
-            'createRouteName' => 'b2b.shipments.create',
-            'showRoute' => 'b2b.shipments.show',
-            'copy' => $this->shipmentIndexCopy('b2b'),
-            'stats' => $this->shipmentIndexStats($accountId, 'b2b'),
-        ]);
+    public function exportB2bShipments(Request $request): Response
+    {
+        return $this->shipmentIndexExportWorkspace($request, 'b2b');
     }
     public function b2cShipmentShow(Request $request, string $id): View
     {
@@ -494,6 +471,389 @@ class PortalWorkspaceController extends Controller
         abort_unless($user && $user->account instanceof Account, 400, 'تعذر تحديد الحساب الحالي.');
 
         return $user->account;
+    }
+
+    private function shipmentIndexWorkspace(Request $request, string $portal): View
+    {
+        $account = $this->currentAccount();
+        $accountId = (string) $account->id;
+        $filters = $this->validateShipmentIndexFilters($request);
+
+        $shipments = $this->buildShipmentIndexQuery($accountId, $filters)
+            ->latest()
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('pages.portal.' . $portal . '.shipments', [
+            'account' => $account,
+            'shipments' => $shipments,
+            'canCreateShipment' => auth()->user()?->can('create', Shipment::class) ?? false,
+            'canExportShipments' => auth()->user()?->can('viewAny', Shipment::class) ?? false,
+            'createRoute' => route($portal . '.shipments.create'),
+            'createRouteName' => $portal . '.shipments.create',
+            'showRoute' => $portal . '.shipments.show',
+            'indexRoute' => route($portal . '.shipments.index'),
+            'exportRoute' => route($portal . '.shipments.export', $this->shipmentIndexPersistedFilters($filters)),
+            'copy' => $this->shipmentIndexCopy($portal),
+            'stats' => $this->shipmentIndexStats($accountId, $portal),
+            'filters' => $filters,
+            'hasActiveFilters' => $this->shipmentIndexHasActiveFilters($filters),
+            'statusOptions' => $this->shipmentIndexStatusOptions($accountId),
+            'carrierOptions' => $this->shipmentIndexCarrierOptions($accountId),
+        ]);
+    }
+
+    private function shipmentIndexExportWorkspace(Request $request, string $portal): Response
+    {
+        $this->authorize('viewAny', Shipment::class);
+
+        $accountId = (string) $this->currentAccount()->id;
+        $filters = $this->validateShipmentIndexFilters($request);
+
+        $shipments = $this->buildShipmentIndexQuery($accountId, $filters)
+            ->orderByDesc('created_at')
+            ->get($this->shipmentIndexExportColumns());
+
+        $writer = Writer::createFromString('');
+        $writer->insertOne([
+            __('portal_shipments.common.reference'),
+            __('portal_shipments.common.created_at'),
+            __('portal_shipments.common.status'),
+            __('portal_shipments.common.carrier'),
+            __('portal_shipments.common.service'),
+            __('portal_shipments.common.tracking_number'),
+            __('portal_shipments.common.sender'),
+            __('portal_shipments.common.recipient'),
+            __('portal_shipments.common.origin'),
+            __('portal_shipments.common.destination'),
+            __('portal_shipments.common.total_charge'),
+            __('portal_shipments.common.currency'),
+        ]);
+
+        foreach ($shipments as $shipment) {
+            $writer->insertOne([
+                (string) ($shipment->reference_number ?? __('portal_shipments.common.not_available')),
+                $shipment->created_at?->format('Y-m-d H:i') ?? '',
+                $this->translatedShipmentStatus($shipment->status),
+                $this->shipmentCarrierLabel($shipment->carrier_name, $shipment->carrier_code),
+                $this->shipmentServiceLabel($shipment->service_name, $shipment->service_code),
+                $this->shipmentTrackingLabel($shipment->tracking_number, $shipment->carrier_tracking_number),
+                (string) ($shipment->sender_name ?? ''),
+                (string) ($shipment->recipient_name ?? ''),
+                $this->shipmentLocationLabel($shipment->sender_city, $shipment->sender_country),
+                $this->shipmentLocationLabel($shipment->recipient_city, $shipment->recipient_country),
+                $shipment->total_charge !== null ? number_format((float) $shipment->total_charge, 2, '.', '') : '',
+                (string) ($shipment->currency ?? ''),
+            ]);
+        }
+
+        $csvUtf8 = $writer->toString();
+        $csvExcel = "\xFF\xFE" . mb_convert_encoding($csvUtf8, 'UTF-16LE', 'UTF-8');
+        $filename = 'shipments-' . $portal . '-' . now()->format('Y-m-d-His') . '.csv';
+
+        return response($csvExcel, 200, [
+            'Content-Type' => 'text/csv; charset=UTF-16LE',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    }
+
+    /**
+     * @return array{search: ?string, status: ?string, carrier: ?string, from: ?string, to: ?string}
+     */
+    private function validateShipmentIndexFilters(Request $request): array
+    {
+        $filters = $request->validate([
+            'search' => ['nullable', 'string', 'max:120'],
+            'status' => ['nullable', 'string', Rule::in(array_keys($this->shipmentStatusCatalog()))],
+            'carrier' => ['nullable', 'string', 'max:50'],
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date', 'after_or_equal:from'],
+        ]);
+
+        foreach (['search', 'status', 'carrier', 'from', 'to'] as $key) {
+            $value = trim((string) ($filters[$key] ?? ''));
+            $filters[$key] = $value === '' ? null : $value;
+        }
+
+        return $filters;
+    }
+
+    /**
+     * @param array{search: ?string, status: ?string, carrier: ?string, from: ?string, to: ?string} $filters
+     */
+    private function buildShipmentIndexQuery(string $accountId, array $filters): Builder
+    {
+        $query = Shipment::query()
+            ->where('account_id', $accountId);
+
+        if ($filters['search'] !== null) {
+            $search = $filters['search'];
+            $columns = $this->shipmentIndexSearchColumns();
+
+            if ($columns !== []) {
+                $query->where(function (Builder $builder) use ($columns, $search): void {
+                    foreach ($columns as $index => $column) {
+                        $method = $index === 0 ? 'where' : 'orWhere';
+                        $builder->{$method}($column, 'like', '%' . $search . '%');
+                    }
+                });
+            }
+        }
+
+        if ($filters['status'] !== null) {
+            $query->where('status', $filters['status']);
+        }
+
+        if ($filters['carrier'] !== null) {
+            $query->where('carrier_code', $filters['carrier']);
+        }
+
+        if ($filters['from'] !== null) {
+            $query->whereDate('created_at', '>=', $filters['from']);
+        }
+
+        if ($filters['to'] !== null) {
+            $query->whereDate('created_at', '<=', $filters['to']);
+        }
+
+        return $query;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function shipmentIndexSearchColumns(): array
+    {
+        return array_values(array_filter([
+            Schema::hasColumn('shipments', 'reference_number') ? 'reference_number' : null,
+            Schema::hasColumn('shipments', 'tracking_number') ? 'tracking_number' : null,
+            Schema::hasColumn('shipments', 'carrier_tracking_number') ? 'carrier_tracking_number' : null,
+            Schema::hasColumn('shipments', 'sender_name') ? 'sender_name' : null,
+            Schema::hasColumn('shipments', 'recipient_name') ? 'recipient_name' : null,
+        ]));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function shipmentIndexExportColumns(): array
+    {
+        return array_values(array_filter([
+            'id',
+            Schema::hasColumn('shipments', 'reference_number') ? 'reference_number' : null,
+            Schema::hasColumn('shipments', 'created_at') ? 'created_at' : null,
+            Schema::hasColumn('shipments', 'status') ? 'status' : null,
+            Schema::hasColumn('shipments', 'carrier_name') ? 'carrier_name' : null,
+            Schema::hasColumn('shipments', 'carrier_code') ? 'carrier_code' : null,
+            Schema::hasColumn('shipments', 'service_name') ? 'service_name' : null,
+            Schema::hasColumn('shipments', 'service_code') ? 'service_code' : null,
+            Schema::hasColumn('shipments', 'tracking_number') ? 'tracking_number' : null,
+            Schema::hasColumn('shipments', 'carrier_tracking_number') ? 'carrier_tracking_number' : null,
+            Schema::hasColumn('shipments', 'sender_name') ? 'sender_name' : null,
+            Schema::hasColumn('shipments', 'recipient_name') ? 'recipient_name' : null,
+            Schema::hasColumn('shipments', 'sender_city') ? 'sender_city' : null,
+            Schema::hasColumn('shipments', 'sender_country') ? 'sender_country' : null,
+            Schema::hasColumn('shipments', 'recipient_city') ? 'recipient_city' : null,
+            Schema::hasColumn('shipments', 'recipient_country') ? 'recipient_country' : null,
+            Schema::hasColumn('shipments', 'total_charge') ? 'total_charge' : null,
+            Schema::hasColumn('shipments', 'currency') ? 'currency' : null,
+        ]));
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function shipmentIndexStatusOptions(string $accountId): array
+    {
+        $available = Shipment::query()
+            ->where('account_id', $accountId)
+            ->whereNotNull('status')
+            ->distinct()
+            ->pluck('status')
+            ->filter(fn ($status): bool => filled($status))
+            ->map(fn ($status): string => (string) $status)
+            ->values();
+
+        $catalog = $this->shipmentStatusCatalog();
+        $options = [];
+
+        foreach ($catalog as $status => $label) {
+            if ($available->contains($status)) {
+                $options[$status] = $label;
+            }
+        }
+
+        foreach ($available as $status) {
+            if (! array_key_exists($status, $options)) {
+                $options[$status] = $this->translatedShipmentStatus($status);
+            }
+        }
+
+        return $options;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function shipmentIndexCarrierOptions(string $accountId): array
+    {
+        $options = [];
+
+        $carriers = Shipment::query()
+            ->where('account_id', $accountId)
+            ->whereNotNull('carrier_code')
+            ->where('carrier_code', '!=', '')
+            ->orderBy('carrier_name')
+            ->orderBy('carrier_code')
+            ->get(['carrier_code', 'carrier_name'])
+            ->unique('carrier_code');
+
+        foreach ($carriers as $shipment) {
+            $code = trim((string) $shipment->carrier_code);
+            if ($code === '') {
+                continue;
+            }
+
+            $options[$code] = $this->shipmentCarrierLabel($shipment->carrier_name, $code);
+        }
+
+        return $options;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function shipmentStatusCatalog(): array
+    {
+        $statuses = [
+            Shipment::STATUS_DRAFT,
+            Shipment::STATUS_VALIDATED,
+            Shipment::STATUS_KYC_BLOCKED,
+            Shipment::STATUS_READY_FOR_RATES,
+            Shipment::STATUS_RATED,
+            Shipment::STATUS_OFFER_SELECTED,
+            Shipment::STATUS_DECLARATION_REQUIRED,
+            Shipment::STATUS_DECLARATION_COMPLETE,
+            Shipment::STATUS_REQUIRES_ACTION,
+            Shipment::STATUS_PAYMENT_PENDING,
+            Shipment::STATUS_PURCHASED,
+            Shipment::STATUS_READY_FOR_PICKUP,
+            Shipment::STATUS_PICKED_UP,
+            Shipment::STATUS_IN_TRANSIT,
+            Shipment::STATUS_OUT_FOR_DELIVERY,
+            Shipment::STATUS_DELIVERED,
+            Shipment::STATUS_RETURNED,
+            Shipment::STATUS_EXCEPTION,
+            Shipment::STATUS_CANCELLED,
+            Shipment::STATUS_FAILED,
+        ];
+
+        $catalog = [];
+
+        foreach ($statuses as $status) {
+            $catalog[$status] = $this->translatedShipmentStatus($status);
+        }
+
+        return $catalog;
+    }
+
+    private function translatedShipmentStatus(?string $status): string
+    {
+        $resolved = trim((string) $status);
+        if ($resolved === '') {
+            return __('portal_shipments.common.not_available');
+        }
+
+        $key = 'portal_shipments.statuses.' . $resolved;
+        $translated = __($key);
+
+        return $translated === $key ? $resolved : $translated;
+    }
+
+    private function shipmentCarrierLabel(mixed $carrierName, mixed $carrierCode): string
+    {
+        $resolvedName = trim((string) ($carrierName ?? ''));
+        if ($resolvedName !== '') {
+            return $resolvedName;
+        }
+
+        $resolvedCode = trim((string) ($carrierCode ?? ''));
+        if ($resolvedCode === '') {
+            return __('portal_shipments.common.not_available');
+        }
+
+        $key = 'portal_shipments.carriers.' . Str::lower($resolvedCode);
+        $translated = __($key);
+
+        return $translated === $key
+            ? Str::headline(str_replace(['_', '-'], ' ', $resolvedCode))
+            : $translated;
+    }
+
+    private function shipmentServiceLabel(mixed $serviceName, mixed $serviceCode): string
+    {
+        $resolvedName = trim((string) ($serviceName ?? ''));
+        if ($resolvedName !== '') {
+            return $resolvedName;
+        }
+
+        $resolvedCode = trim((string) ($serviceCode ?? ''));
+        if ($resolvedCode === '') {
+            return __('portal_shipments.common.not_available');
+        }
+
+        $key = 'portal_shipments.services.' . Str::lower($resolvedCode);
+        $translated = __($key);
+
+        return $translated === $key
+            ? Str::headline(str_replace(['_', '-'], ' ', $resolvedCode))
+            : $translated;
+    }
+
+    private function shipmentTrackingLabel(mixed $trackingNumber, mixed $carrierTrackingNumber): string
+    {
+        $tracking = trim((string) ($trackingNumber ?? ''));
+        if ($tracking !== '') {
+            return $tracking;
+        }
+
+        $carrierTracking = trim((string) ($carrierTrackingNumber ?? ''));
+
+        return $carrierTracking === ''
+            ? __('portal_shipments.common.not_available')
+            : $carrierTracking;
+    }
+
+    private function shipmentLocationLabel(mixed $city, mixed $country): string
+    {
+        $summary = collect([$city, $country])
+            ->map(fn ($value): string => trim((string) ($value ?? '')))
+            ->filter(fn (string $value): bool => $value !== '')
+            ->implode(' / ');
+
+        return $summary === ''
+            ? __('portal_shipments.common.not_specified')
+            : $summary;
+    }
+
+    /**
+     * @param array{search: ?string, status: ?string, carrier: ?string, from: ?string, to: ?string} $filters
+     * @return array<string, string>
+     */
+    private function shipmentIndexPersistedFilters(array $filters): array
+    {
+        return collect($filters)
+            ->filter(fn ($value): bool => filled($value))
+            ->map(fn ($value): string => (string) $value)
+            ->all();
+    }
+
+    /**
+     * @param array{search: ?string, status: ?string, carrier: ?string, from: ?string, to: ?string} $filters
+     */
+    private function shipmentIndexHasActiveFilters(array $filters): bool
+    {
+        return collect($filters)->contains(fn ($value): bool => filled($value));
     }
 
     private function shipmentDraftWorkspace(string $portal): View
@@ -1468,6 +1828,7 @@ class PortalWorkspaceController extends Controller
             'description' => __('portal_shipments.index.' . $portal . '.description'),
             'create_cta' => __('portal_shipments.index.' . $portal . '.create_cta'),
             'table_title' => __('portal_shipments.index.' . $portal . '.table_title'),
+            'search_placeholder' => __('portal_shipments.index.' . $portal . '.search_placeholder'),
             'empty_state' => __('portal_shipments.index.' . $portal . '.empty_state'),
             'guidance_title' => __('portal_shipments.index.' . $portal . '.guidance_title'),
             'guidance_cards' => __('portal_shipments.index.' . $portal . '.guidance_cards'),

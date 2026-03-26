@@ -29,6 +29,7 @@ Route::prefix('b2c')->name('b2c.')->middleware('portal:b2c')->group(function () 
 
         Route::prefix('shipments')->name('shipments.')->group(function () {
             Route::get('/', [PortalWorkspaceController::class, 'b2cShipments'])->name('index');
+            Route::get('/export', [PortalWorkspaceController::class, 'exportB2cShipments'])->name('export');
             Route::get('/create', [PortalWorkspaceController::class, 'b2cShipmentDraft'])
                 ->name('create');
             Route::post('/', [PortalWorkspaceController::class, 'storeB2cShipmentDraft'])

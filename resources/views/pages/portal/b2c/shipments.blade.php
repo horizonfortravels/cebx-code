@@ -5,7 +5,14 @@
 @php
     $showRoute = $showRoute ?? 'b2c.shipments.show';
     $createRouteName = $createRouteName ?? 'b2c.shipments.create';
+    $indexRoute = $indexRoute ?? route('b2c.shipments.index');
+    $exportRoute = $exportRoute ?? route('b2c.shipments.export');
     $emptyValue = __('portal_shipments.common.not_available');
+    $filters = $filters ?? ['search' => null, 'status' => null, 'carrier' => null, 'from' => null, 'to' => null];
+    $hasActiveFilters = $hasActiveFilters ?? false;
+    $statusOptions = $statusOptions ?? [];
+    $carrierOptions = $carrierOptions ?? [];
+    $canExportShipments = $canExportShipments ?? false;
     $hasPagination = method_exists($shipments, 'hasPages') && $shipments->hasPages();
     $currentPage = method_exists($shipments, 'currentPage') ? $shipments->currentPage() : 1;
     $lastPage = method_exists($shipments, 'lastPage') ? $shipments->lastPage() : 1;
@@ -44,6 +51,61 @@
 
 <div class="grid-2">
     <x-card :title="$copy['table_title']">
+        <form method="GET" action="{{ $indexRoute }}" style="display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin-bottom:18px;padding-bottom:16px;border-bottom:1px solid var(--bd)">
+            <div style="flex:1 1 260px;min-width:220px">
+                <label for="shipment-search-b2c" style="display:block;color:var(--td);font-size:12px;margin-bottom:6px">{{ __('portal_shipments.common.search') }}</label>
+                <input
+                    id="shipment-search-b2c"
+                    type="text"
+                    name="search"
+                    value="{{ $filters['search'] ?? '' }}"
+                    placeholder="{{ $copy['search_placeholder'] }}"
+                    class="form-input"
+                    data-testid="shipment-search-input"
+                >
+            </div>
+
+            <div style="flex:0 1 180px;min-width:160px">
+                <label for="shipment-status-b2c" style="display:block;color:var(--td);font-size:12px;margin-bottom:6px">{{ __('portal_shipments.common.status') }}</label>
+                <select id="shipment-status-b2c" name="status" class="form-input" data-testid="shipment-status-filter">
+                    <option value="">{{ __('portal_shipments.common.all_statuses') }}</option>
+                    @foreach($statusOptions as $value => $label)
+                        <option value="{{ $value }}" @selected(($filters['status'] ?? null) === $value)>{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div style="flex:0 1 180px;min-width:160px">
+                <label for="shipment-carrier-b2c" style="display:block;color:var(--td);font-size:12px;margin-bottom:6px">{{ __('portal_shipments.common.carrier') }}</label>
+                <select id="shipment-carrier-b2c" name="carrier" class="form-input" data-testid="shipment-carrier-filter">
+                    <option value="">{{ __('portal_shipments.common.all_carriers') }}</option>
+                    @foreach($carrierOptions as $value => $label)
+                        <option value="{{ $value }}" @selected(($filters['carrier'] ?? null) === $value)>{{ $label }}</option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div style="flex:0 1 160px;min-width:150px">
+                <label for="shipment-from-b2c" style="display:block;color:var(--td);font-size:12px;margin-bottom:6px">{{ __('portal_shipments.common.from_date') }}</label>
+                <input id="shipment-from-b2c" type="date" name="from" value="{{ $filters['from'] ?? '' }}" class="form-input">
+            </div>
+
+            <div style="flex:0 1 160px;min-width:150px">
+                <label for="shipment-to-b2c" style="display:block;color:var(--td);font-size:12px;margin-bottom:6px">{{ __('portal_shipments.common.to_date') }}</label>
+                <input id="shipment-to-b2c" type="date" name="to" value="{{ $filters['to'] ?? '' }}" class="form-input">
+            </div>
+
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-end;margin-inline-start:auto">
+                <button type="submit" class="btn btn-s" data-testid="shipment-filter-submit">{{ __('portal_shipments.common.apply_filters') }}</button>
+                @if($hasActiveFilters)
+                    <a href="{{ $indexRoute }}" class="btn btn-s" data-testid="shipment-filter-reset">{{ __('portal_shipments.common.clear_filters') }}</a>
+                @endif
+                @if($canExportShipments)
+                    <a href="{{ $exportRoute }}" class="btn btn-s" data-testid="shipment-export-csv">{{ __('portal_shipments.common.export_csv') }}</a>
+                @endif
+            </div>
+        </form>
+
         <div style="overflow:auto">
             <table class="table">
                 <thead>
