@@ -9,7 +9,8 @@
 @section('brand-bg', 'background: linear-gradient(160deg, #2E1065 0%, #4C1D95 40%, #7C3AED 100%)')
 
 @section('brand-content')
-    <div class="brand-logo" style="background:linear-gradient(135deg,#7C3AED,#4C1D95);box-shadow:0 8px 32px rgba(124,58,237,0.4)">SYS</div>
+    <div class="brand-logo"
+        style="background:linear-gradient(135deg,#7C3AED,#4C1D95);box-shadow:0 8px 32px rgba(124,58,237,0.4)">SYS</div>
     <span class="brand-badge" style="background:rgba(255,255,255,0.15);color:#C4B5FD">SYSTEM ADMIN</span>
     <h2 class="brand-title">لوحة الإدارة</h2>
     <p class="brand-desc">التحكم الكامل بالنظام — إدارة المنظمات، اللوجستيات، الامتثال، التسعير، والتدقيق.</p>
@@ -32,9 +33,9 @@
 @section('btn-text', '🛡️ دخول لوحة الإدارة')
 
 @section('demo-credentials')
-<div class="demo-credentials">
-    <div class="demo-title">🔑 بيانات تجريبية</div>
-    <div class="demo-row"><span>البريد:</span> <code>admin@system.sa</code></div>
-    <div class="demo-row"><span>كلمة المرور:</span> <code>admin</code></div>
-</div>
+    <div class="demo-credentials">
+        <div class="demo-title">🔑 بيانات تجريبية</div>
+        <div class="demo-row"><span>البريد:</span> <code>e2e.internal.super_admin@example.test</code></div>
+        <div class="demo-row"><span>كلمة المرور:</span> <code>Password123!</code></div>
+    </div>
 @endsection

@@ -102,6 +102,11 @@ class Notification extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function shipmentEvent(): BelongsTo
+    {
+        return $this->belongsTo(ShipmentEvent::class);
+    }
+
     public function scopeForUser($query, string $userId)
     {
         return $query->where('user_id', $userId);

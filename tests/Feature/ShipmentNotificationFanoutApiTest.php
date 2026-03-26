@@ -2,12 +2,14 @@
 
 namespace Tests\Feature;
 
-use Database\Seeders\NotificationTemplateSeeder;
 use App\Models\Account;
 use App\Models\Notification;
 use App\Models\Shipment;
 use App\Models\User;
+use App\Services\ShipmentNotificationFanoutService;
 use App\Services\ShipmentTimelineService;
+use Database\Seeders\NotificationTemplateSeeder;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Tests\TestCase;
@@ -21,25 +23,26 @@ class ShipmentNotificationFanoutApiTest extends TestCase
         $this->seed(NotificationTemplateSeeder::class);
     }
 
-    public function test_purchased_event_creates_notifications_for_same_tenant_external_users(): void
+    public function test_purchased_event_creates_in_app_notifications_for_same_tenant_external_users(): void
     {
         [$account, $owner, $admin] = $this->createOrganizationAudience();
         $shipment = $this->createShipment($account, $owner);
 
-        app(ShipmentTimelineService::class)->record($shipment, [
+        $event = app(ShipmentTimelineService::class)->record($shipment, [
             'event_type' => 'shipment.purchased',
             'status' => 'purchased',
             'normalized_status' => 'purchased',
-            'description' => 'تم إصدار الشحنة لدى الناقل.',
+            'description' => 'Shipment purchased at carrier.',
             'event_at' => now(),
             'source' => 'system',
             'idempotency_key' => 'purchased:' . $shipment->id,
         ]);
 
-        $this->assertDatabaseCount('notifications', 4);
+        $this->assertDatabaseCount('notifications', 2);
         $this->assertDatabaseHas('notifications', [
             'account_id' => (string) $account->id,
             'user_id' => (string) $owner->id,
+            'shipment_event_id' => (string) $event->id,
             'event_type' => Notification::EVENT_SHIPMENT_PURCHASED,
             'channel' => Notification::CHANNEL_IN_APP,
             'entity_type' => 'shipment',
@@ -48,23 +51,28 @@ class ShipmentNotificationFanoutApiTest extends TestCase
         $this->assertDatabaseHas('notifications', [
             'account_id' => (string) $account->id,
             'user_id' => (string) $admin->id,
+            'shipment_event_id' => (string) $event->id,
             'event_type' => Notification::EVENT_SHIPMENT_PURCHASED,
             'channel' => Notification::CHANNEL_IN_APP,
             'entity_type' => 'shipment',
             'entity_id' => (string) $shipment->id,
         ]);
+        $this->assertDatabaseMissing('notifications', [
+            'shipment_event_id' => (string) $event->id,
+            'channel' => Notification::CHANNEL_EMAIL,
+        ]);
     }
 
-    public function test_documents_available_event_creates_notification(): void
+    public function test_documents_available_event_creates_linked_in_app_notification(): void
     {
         [$account, $owner] = $this->createOrganizationAudience();
         $shipment = $this->createShipment($account, $owner);
 
-        app(ShipmentTimelineService::class)->record($shipment, [
+        $event = app(ShipmentTimelineService::class)->record($shipment, [
             'event_type' => 'carrier.documents_available',
             'status' => 'label_ready',
             'normalized_status' => 'label_ready',
-            'description' => 'أصبحت مستندات الشحنة متاحة.',
+            'description' => 'Shipment documents are available.',
             'event_at' => now(),
             'source' => 'carrier',
             'idempotency_key' => 'documents:' . $shipment->id,
@@ -73,8 +81,13 @@ class ShipmentNotificationFanoutApiTest extends TestCase
         $this->assertDatabaseHas('notifications', [
             'account_id' => (string) $account->id,
             'user_id' => (string) $owner->id,
+            'shipment_event_id' => (string) $event->id,
             'event_type' => Notification::EVENT_SHIPMENT_DOCUMENTS_AVAILABLE,
             'channel' => Notification::CHANNEL_IN_APP,
+        ]);
+        $this->assertDatabaseMissing('notifications', [
+            'shipment_event_id' => (string) $event->id,
+            'channel' => Notification::CHANNEL_EMAIL,
         ]);
     }
 
@@ -87,7 +100,7 @@ class ShipmentNotificationFanoutApiTest extends TestCase
             'event_type' => 'tracking.status_updated',
             'status' => 'delivered',
             'normalized_status' => 'delivered',
-            'description' => 'تم تسليم الشحنة.',
+            'description' => 'Shipment delivered.',
             'event_at' => now(),
             'source' => 'carrier',
             'idempotency_key' => 'delivered:' . $shipment->id,
@@ -113,7 +126,7 @@ class ShipmentNotificationFanoutApiTest extends TestCase
             'event_type' => 'tracking.status_updated',
             'status' => 'exception',
             'normalized_status' => 'exception',
-            'description' => 'تعذر التسليم في المحاولة الحالية.',
+            'description' => 'Shipment exception.',
             'event_at' => now(),
             'source' => 'carrier',
             'idempotency_key' => 'exception:' . $shipment->id,
@@ -127,6 +140,99 @@ class ShipmentNotificationFanoutApiTest extends TestCase
         ]);
     }
 
+    public function test_replaying_the_same_shipment_event_does_not_create_duplicate_notifications(): void
+    {
+        [$account, $owner, $admin] = $this->createOrganizationAudience();
+        $shipment = $this->createShipment($account, $owner);
+
+        $event = app(ShipmentTimelineService::class)->record($shipment, [
+            'event_type' => 'tracking.status_updated',
+            'status' => 'delivered',
+            'normalized_status' => 'delivered',
+            'description' => 'Shipment delivered.',
+            'event_at' => now(),
+            'source' => 'carrier',
+            'idempotency_key' => 'delivered:' . $shipment->id,
+        ]);
+
+        app(ShipmentNotificationFanoutService::class)->fanout(
+            $shipment->fresh(['account']),
+            $event->fresh()
+        );
+
+        $this->assertSame(
+            2,
+            Notification::query()
+                ->where('shipment_event_id', (string) $event->id)
+                ->where('channel', Notification::CHANNEL_IN_APP)
+                ->count()
+        );
+        $this->assertDatabaseHas('notifications', [
+            'shipment_event_id' => (string) $event->id,
+            'user_id' => (string) $owner->id,
+            'channel' => Notification::CHANNEL_IN_APP,
+        ]);
+        $this->assertDatabaseHas('notifications', [
+            'shipment_event_id' => (string) $event->id,
+            'user_id' => (string) $admin->id,
+            'channel' => Notification::CHANNEL_IN_APP,
+        ]);
+    }
+
+    public function test_shipment_notification_projection_runs_after_commit(): void
+    {
+        [$account, $owner] = $this->createOrganizationAudience();
+        $shipment = $this->createShipment($account, $owner);
+        $event = null;
+
+        DB::transaction(function () use ($shipment, &$event): void {
+            $event = app(ShipmentTimelineService::class)->record($shipment, [
+                'event_type' => 'shipment.purchased',
+                'status' => 'purchased',
+                'normalized_status' => 'purchased',
+                'description' => 'Shipment purchased at carrier.',
+                'event_at' => now(),
+                'source' => 'system',
+                'idempotency_key' => 'after-commit:' . $shipment->id,
+            ]);
+
+            $this->assertDatabaseMissing('notifications', [
+                'shipment_event_id' => (string) $event->id,
+            ]);
+        });
+
+        $this->assertDatabaseHas('notifications', [
+            'shipment_event_id' => (string) $event->id,
+            'channel' => Notification::CHANNEL_IN_APP,
+        ]);
+    }
+
+    public function test_same_account_internal_users_do_not_receive_shipment_notifications(): void
+    {
+        [$account, $owner] = $this->createOrganizationAudience();
+        $shipment = $this->createShipment($account, $owner);
+        $internalUser = User::factory()->create([
+            'account_id' => (string) $account->id,
+            'user_type' => 'internal',
+            'status' => 'active',
+        ]);
+
+        $event = app(ShipmentTimelineService::class)->record($shipment, [
+            'event_type' => 'shipment.purchased',
+            'status' => 'purchased',
+            'normalized_status' => 'purchased',
+            'description' => 'Shipment purchased at carrier.',
+            'event_at' => now(),
+            'source' => 'system',
+            'idempotency_key' => 'internal-skip:' . $shipment->id,
+        ]);
+
+        $this->assertDatabaseMissing('notifications', [
+            'shipment_event_id' => (string) $event->id,
+            'user_id' => (string) $internalUser->id,
+        ]);
+    }
+
     public function test_cross_tenant_users_do_not_receive_or_access_notifications(): void
     {
         [$accountA, $userA] = $this->createOrganizationAudience();
@@ -137,7 +243,7 @@ class ShipmentNotificationFanoutApiTest extends TestCase
             'event_type' => 'tracking.status_updated',
             'status' => 'delivered',
             'normalized_status' => 'delivered',
-            'description' => 'تم تسليم الشحنة.',
+            'description' => 'Shipment delivered.',
             'event_at' => now(),
             'source' => 'carrier',
             'idempotency_key' => 'delivered:' . $shipmentB->id,
