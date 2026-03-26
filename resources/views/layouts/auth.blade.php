@@ -84,7 +84,9 @@
                 <a href="{{ route('login') }}">← العودة لاختيار البوابة المناسبة لنوع الحساب</a>
             </div>
 
-            @yield('demo-credentials')
+            @if (app()->environment('local') && config('features.demo_data', false))
+                @yield('demo-credentials')
+            @endif
         </div>
     </div>
 </div>

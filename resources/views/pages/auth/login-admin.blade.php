@@ -32,10 +32,3 @@
 @section('btn-style', 'background:linear-gradient(135deg,#7C3AED,#4C1D95);box-shadow:0 4px 16px rgba(124,58,237,0.4)')
 @section('btn-text', '🛡️ دخول لوحة الإدارة')
 
-@section('demo-credentials')
-    <div class="demo-credentials">
-        <div class="demo-title">🔑 بيانات تجريبية</div>
-        <div class="demo-row"><span>البريد:</span> <code>e2e.internal.super_admin@example.test</code></div>
-        <div class="demo-row"><span>كلمة المرور:</span> <code>Password123!</code></div>
-    </div>
-@endsection

@@ -33,10 +33,3 @@
 @section('btn-style', 'background:linear-gradient(135deg,#3B82F6,#1D4ED8);box-shadow:0 4px 16px rgba(59,130,246,0.4)')
 @section('btn-text', '🏢 دخول حساب المنظمة')
 
-@section('demo-credentials')
-    <div class="demo-credentials">
-        <div class="demo-title">🔑 بيانات تجريبية</div>
-        <div class="demo-row"><span>البريد:</span> <code>e2e.c.organization_owner@example.test</code></div>
-        <div class="demo-row"><span>كلمة المرور:</span> <code>Password123!</code></div>
-    </div>
-@endsection

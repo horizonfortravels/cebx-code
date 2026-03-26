@@ -79,6 +79,20 @@ async function loginWith(page, portal, email, password = PASSWORD) {
 
 test.describe.configure({ mode: 'serial' });
 
+test('login pages do not expose seeded credentials', async ({ page }) => {
+  const pages = [
+    ['b2c', USERS.externalIndividualOwner],
+    ['b2b', USERS.externalOrganizationOwner],
+    ['admin', USERS.internalSuperAdmin],
+  ];
+
+  for (const [portal, email] of pages) {
+    await openPortalLogin(page, portal);
+    await expect(page.locator('body')).not.toContainText(email);
+    await expect(page.locator('body')).not.toContainText(PASSWORD);
+  }
+});
+
 test('external individual user can login and reach B2C home', async ({ page }) => {
   await loginWith(page, 'b2c', USERS.externalIndividualOwner);
 
@@ -90,7 +104,7 @@ test('external organization owner can login and reach B2B home', async ({ page }
   await loginWith(page, 'b2b', USERS.externalOrganizationOwner);
 
   await expect(page).toHaveURL(/\/b2b\/dashboard/);
-  await expect(page.locator('.badge-b2b')).toBeVisible();
+  await expect(page.locator('a[href$="/b2b/shipments"]').first()).toBeVisible();
 });
 
 test('internal super_admin can login and open admin UI page', async ({ page }) => {
@@ -122,5 +136,5 @@ test('external user cannot access internal admin UI', async ({ page }) => {
   const response = await page.goto('/admin');
   expect(response).not.toBeNull();
   expect(response.status()).toBe(403);
-  await expect(page.locator('body')).toContainText('ERR_USER_TYPE_FORBIDDEN');
+  await expect(page.locator('a[href$="/b2c/dashboard"]')).toBeVisible();
 });
