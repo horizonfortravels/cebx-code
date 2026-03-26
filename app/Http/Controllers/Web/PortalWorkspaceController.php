@@ -1186,6 +1186,10 @@ class PortalWorkspaceController extends Controller
                     (string) ($event['source'] ?? ''),
                     (string) ($event['source_label'] ?? '')
                 ),
+                'location_label' => PortalShipmentLabeler::location(
+                    (string) ($event['location'] ?? ''),
+                    (string) ($event['location_label'] ?? $event['location'] ?? '')
+                ),
             ]))
             ->all();
 

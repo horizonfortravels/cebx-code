@@ -177,13 +177,27 @@
                     $deliveryLabel = data_get($offer, 'estimated_delivery.label') ?: 'غير متوفر';
                     $borderColor = $isSelected ? '#0f766e' : ($isAvailable ? 'var(--bd)' : 'rgba(185,28,28,.18)');
                     $background = $isSelected ? 'rgba(15,118,110,.06)' : 'white';
+                    $carrierLabel = \App\Support\PortalShipmentLabeler::carrier(
+                        (string) ($offer['carrier_code'] ?? ''),
+                        (string) ($offer['carrier_name'] ?? '')
+                    );
+                    $serviceLabel = \App\Support\PortalShipmentLabeler::service(
+                        (string) ($offer['service_code'] ?? ''),
+                        (string) ($offer['service_name'] ?? '')
+                    );
+                    $carrierServicePairLabel = \App\Support\PortalShipmentLabeler::carrierServicePair(
+                        (string) ($offer['carrier_code'] ?? ''),
+                        (string) ($offer['service_code'] ?? ''),
+                        (string) ($offer['carrier_name'] ?? ''),
+                        (string) ($offer['service_name'] ?? '')
+                    );
                 @endphp
                 <div style="border:1px solid {{ $borderColor }};border-radius:18px;padding:18px;background:{{ $background }};display:flex;flex-direction:column;gap:14px">
                     <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
                         <div>
                             <div style="font-size:12px;color:var(--tm);margin-bottom:4px">الناقل</div>
-                            <div style="font-size:18px;font-weight:800;color:var(--tx)">{{ $offer['carrier_name'] }}</div>
-                            <div class="td-mono" style="font-size:12px;color:var(--tm);margin-top:4px">{{ $offer['carrier_code'] }} / {{ $offer['service_code'] }}</div>
+                            <div style="font-size:18px;font-weight:800;color:var(--tx)">{{ $carrierLabel }}</div>
+                            <div class="td-mono" style="font-size:12px;color:var(--tm);margin-top:4px">{{ $carrierServicePairLabel }}</div>
                         </div>
                         <div style="text-align:left">
                             <div style="font-size:12px;color:var(--tm);margin-bottom:4px">السعر المعروض</div>
@@ -195,7 +209,7 @@
                     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px">
                         <div style="padding:12px;border:1px solid var(--bd);border-radius:14px">
                             <div style="font-size:12px;color:var(--tm);margin-bottom:4px">الخدمة</div>
-                            <div style="font-weight:700;color:var(--tx)">{{ $offer['service_name'] }}</div>
+                            <div style="font-weight:700;color:var(--tx)">{{ $serviceLabel }}</div>
                         </div>
                         <div style="padding:12px;border:1px solid var(--bd);border-radius:14px">
                             <div style="font-size:12px;color:var(--tm);margin-bottom:4px">موعد الوصول</div>

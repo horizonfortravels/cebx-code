@@ -303,7 +303,7 @@
                                 </div>
                                 <div>
                                     <div style="font-size:12px;color:var(--tm);margin-bottom:4px">الموقع</div>
-                                    <div style="font-weight:700;color:var(--tx)">{{ $event['location'] ?? 'غير محدد' }}</div>
+                                    <div style="font-weight:700;color:var(--tx)">{{ $event['location_label'] ?? $event['location'] ?? 'غير محدد' }}</div>
                                 </div>
                             </div>
                             @if(!empty($event['correlation_id']))

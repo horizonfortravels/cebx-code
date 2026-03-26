@@ -31,6 +31,14 @@
     $documentsRoute = request()->routeIs('b2b.*')
         ? route('b2b.shipments.documents.index', ['id' => $shipment->id])
         : route('b2c.shipments.documents.index', ['id' => $shipment->id]);
+    $selectedCarrierLabel = \App\Support\PortalShipmentLabeler::carrier(
+        (string) ($selectedOffer?->carrier_code ?? ''),
+        (string) ($selectedOffer?->carrier_name ?? '')
+    );
+    $selectedServiceLabel = \App\Support\PortalShipmentLabeler::service(
+        (string) ($selectedOffer?->service_code ?? ''),
+        (string) ($selectedOffer?->service_name ?? '')
+    );
 @endphp
 
 @php
@@ -106,11 +114,11 @@
             </div>
             <div>
                 <div style="font-size:12px;color:var(--tm);margin-bottom:4px">الناقل</div>
-                <div style="font-weight:700;color:var(--tx)">{{ $selectedOffer?->carrier_name ?? 'لم يتم اختيار عرض بعد' }}</div>
+                <div style="font-weight:700;color:var(--tx)">{{ $selectedOffer ? $selectedCarrierLabel : 'لم يتم اختيار عرض بعد' }}</div>
             </div>
             <div>
                 <div style="font-size:12px;color:var(--tm);margin-bottom:4px">الخدمة</div>
-                <div style="font-weight:700;color:var(--tx)">{{ $selectedOffer?->service_name ?? '—' }}</div>
+                <div style="font-weight:700;color:var(--tx)">{{ $selectedOffer ? $selectedServiceLabel : '—' }}</div>
             </div>
             <div>
                 <div style="font-size:12px;color:var(--tm);margin-bottom:4px">السعر المعروض</div>

@@ -22,6 +22,35 @@ final class PortalShipmentLabeler
         );
     }
 
+    public static function carrierServicePair(
+        ?string $carrierCode,
+        ?string $serviceCode,
+        ?string $carrierFallback = null,
+        ?string $serviceFallback = null
+    ): string {
+        $carrier = self::carrier($carrierCode, $carrierFallback);
+        $service = self::service($serviceCode, $serviceFallback);
+        $notAvailable = __('portal_shipments.common.not_available');
+
+        if ($carrier === $notAvailable && $service === $notAvailable) {
+            return $notAvailable;
+        }
+
+        if ($carrier === $notAvailable) {
+            return $service;
+        }
+
+        if ($service === $notAvailable) {
+            return $carrier;
+        }
+
+        if ($carrier === $service) {
+            return $carrier;
+        }
+
+        return $carrier . ' / ' . $service;
+    }
+
     public static function status(?string $status, ?string $fallback = null): string
     {
         $normalized = CanonicalShipmentStatus::normalize($status);
@@ -74,6 +103,21 @@ final class PortalShipmentLabeler
             'portal_shipments.sources.' . self::normalizeTokenKey($source),
             $fallback ?: __('portal_shipments.common.not_available')
         );
+    }
+
+    public static function location(?string $location, ?string $fallback = null): string
+    {
+        $normalized = trim((string) $location);
+
+        if ($normalized === '') {
+            $fallback = trim((string) $fallback);
+
+            return $fallback !== ''
+                ? $fallback
+                : __('portal_shipments.common.not_available');
+        }
+
+        return self::carrier($normalized, $fallback ?: $normalized);
     }
 
     private static function resolveLabel(string $translationKey, ?string $fallback = null): string
