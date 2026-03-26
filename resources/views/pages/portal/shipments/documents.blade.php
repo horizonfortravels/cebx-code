@@ -54,7 +54,7 @@
             </div>
             <div>
                 <div style="font-size:12px;color:var(--tm);margin-bottom:4px">الناقل</div>
-                <div style="font-weight:700;color:var(--tx)">{{ $shipment->carrierShipment?->carrier_name ?? $selectedOffer?->carrier_name ?? '—' }}</div>
+                <div style="font-weight:700;color:var(--tx)">{{ \App\Support\PortalShipmentLabeler::carrier((string) ($shipment->carrierShipment?->carrier_code ?? $selectedOffer?->carrier_code ?? $shipment->carrier_code ?? ''), (string) ($shipment->carrierShipment?->carrier_name ?? $selectedOffer?->carrier_name ?? __('portal_shipments.common.not_specified'))) }}</div>
             </div>
             <div>
                 <div style="font-size:12px;color:var(--tm);margin-bottom:4px">رقم التتبع</div>
@@ -96,15 +96,15 @@
                 <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;padding:16px;border:1px solid var(--bd);border-radius:18px;background:white">
                     <div style="display:flex;flex-direction:column;gap:8px;min-width:260px;flex:1">
                         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-                            <span style="font-size:18px;font-weight:800;color:var(--tx)">{{ $document['document_type'] }}</span>
-                            <span class="td-mono" style="font-size:12px;color:var(--tm)">{{ $document['file_format'] }}</span>
-                            <span class="td-mono" style="font-size:12px;color:var(--tm)">{{ $document['carrier_code'] }}</span>
+                            <span style="font-size:18px;font-weight:800;color:var(--tx)">{{ $document['document_type_label'] ?? $document['document_type'] }}</span>
+                            <span class="td-mono" style="font-size:12px;color:var(--tm)">{{ $document['format_label'] ?? $document['file_format'] }}</span>
+                            <span class="td-mono" style="font-size:12px;color:var(--tm)">{{ $document['carrier_label'] ?? $document['carrier_code'] }}</span>
                         </div>
                         <div style="font-size:14px;color:var(--td)">{{ $document['filename'] }}</div>
                         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
                             <div>
                                 <div style="font-size:12px;color:var(--tm);margin-bottom:4px">طريقة الاسترجاع</div>
-                                <div style="font-weight:700;color:var(--tx)">{{ $document['retrieval_mode'] }}</div>
+                                <div style="font-weight:700;color:var(--tx)">{{ $document['retrieval_mode_label'] ?? $document['retrieval_mode'] }}</div>
                             </div>
                             <div>
                                 <div style="font-size:12px;color:var(--tm);margin-bottom:4px">الحجم</div>

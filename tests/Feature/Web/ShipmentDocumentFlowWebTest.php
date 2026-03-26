@@ -7,6 +7,7 @@ use App\Models\CarrierDocument;
 use App\Models\CarrierShipment;
 use App\Models\Shipment;
 use App\Models\User;
+use Illuminate\Support\Facades\Lang;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -34,7 +35,8 @@ class ShipmentDocumentFlowWebTest extends TestCase
         $this->actingAs($user, 'web')
             ->get('/b2b/shipments/' . $shipment->id . '/documents')
             ->assertOk()
-            ->assertSee('FedEx');
+            ->assertSee(Lang::get('portal_shipments.carriers.fedex', [], 'ar'))
+            ->assertDontSee('FedEx');
     }
 
     public function test_cross_tenant_document_page_access_is_denied(): void

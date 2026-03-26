@@ -4,6 +4,7 @@
 @section('content')
 @php
     $showRoute = $showRoute ?? 'b2b.shipments.show';
+    $createRouteName = $createRouteName ?? 'b2b.shipments.create';
     $emptyValue = __('portal_shipments.common.not_available');
     $hasPagination = method_exists($shipments, 'hasPages') && $shipments->hasPages();
     $currentPage = method_exists($shipments, 'currentPage') ? $shipments->currentPage() : 1;
@@ -66,7 +67,16 @@
                         <td>{{ $resolveStatus($shipment->status) }}</td>
                         <td>{{ number_format((float) ($shipment->total_charge ?? 0), 2) }} {{ $shipment->currency ?? 'USD' }}</td>
                         <td>
-                            <a href="{{ route($showRoute, ['id' => $shipment->id]) }}" class="btn btn-s">{{ __('portal_shipments.common.view') }}</a>
+                            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                                <a href="{{ route($showRoute, ['id' => $shipment->id]) }}" class="btn btn-s">{{ __('portal_shipments.common.view') }}</a>
+                                @if($canCreateShipment)
+                                    <a
+                                        href="{{ route($createRouteName, ['clone' => $shipment->id]) }}"
+                                        class="btn btn-s"
+                                        data-testid="shipment-clone-link-{{ $shipment->id }}"
+                                    >{{ __('portal_shipments.common.clone_short') }}</a>
+                                @endif
+                            </div>
                         </td>
                     </tr>
                 @empty

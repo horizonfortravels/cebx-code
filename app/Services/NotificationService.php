@@ -12,6 +12,7 @@ use App\Models\NotificationTemplate;
 use App\Models\User;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Str;
 
 /**
@@ -76,6 +77,51 @@ class NotificationService
     }
 
     /**
+     * Store a deterministic in-app projection for shipment events.
+     *
+     * @param  array<int, string>  $recipientUserIds
+     * @return array<int, \App\Models\Notification>
+     */
+    public function storeInAppProjection(
+        string $eventType,
+        Account $account,
+        array $eventData = [],
+        ?string $entityType = null,
+        ?string $entityId = null,
+        array $recipientUserIds = [],
+        ?string $shipmentEventId = null,
+    ): array {
+        $results = [];
+
+        if ($recipientUserIds === []) {
+            return $results;
+        }
+
+        $users = User::query()
+            ->whereIn('id', $recipientUserIds)
+            ->where('account_id', $account->id)
+            ->get();
+
+        foreach ($users as $user) {
+            $notification = $this->storeShipmentInAppNotification(
+                $user,
+                $account,
+                $eventType,
+                $eventData,
+                $entityType,
+                $entityId,
+                $shipmentEventId
+            );
+
+            if ($notification instanceof Notification) {
+                $results[] = $notification;
+            }
+        }
+
+        return $results;
+    }
+
+    /**
      * Send to a specific channel for a user.
      */
     private function sendToChannel(
@@ -112,9 +158,7 @@ class NotificationService
         if (!$destination) return null;
 
         // Render content
-        $content = $template
-            ? $template->render(array_merge($eventData, ['user_name' => $user->name, 'account_name' => $account->name]))
-            : ['subject' => $eventType, 'body' => json_encode($eventData), 'body_html' => null];
+        $content = $this->renderContent($template, $eventData, $user, $account, $eventType);
 
         // ── FR-NTF-008: Create notification log ──────────────
         $notification = Notification::create([
@@ -138,6 +182,64 @@ class NotificationService
         $this->send($notification);
 
         return $notification;
+    }
+
+    private function storeShipmentInAppNotification(
+        User $user,
+        Account $account,
+        string $eventType,
+        array $eventData,
+        ?string $entityType,
+        ?string $entityId,
+        ?string $shipmentEventId
+    ): ?Notification {
+        if ($shipmentEventId === null || trim($shipmentEventId) === '') {
+            return null;
+        }
+
+        $channel = Notification::CHANNEL_IN_APP;
+        $enabled = NotificationPreference::isEnabled((string) $user->id, $eventType, $channel);
+        if ($enabled === false) {
+            return null;
+        }
+
+        $language = $this->resolveLanguage($user, $account, $eventType, $channel);
+        $template = NotificationTemplate::resolve($eventType, $channel, $language, (string) $account->id);
+        $content = $this->renderContent($template, $eventData, $user, $account, $eventType);
+
+        $uniqueAttributes = [
+            'shipment_event_id' => $shipmentEventId,
+            'user_id' => (string) $user->id,
+            'channel' => $channel,
+        ];
+
+        $values = [
+            'account_id' => (string) $account->id,
+            'event_type' => $eventType,
+            'entity_type' => $entityType,
+            'entity_id' => $entityId,
+            'event_data' => $eventData,
+            'destination' => (string) $user->id,
+            'language' => $language,
+            'subject' => $content['subject'],
+            'body' => $content['body'],
+            'template_id' => $template?->id,
+            'status' => Notification::STATUS_SENT,
+            'provider' => null,
+            'sent_at' => now(),
+        ];
+
+        try {
+            return Notification::query()->firstOrCreate($uniqueAttributes, $values);
+        } catch (QueryException $e) {
+            if (! $this->isUniqueConstraintViolation($e)) {
+                throw $e;
+            }
+
+            return Notification::query()
+                ->where($uniqueAttributes)
+                ->first();
+        }
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -380,6 +482,30 @@ class NotificationService
         ]);
     }
 
+    /**
+     * @return array{subject: string|null, body: string|null, body_html: string|null}
+     */
+    private function renderContent(
+        ?NotificationTemplate $template,
+        array $eventData,
+        User $user,
+        Account $account,
+        string $eventType
+    ): array {
+        if ($template) {
+            return $template->render(array_merge($eventData, [
+                'user_name' => $user->name,
+                'account_name' => $account->name,
+            ]));
+        }
+
+        return [
+            'subject' => (string) ($eventData['title'] ?? $eventType),
+            'body' => (string) ($eventData['event_description'] ?? json_encode($eventData)),
+            'body_html' => null,
+        ];
+    }
+
     // ═══════════════════════════════════════════════════════════
     // FR-NTF-008: Notification Log
     // ═══════════════════════════════════════════════════════════
@@ -526,5 +652,15 @@ class NotificationService
             Notification::CHANNEL_SMS   => 'twilio',
             default => null,
         };
+    }
+
+    private function isUniqueConstraintViolation(QueryException $exception): bool
+    {
+        $sqlState = (string) ($exception->errorInfo[0] ?? '');
+        $message = $exception->getMessage();
+
+        return in_array($sqlState, ['23000', '23505'], true)
+            || str_contains($message, 'notifications_shipment_event_user_channel_unique')
+            || str_contains($message, 'UNIQUE constraint failed: notifications.shipment_event_id, notifications.user_id, notifications.channel');
     }
 }

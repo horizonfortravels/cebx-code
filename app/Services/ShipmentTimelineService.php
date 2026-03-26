@@ -9,6 +9,7 @@ use App\Support\CanonicalShipmentStatus;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 class ShipmentTimelineService
@@ -47,7 +48,18 @@ class ShipmentTimelineService
             'payload' => $attributes['payload'] ?? $attributes['metadata'] ?? null,
         ]);
 
-        $this->notificationFanout->fanout($shipment, $event);
+        DB::afterCommit(function () use ($shipment, $event): void {
+            $freshShipment = Shipment::query()
+                ->with('account')
+                ->find((string) $shipment->id);
+            $freshEvent = ShipmentEvent::query()->find((string) $event->id);
+
+            if (! $freshShipment instanceof Shipment || ! $freshEvent instanceof ShipmentEvent) {
+                return;
+            }
+
+            $this->notificationFanout->fanout($freshShipment, $freshEvent);
+        });
 
         return $event;
     }

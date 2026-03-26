@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\Shipment;
 use App\Services\CarrierService;
+use App\Support\PortalShipmentLabeler;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -188,6 +189,22 @@ class ShipmentDocumentWebController extends Controller
         $previewable = $this->isPdfPreviewable($document);
 
         return array_merge($document, [
+            'document_type_label' => PortalShipmentLabeler::documentType(
+                (string) ($document['document_type'] ?? $document['type'] ?? ''),
+                (string) ($document['document_type'] ?? $document['type'] ?? '')
+            ),
+            'carrier_label' => PortalShipmentLabeler::carrier(
+                (string) ($document['carrier_code'] ?? ''),
+                (string) ($document['carrier_name'] ?? '')
+            ),
+            'format_label' => PortalShipmentLabeler::documentFormat(
+                (string) ($document['file_format'] ?? $document['format'] ?? ''),
+                strtoupper((string) ($document['file_format'] ?? $document['format'] ?? ''))
+            ),
+            'retrieval_mode_label' => PortalShipmentLabeler::retrievalMode(
+                (string) ($document['retrieval_mode'] ?? ''),
+                (string) ($document['retrieval_mode'] ?? '')
+            ),
             'download_route' => $downloadRoute,
             'previewable' => $previewable,
             'preview_route' => $previewable ? route($portal . '.shipments.documents.preview', [
@@ -219,7 +236,7 @@ class ShipmentDocumentWebController extends Controller
     {
         if ($portal === 'b2b') {
             return [
-                'label' => 'بوابة الأعمال',
+                'label' => __('portal_shipments.common.portal_b2b'),
                 'dashboard_route' => 'b2b.dashboard',
                 'shipments_index_route' => 'b2b.shipments.index',
                 'offers_route' => 'b2b.shipments.offers',
@@ -228,7 +245,7 @@ class ShipmentDocumentWebController extends Controller
         }
 
         return [
-            'label' => 'بوابة الأفراد',
+            'label' => __('portal_shipments.common.portal_b2c'),
             'dashboard_route' => 'b2c.dashboard',
             'shipments_index_route' => 'b2c.shipments.index',
             'offers_route' => 'b2c.shipments.offers',

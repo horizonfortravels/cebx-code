@@ -22,6 +22,7 @@ use App\Models\WalletLedgerEntry;
 use App\Models\WebhookEvent;
 use App\Services\CarrierService;
 use App\Services\ShipmentTimelineService;
+use App\Support\PortalShipmentLabeler;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -48,6 +49,7 @@ class PortalWorkspaceController extends Controller
             'shipments' => $shipments,
             'canCreateShipment' => auth()->user()?->can('create', Shipment::class) ?? false,
             'createRoute' => route('b2c.shipments.create'),
+            'createRouteName' => 'b2c.shipments.create',
             'showRoute' => 'b2c.shipments.show',
             'copy' => $this->shipmentIndexCopy('b2c'),
             'stats' => $this->shipmentIndexStats($accountId, 'b2c'),
@@ -140,6 +142,7 @@ class PortalWorkspaceController extends Controller
             'shipments' => $shipments,
             'canCreateShipment' => auth()->user()?->can('create', Shipment::class) ?? false,
             'createRoute' => route('b2b.shipments.create'),
+            'createRouteName' => 'b2b.shipments.create',
             'showRoute' => 'b2b.shipments.show',
             'copy' => $this->shipmentIndexCopy('b2b'),
             'stats' => $this->shipmentIndexStats($accountId, 'b2b'),
@@ -501,14 +504,30 @@ class PortalWorkspaceController extends Controller
         $accountId = (string) $account->id;
         $config = $this->shipmentPortalConfig($portal);
         $draftId = trim((string) request()->query('draft', ''));
+        $cloneId = trim((string) request()->query('clone', ''));
 
         $draftShipment = null;
+        $cloneSourceShipment = null;
+        $cloneFormDefaults = [];
+        $cloneDropsAdditionalParcels = false;
+
         if ($draftId !== '') {
             $draftShipment = Shipment::query()
                 ->where('account_id', $accountId)
                 ->where('id', $draftId)
                 ->with('parcels')
                 ->firstOrFail();
+        } elseif ($cloneId !== '') {
+            $cloneSourceShipment = Shipment::query()
+                ->where('account_id', $accountId)
+                ->where('id', $cloneId)
+                ->with('parcels')
+                ->firstOrFail();
+
+            $this->authorize('view', $cloneSourceShipment);
+
+            $cloneFormDefaults = $this->buildCloneFormDefaults($cloneSourceShipment);
+            $cloneDropsAdditionalParcels = $cloneSourceShipment->parcels->count() > 1;
         }
 
         $recentDrafts = Shipment::query()
@@ -520,6 +539,9 @@ class PortalWorkspaceController extends Controller
         return view('pages.portal.shipments.create', [
             'account' => $account,
             'draftShipment' => $draftShipment,
+            'cloneSourceShipment' => $cloneSourceShipment,
+            'cloneFormDefaults' => $cloneFormDefaults,
+            'cloneDropsAdditionalParcels' => $cloneDropsAdditionalParcels,
             'portal' => $portal,
             'portalConfig' => $config,
             'recentDrafts' => $recentDrafts,
@@ -1075,7 +1097,7 @@ class PortalWorkspaceController extends Controller
         abort_unless(method_exists($request->user(), 'hasPermission') && $request->user()->hasPermission('tracking.read'), 403);
         $this->authorize('view', $shipment);
 
-        $timeline = app(ShipmentTimelineService::class)->present($shipment);
+        $timeline = $this->decorateTimeline(app(ShipmentTimelineService::class)->present($shipment));
         $documents = collect(app(CarrierService::class)->listDocuments($shipment))
             ->map(function (array $document) use ($portal, $shipment): array {
                 $filename = (string) ($document['filename'] ?? 'document.bin');
@@ -1083,7 +1105,7 @@ class PortalWorkspaceController extends Controller
                     || strtolower((string) ($document['mime_type'] ?? '')) === 'application/pdf'
                     || str_ends_with(strtolower($filename), '.pdf');
 
-                return array_merge($document, [
+                return array_merge($this->decorateDocument($document), [
                     'download_route' => route($portal . '.shipments.documents.download', [
                         'id' => (string) $shipment->id,
                         'documentId' => (string) $document['id'],
@@ -1115,6 +1137,12 @@ class PortalWorkspaceController extends Controller
                 ->map(static fn (Notification $notification): array => [
                     'id' => (string) $notification->id,
                     'event_type' => (string) $notification->event_type,
+                    'event_type_label' => PortalShipmentLabeler::event(
+                        (string) $notification->event_type,
+                        (string) ($notification->subject
+                            ?? data_get($notification->event_data, 'title')
+                            ?? '')
+                    ),
                     'subject' => (string) ($notification->subject
                         ?? data_get($notification->event_data, 'title')
                         ?? $notification->event_type
@@ -1128,6 +1156,8 @@ class PortalWorkspaceController extends Controller
                 ->all();
         }
 
+        $selectedOption = $shipment->selectedRateOption ?? $shipment->rateQuote?->selectedOption;
+
         return view('pages.portal.shipments.show', [
             'portalConfig' => array_merge(
                 $this->shipmentPortalConfig($portal),
@@ -1137,10 +1167,80 @@ class PortalWorkspaceController extends Controller
             'timeline' => $timeline,
             'documents' => $documents,
             'completionFeedback' => session('shipment_completion_feedback'),
+            'canCreateShipment' => $request->user()?->can('create', Shipment::class) ?? false,
             'canTriggerWalletPreflight' => $request->user()?->can('paymentPreflight', $shipment) ?? false,
             'canIssueShipment' => $request->user()?->can('issueAtCarrier', $shipment) ?? false,
             'canViewNotifications' => $canViewNotifications,
             'shipmentNotifications' => $shipmentNotifications,
+            'carrierDisplayLabel' => PortalShipmentLabeler::carrier(
+                (string) ($shipment->carrierShipment?->carrier_code ?? $selectedOption?->carrier_code ?? $shipment->carrier_code ?? ''),
+                (string) ($shipment->carrierShipment?->carrier_name ?? $selectedOption?->carrier_name ?? $shipment->carrier_name ?? '')
+            ),
+            'serviceDisplayLabel' => PortalShipmentLabeler::service(
+                (string) ($shipment->carrierShipment?->service_code ?? $selectedOption?->service_code ?? $shipment->service_code ?? ''),
+                (string) ($shipment->carrierShipment?->service_name ?? $selectedOption?->service_name ?? $shipment->service_name ?? '')
+            ),
+        ]);
+    }
+
+    /**
+     * @param array<string, mixed> $timeline
+     * @return array<string, mixed>
+     */
+    private function decorateTimeline(array $timeline): array
+    {
+        $timeline['current_status_label'] = PortalShipmentLabeler::status(
+            (string) ($timeline['current_status'] ?? ''),
+            (string) ($timeline['current_status_label'] ?? '')
+        );
+
+        $timeline['events'] = collect($timeline['events'] ?? [])
+            ->map(static fn (array $event): array => array_merge($event, [
+                'event_type_label' => PortalShipmentLabeler::event(
+                    (string) ($event['event_type'] ?? ''),
+                    (string) ($event['event_type_label'] ?? $event['description'] ?? '')
+                ),
+                'status_label' => PortalShipmentLabeler::status(
+                    (string) ($event['status'] ?? $event['normalized_status'] ?? ''),
+                    (string) ($event['status_label'] ?? '')
+                ),
+                'source_label' => PortalShipmentLabeler::source(
+                    (string) ($event['source'] ?? ''),
+                    (string) ($event['source_label'] ?? '')
+                ),
+                'location_label' => PortalShipmentLabeler::location(
+                    (string) ($event['location'] ?? ''),
+                    (string) ($event['location_label'] ?? $event['location'] ?? '')
+                ),
+            ]))
+            ->all();
+
+        return $timeline;
+    }
+
+    /**
+     * @param array<string, mixed> $document
+     * @return array<string, mixed>
+     */
+    private function decorateDocument(array $document): array
+    {
+        return array_merge($document, [
+            'document_type_label' => PortalShipmentLabeler::documentType(
+                (string) ($document['document_type'] ?? $document['type'] ?? ''),
+                (string) ($document['document_type'] ?? $document['type'] ?? '')
+            ),
+            'carrier_label' => PortalShipmentLabeler::carrier(
+                (string) ($document['carrier_code'] ?? ''),
+                (string) ($document['carrier_name'] ?? '')
+            ),
+            'format_label' => PortalShipmentLabeler::documentFormat(
+                (string) ($document['file_format'] ?? $document['format'] ?? ''),
+                strtoupper((string) ($document['file_format'] ?? $document['format'] ?? ''))
+            ),
+            'retrieval_mode_label' => PortalShipmentLabeler::retrievalMode(
+                (string) ($document['retrieval_mode'] ?? ''),
+                (string) ($document['retrieval_mode'] ?? '')
+            ),
         ]);
     }
 
@@ -1228,6 +1328,71 @@ class PortalWorkspaceController extends Controller
         }
 
         return $data;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildCloneFormDefaults(Shipment $shipment): array
+    {
+        $shipment->loadMissing('parcels');
+
+        $firstParcel = $shipment->parcels
+            ->sortBy('sequence')
+            ->first();
+
+        return [
+            'sender_name' => (string) ($shipment->sender_name ?? ''),
+            'sender_phone' => (string) ($shipment->sender_phone ?? ''),
+            'sender_address_1' => (string) ($shipment->sender_address_1 ?? $shipment->sender_address ?? ''),
+            'sender_city' => (string) ($shipment->sender_city ?? ''),
+            'sender_state' => $this->normalizeCloneState($shipment->sender_country ?? null, $shipment->sender_state ?? null),
+            'sender_postal_code' => $this->nullableCloneString($shipment->sender_postal_code ?? null),
+            'sender_country' => $this->normalizeCloneCountry($shipment->sender_country ?? null) ?? 'SA',
+            'recipient_name' => (string) ($shipment->recipient_name ?? ''),
+            'recipient_phone' => (string) ($shipment->recipient_phone ?? ''),
+            'recipient_address_1' => (string) ($shipment->recipient_address_1 ?? $shipment->recipient_address ?? ''),
+            'recipient_city' => (string) ($shipment->recipient_city ?? ''),
+            'recipient_state' => $this->normalizeCloneState($shipment->recipient_country ?? null, $shipment->recipient_state ?? null),
+            'recipient_postal_code' => $this->nullableCloneString($shipment->recipient_postal_code ?? null),
+            'recipient_country' => $this->normalizeCloneCountry($shipment->recipient_country ?? null) ?? 'SA',
+            'parcels' => [[
+                'weight' => $firstParcel?->weight !== null ? (string) $firstParcel->weight : '1.0',
+                'length' => $firstParcel?->length !== null ? (string) $firstParcel->length : null,
+                'width' => $firstParcel?->width !== null ? (string) $firstParcel->width : null,
+                'height' => $firstParcel?->height !== null ? (string) $firstParcel->height : null,
+            ]],
+        ];
+    }
+
+    private function normalizeCloneCountry(mixed $country): ?string
+    {
+        $value = $this->nullableCloneString($country);
+
+        return $value === null ? null : Str::upper($value);
+    }
+
+    private function normalizeCloneState(mixed $country, mixed $state): ?string
+    {
+        $value = $this->nullableCloneString($state);
+        if ($value === null) {
+            return null;
+        }
+
+        return $this->normalizeCloneCountry($country) === 'US'
+            ? Str::upper($value)
+            : $value;
+    }
+
+    private function nullableCloneString(mixed $value): ?string
+    {
+        if (! is_scalar($value)) {
+            return null;
+        }
+
+        $resolved = trim((string) $value);
+
+        return $resolved === '' ? null : $resolved;
     }
 
     /**

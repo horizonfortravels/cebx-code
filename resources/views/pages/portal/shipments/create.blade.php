@@ -3,11 +3,17 @@
 
 @section('content')
 @php
+    $cloneFormDefaults = $cloneFormDefaults ?? [];
+    $cloneSourceShipment = $cloneSourceShipment ?? null;
+    $cloneDropsAdditionalParcels = $cloneDropsAdditionalParcels ?? false;
+    $prefill = static function (string $key, mixed $fallback = null) use ($cloneFormDefaults, $draftShipment) {
+        return data_get($cloneFormDefaults, $key, data_get($draftShipment, $key, $fallback));
+    };
     $firstParcel = old('parcels.0', [
-        'weight' => data_get($draftShipment, 'parcels.0.weight', '1.0'),
-        'length' => data_get($draftShipment, 'parcels.0.length'),
-        'width' => data_get($draftShipment, 'parcels.0.width'),
-        'height' => data_get($draftShipment, 'parcels.0.height'),
+        'weight' => data_get($cloneFormDefaults, 'parcels.0.weight', data_get($draftShipment, 'parcels.0.weight', '1.0')),
+        'length' => data_get($cloneFormDefaults, 'parcels.0.length', data_get($draftShipment, 'parcels.0.length')),
+        'width' => data_get($cloneFormDefaults, 'parcels.0.width', data_get($draftShipment, 'parcels.0.width')),
+        'height' => data_get($cloneFormDefaults, 'parcels.0.height', data_get($draftShipment, 'parcels.0.height')),
     ]);
 
     $workflowBadges = [
@@ -104,6 +110,22 @@
     </div>
 @endif
 
+@if($cloneSourceShipment)
+    <div style="margin-bottom:20px;padding:18px;border-radius:18px;border:1px solid rgba(37,99,235,.18);background:rgba(37,99,235,.06)" data-testid="clone-prefill-banner">
+        <div style="font-size:20px;font-weight:800;color:var(--tx)">
+            {{ __('portal_shipments.clone.banner_title', ['reference' => $cloneSourceShipment->reference_number ?? $cloneSourceShipment->id]) }}
+        </div>
+        <div style="margin-top:8px;color:var(--td);font-size:14px">
+            {{ __('portal_shipments.clone.banner_body') }}
+        </div>
+        @if($cloneDropsAdditionalParcels)
+            <div style="margin-top:10px;color:var(--td);font-size:13px">
+                {{ __('portal_shipments.clone.first_parcel_only') }}
+            </div>
+        @endif
+    </div>
+@endif
+
 <div class="grid-2">
     <x-card title="بيانات طلب الشحنة">
         <form method="POST" action="{{ route($portalConfig['store_route']) }}" style="display:flex;flex-direction:column;gap:18px">
@@ -114,31 +136,31 @@
                 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
                     <label>
                         <span class="f-label">الاسم</span>
-                        <input class="f-input" name="sender_name" value="{{ old('sender_name', data_get($draftShipment, 'sender_name')) }}" required>
+                        <input class="f-input" name="sender_name" value="{{ old('sender_name', $prefill('sender_name')) }}" required>
                     </label>
                     <label>
                         <span class="f-label">الهاتف</span>
-                        <input class="f-input" name="sender_phone" value="{{ old('sender_phone', data_get($draftShipment, 'sender_phone')) }}" required>
+                        <input class="f-input" name="sender_phone" value="{{ old('sender_phone', $prefill('sender_phone')) }}" required>
                     </label>
                     <label style="grid-column:1/-1">
                         <span class="f-label">العنوان</span>
-                        <input class="f-input" name="sender_address_1" value="{{ old('sender_address_1', data_get($draftShipment, 'sender_address_1')) }}" required>
+                        <input class="f-input" name="sender_address_1" value="{{ old('sender_address_1', $prefill('sender_address_1')) }}" required>
                     </label>
                     <label>
                         <span class="f-label">المدينة</span>
-                        <input class="f-input" name="sender_city" value="{{ old('sender_city', data_get($draftShipment, 'sender_city')) }}" required>
+                        <input class="f-input" name="sender_city" value="{{ old('sender_city', $prefill('sender_city')) }}" required>
                     </label>
                     <label>
                         <span class="f-label">الولاية / المقاطعة</span>
-                        <input class="f-input" name="sender_state" value="{{ old('sender_state', data_get($draftShipment, 'sender_state')) }}" placeholder="مثل NY أو TX">
+                        <input class="f-input" name="sender_state" value="{{ old('sender_state', $prefill('sender_state')) }}" placeholder="مثل NY أو TX">
                     </label>
                     <label>
                         <span class="f-label">الرمز البريدي</span>
-                        <input class="f-input" name="sender_postal_code" value="{{ old('sender_postal_code', data_get($draftShipment, 'sender_postal_code')) }}">
+                        <input class="f-input" name="sender_postal_code" value="{{ old('sender_postal_code', $prefill('sender_postal_code')) }}">
                     </label>
                     <label>
                         <span class="f-label">الدولة (ISO-2)</span>
-                        <input class="f-input" name="sender_country" maxlength="2" value="{{ old('sender_country', data_get($draftShipment, 'sender_country', 'SA')) }}" required>
+                        <input class="f-input" name="sender_country" maxlength="2" value="{{ old('sender_country', $prefill('sender_country', 'SA')) }}" required>
                     </label>
                 </div>
                 <div style="margin-top:8px;font-size:12px;color:var(--tm)">
@@ -151,31 +173,31 @@
                 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
                     <label>
                         <span class="f-label">الاسم</span>
-                        <input class="f-input" name="recipient_name" value="{{ old('recipient_name', data_get($draftShipment, 'recipient_name')) }}" required>
+                        <input class="f-input" name="recipient_name" value="{{ old('recipient_name', $prefill('recipient_name')) }}" required>
                     </label>
                     <label>
                         <span class="f-label">الهاتف</span>
-                        <input class="f-input" name="recipient_phone" value="{{ old('recipient_phone', data_get($draftShipment, 'recipient_phone')) }}" required>
+                        <input class="f-input" name="recipient_phone" value="{{ old('recipient_phone', $prefill('recipient_phone')) }}" required>
                     </label>
                     <label style="grid-column:1/-1">
                         <span class="f-label">العنوان</span>
-                        <input class="f-input" name="recipient_address_1" value="{{ old('recipient_address_1', data_get($draftShipment, 'recipient_address_1')) }}" required>
+                        <input class="f-input" name="recipient_address_1" value="{{ old('recipient_address_1', $prefill('recipient_address_1')) }}" required>
                     </label>
                     <label>
                         <span class="f-label">المدينة</span>
-                        <input class="f-input" name="recipient_city" value="{{ old('recipient_city', data_get($draftShipment, 'recipient_city')) }}" required>
+                        <input class="f-input" name="recipient_city" value="{{ old('recipient_city', $prefill('recipient_city')) }}" required>
                     </label>
                     <label>
                         <span class="f-label">الولاية / المقاطعة</span>
-                        <input class="f-input" name="recipient_state" value="{{ old('recipient_state', data_get($draftShipment, 'recipient_state')) }}" placeholder="مثل NY أو CA">
+                        <input class="f-input" name="recipient_state" value="{{ old('recipient_state', $prefill('recipient_state')) }}" placeholder="مثل NY أو CA">
                     </label>
                     <label>
                         <span class="f-label">الرمز البريدي</span>
-                        <input class="f-input" name="recipient_postal_code" value="{{ old('recipient_postal_code', data_get($draftShipment, 'recipient_postal_code')) }}">
+                        <input class="f-input" name="recipient_postal_code" value="{{ old('recipient_postal_code', $prefill('recipient_postal_code')) }}">
                     </label>
                     <label>
                         <span class="f-label">الدولة (ISO-2)</span>
-                        <input class="f-input" name="recipient_country" maxlength="2" value="{{ old('recipient_country', data_get($draftShipment, 'recipient_country', 'SA')) }}" required>
+                        <input class="f-input" name="recipient_country" maxlength="2" value="{{ old('recipient_country', $prefill('recipient_country', 'SA')) }}" required>
                     </label>
                 </div>
                 <div style="margin-top:8px;font-size:12px;color:var(--tm)">

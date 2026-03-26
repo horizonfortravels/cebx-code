@@ -12,6 +12,8 @@ return [
         'not_specified' => 'Not specified',
         'view' => 'View',
         'view_details' => 'View details',
+        'clone_short' => 'Similar shipment',
+        'clone_long' => 'Create similar shipment',
         'page' => 'Page',
         'of' => 'of',
         'previous' => 'Previous',
@@ -109,8 +111,77 @@ return [
             'timeline_label' => 'Organizations Portal',
         ],
     ],
+    'clone' => [
+        'banner_title' => 'Prefilled from shipment :reference',
+        'banner_body' => 'Review the reusable details and save a new shipment draft. The original shipment will not be changed.',
+        'first_parcel_only' => 'This shipment has multiple parcels. In this phase, only the first parcel is reused in the create form.',
+    ],
     'validation' => [
         'sender_state_required' => 'Sender state or province is required when the sender country is the United States.',
         'recipient_state_required' => 'Recipient state or province is required when the recipient country is the United States.',
+    ],
+    'services' => [
+        'fedex_ground' => 'FedEx Ground',
+        'fedex_express_saver' => 'FedEx Express Saver',
+        'fedex_2_day' => 'FedEx 2Day',
+        'fedex_2_day_am' => 'FedEx 2Day AM',
+        'standard_overnight' => 'FedEx Standard Overnight',
+        'priority_overnight' => 'FedEx Priority Overnight',
+        'first_overnight' => 'FedEx First Overnight',
+    ],
+    'events' => [
+        'shipment_purchased' => 'Shipment issued at carrier',
+        'carrier_documents_available' => 'Shipment documents are available',
+        'shipment_in_transit' => 'Shipment is in transit',
+        'shipment_out_for_delivery' => 'Shipment is out for delivery',
+        'shipment_delivered' => 'Shipment delivered',
+        'shipment_exception' => 'Shipment exception',
+        'tracking_status_updated' => 'Tracking status updated',
+    ],
+    'carriers' => [
+        'fedex' => 'FedEx',
+        'dhl' => 'DHL',
+        'aramex' => 'Aramex',
+    ],
+    'documents' => [
+        'types' => [
+            'label' => 'Shipping label',
+            'commercial_invoice' => 'Commercial invoice',
+            'customs' => 'Customs document',
+            'other' => 'Shipment document',
+        ],
+        'formats' => [
+            'pdf' => 'PDF',
+            'zpl' => 'ZPL',
+            'png' => 'PNG',
+            'epl' => 'EPL',
+            'html' => 'HTML',
+        ],
+        'retrieval_modes' => [
+            'stored_object' => 'Stored file',
+            'inline' => 'Inline content',
+            'url' => 'External URL',
+        ],
+    ],
+    'sources' => [
+        'carrier' => 'Carrier',
+        'system' => 'System',
+        'user' => 'User',
+    ],
+    'errors' => [
+        'external' => [
+            '404' => [
+                'eyebrow' => '404 Page unavailable',
+                'heading' => 'This page is not available in the current portal',
+                'message' => 'The page may not exist or may not be available for this account. We do not expose extra details here.',
+            ],
+            '403' => [
+                'eyebrow' => '403 Restricted access',
+                'heading' => 'You cannot open this page from the current account',
+                'message' => 'This page is not available with the current account permissions. Use the correct portal or request the required access.',
+            ],
+            'primary_action' => 'Back to dashboard',
+            'secondary_action' => 'Back to shipments',
+        ],
     ],
 ];

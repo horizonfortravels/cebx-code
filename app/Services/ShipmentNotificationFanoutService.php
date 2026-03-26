@@ -34,13 +34,14 @@ class ShipmentNotificationFanoutService
             return [];
         }
 
-        return $this->notifications->dispatch(
+        return $this->notifications->storeInAppProjection(
             $notificationEvent,
             $shipment->account,
             $this->buildEventData($shipment, $event, $notificationEvent),
             'shipment',
             (string) $shipment->id,
-            $recipientIds
+            $recipientIds,
+            (string) $event->id
         );
     }
 
