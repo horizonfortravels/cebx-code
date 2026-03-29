@@ -14,20 +14,20 @@ return new class extends Migration
 
         Schema::table('shipments', function (Blueprint $table): void {
             if (! Schema::hasColumn('shipments', 'public_tracking_token')) {
-                $table->text('public_tracking_token')->nullable()->after('tracking_url');
+                $table->text('public_tracking_token')->nullable();
             }
 
             if (! Schema::hasColumn('shipments', 'public_tracking_token_hash')) {
-                $table->string('public_tracking_token_hash', 64)->nullable()->after('public_tracking_token');
+                $table->string('public_tracking_token_hash', 64)->nullable();
                 $table->unique('public_tracking_token_hash', 'shipments_public_tracking_token_hash_unique');
             }
 
             if (! Schema::hasColumn('shipments', 'public_tracking_enabled_at')) {
-                $table->timestamp('public_tracking_enabled_at')->nullable()->after('public_tracking_token_hash');
+                $table->timestamp('public_tracking_enabled_at')->nullable();
             }
 
             if (! Schema::hasColumn('shipments', 'public_tracking_expires_at')) {
-                $table->timestamp('public_tracking_expires_at')->nullable()->after('public_tracking_enabled_at');
+                $table->timestamp('public_tracking_expires_at')->nullable();
             }
         });
     }
@@ -38,8 +38,11 @@ return new class extends Migration
             return;
         }
 
-        Schema::table('shipments', function (Blueprint $table): void {
-            if (Schema::hasColumn('shipments', 'public_tracking_token_hash')) {
+        $hasPublicTrackingTokenHashUnique = collect(Schema::getIndexes('shipments'))
+            ->contains(fn (array $index): bool => ($index['name'] ?? null) === 'shipments_public_tracking_token_hash_unique');
+
+        Schema::table('shipments', function (Blueprint $table) use ($hasPublicTrackingTokenHashUnique): void {
+            if ($hasPublicTrackingTokenHashUnique) {
                 $table->dropUnique('shipments_public_tracking_token_hash_unique');
             }
 
