@@ -34,9 +34,10 @@ async function createIssuedShipment(page) {
 
   const main = page.getByRole('main');
   const shipmentForm = main.locator('form[action$="/b2b/shipments"]').first();
+  const draftSubmitButton = shipmentForm.locator('button[type="submit"]:not([formaction])');
 
   await expect(shipmentForm).toBeVisible();
-  await expect(shipmentForm.locator('button[type="submit"]')).toBeVisible();
+  await expect(draftSubmitButton).toBeVisible();
 
   await shipmentForm.locator('input[name="sender_name"]').fill('PT SENDER SECRET');
   await shipmentForm.locator('input[name="sender_company"]').fill('PT Sender Co');
@@ -63,7 +64,7 @@ async function createIssuedShipment(page) {
   await shipmentForm.locator('input[name="parcels[0][width]"]').fill('15');
   await shipmentForm.locator('input[name="parcels[0][height]"]').fill('10');
 
-  await shipmentForm.locator('button[type="submit"]').click();
+  await draftSubmitButton.click();
   await page.waitForLoadState('networkidle');
   await expect(page).toHaveURL(/\/b2b\/shipments\/create\?draft=/);
 
@@ -76,7 +77,7 @@ async function createIssuedShipment(page) {
   const referenceMatch = (await page.locator('body').innerText()).match(/SHP-[A-Z0-9-]+/);
   const reference = referenceMatch ? referenceMatch[0] : '';
 
-  const offersLink = page.locator(`a[href*="/shipments/${draftId}/offers"]`).first();
+  const offersLink = page.getByRole('link', { name: 'مقارنة العروض المتاحة', exact: true });
   await expect(offersLink).toBeVisible();
   await offersLink.click();
   await page.waitForLoadState('networkidle');
@@ -84,12 +85,12 @@ async function createIssuedShipment(page) {
   await expect(page).toHaveURL(new RegExp(`/b2b/shipments/${draftId}/offers`));
   await expect(page.getByRole('heading', { name: 'مقارنة عروض الشحن', exact: true })).toBeVisible();
 
-  const fetchOffers = page.locator('form[action*="/offers/fetch"] button[type="submit"]').first();
+  const fetchOffers = page.getByRole('button', { name: /جلب العروض الآن|تحديث العروض|جلب العروض لهذه الشحنة/ }).first();
   await expect(fetchOffers).toBeVisible();
   await fetchOffers.click();
   await page.waitForLoadState('networkidle');
 
-  const selectOffer = page.locator('form[action*="/offers/select"] button[type="submit"]').first();
+  const selectOffer = page.locator('form[action*="/offers/select"]').first().getByRole('button', { name: 'اختيار هذا العرض', exact: true });
   await expect(selectOffer).toBeVisible();
   await selectOffer.click();
   await page.waitForLoadState('networkidle');
