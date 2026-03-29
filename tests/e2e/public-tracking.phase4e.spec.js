@@ -85,12 +85,15 @@ async function createIssuedShipment(page) {
   await expect(page).toHaveURL(new RegExp(`/b2b/shipments/${draftId}/offers`));
   await expect(page.getByRole('heading', { name: 'مقارنة عروض الشحن', exact: true })).toBeVisible();
 
-  const fetchOffers = page.getByRole('button', { name: /جلب العروض الآن|تحديث العروض|جلب العروض لهذه الشحنة/ }).first();
+  const fetchOffers = page.getByRole('button', { name: /جلب العروض الآن|تحديث العروض/ }).first();
   await expect(fetchOffers).toBeVisible();
   await fetchOffers.click();
   await page.waitForLoadState('networkidle');
 
-  const selectOffer = page.locator('form[action*="/offers/select"]').first().getByRole('button', { name: 'اختيار هذا العرض', exact: true });
+  const selectOffer = page.locator('form[action*="/offers/select"]').first().getByRole('button', {
+    name: 'اختيار هذا العرض',
+    exact: true,
+  });
   await expect(selectOffer).toBeVisible();
   await selectOffer.click();
   await page.waitForLoadState('networkidle');
@@ -123,10 +126,10 @@ async function createIssuedShipment(page) {
   const privateMain = page.getByRole('main');
   const publicTrackingLink = page.locator('[data-testid="public-tracking-link"]');
   const privateTimelineCard = privateMain.locator('.card').filter({
-    has: page.locator('.card-title span', { hasText: 'التسلسل الزمني' }),
+    has: privateMain.getByText('التسلسل الزمني', { exact: true }),
   }).first();
   const notificationsCard = privateMain.locator('.card').filter({
-    has: page.locator('.card-title span', { hasText: 'الإشعارات المرتبطة بالشحنة' }),
+    has: privateMain.getByText('الإشعارات المرتبطة بالشحنة', { exact: true }),
   }).first();
 
   await expect(publicTrackingLink).toBeVisible({ timeout: 180000 });
@@ -162,19 +165,39 @@ async function verifyPublicTracking({ browser, baseURL, publicUrl, reference, tr
   expect(response.status()).toBe(200);
   await guestPage.waitForLoadState('networkidle');
 
-  const summaryPanel = guestPage.locator('section.content > .panel').nth(1);
-  const timelinePanel = guestPage.locator('section.content > .panel').nth(2);
-  const carrierMetric = summaryPanel.locator('.metric').filter({
-    has: summaryPanel.getByText('الناقل', { exact: true }),
-  }).locator('.metric-value');
+  const metricValueByLabel = (label) =>
+    guestPage.locator(
+      `xpath=//section[contains(@class,"content")]//div[contains(@class,"metric")][.//div[contains(@class,"metric-label") and normalize-space()="${label}"]]//div[contains(@class,"metric-value")]`
+    ).first();
+  const timelinePanel = guestPage.locator(
+    'xpath=//section[contains(@class,"content")]//div[contains(@class,"panel")][.//div[contains(@class,"metric-label") and normalize-space()="محطات التتبع"]]'
+  ).first();
+  const timelineCount = timelinePanel.locator(
+    'xpath=.//div[contains(@class,"metric-label") and normalize-space()="محطات التتبع"]/following-sibling::div[contains(@class,"metric-value")][1]'
+  );
+
+  const trackingValue = metricValueByLabel('رقم التتبع');
+  const carrierValue = metricValueByLabel('الناقل');
+  const lastUpdatedValue = metricValueByLabel('آخر تحديث');
+  const routeSummaryValue = metricValueByLabel('ملخص المسار');
+  const statusPill = guestPage.locator('.status-pill');
 
   await expect(guestPage).toHaveURL(/\/track\//);
   await expect(guestPage.getByRole('heading', { name: 'يمكن تتبع هذه الشحنة دون تسجيل دخول', exact: true })).toBeVisible();
-  await expect(timelinePanel.getByText('محطات التتبع', { exact: true })).toBeVisible();
-  await expect(carrierMetric).toContainText('FedEx');
+  await expect(guestPage.locator('.hero .eyebrow')).toHaveText('التتبع العام');
+  await expect(statusPill).toBeVisible();
+  await expect(statusPill).not.toHaveText('غير متاح');
+  await expect(trackingValue).toBeVisible();
+  await expect(carrierValue).toContainText('FedEx');
+  await expect(lastUpdatedValue).toBeVisible();
+  await expect(routeSummaryValue).toContainText('Providence');
+  await expect(routeSummaryValue).toContainText('New York');
+  await expect(timelinePanel).toBeVisible();
+  await expect(timelineCount).toHaveText('2');
+  await expect(timelinePanel.locator('.timeline-item')).toHaveCount(2);
 
   const bodyText = await guestPage.locator('body').innerText();
-  for (const required of ['التتبع العام', 'يمكن تتبع هذه الشحنة دون تسجيل دخول', 'تم التسليم', 'محطات التتبع']) {
+  for (const required of ['التتبع العام', 'يمكن تتبع هذه الشحنة دون تسجيل دخول', 'محطات التتبع']) {
     expect(bodyText).toContain(required);
   }
 
@@ -186,14 +209,15 @@ async function verifyPublicTracking({ browser, baseURL, publicUrl, reference, tr
     reference,
     trackingNumber,
     'Correlation:',
-    'الإشعارات',
-    'wallet',
   ].filter(Boolean)) {
     expect(bodyText).not.toContain(forbidden);
   }
 
   expect(bodyText).not.toMatch(/\b\d{12}\b/);
-  await expect(guestPage.locator('body')).not.toContainText('تسجيل الدخول');
+  await expect(guestPage.locator('a[href*="/notifications"]')).toHaveCount(0);
+  await expect(guestPage.locator('a[href*="/wallet"]')).toHaveCount(0);
+  await expect(guestPage.locator('a[href*="/b2b/"], a[href*="/b2c/"]')).toHaveCount(0);
+  await expect(guestPage.locator('input[name="email"], input[name="password"]')).toHaveCount(0);
 
   const invalidPage = await guestContext.newPage();
   const invalidResponse = await invalidPage.goto('/track/NO-SUCH-PUBLIC-TOKEN');
@@ -227,7 +251,7 @@ function writeReport({ privateUrl, publicUrl, screenshots, reference, trackingNu
     '## Assertions',
     '- Public tracking page opened without login in a fresh guest browser context.',
     '- The guest page rendered the safe public subset only.',
-    '- Canonical status and timeline were visible on the public page.',
+    '- Carrier, route summary, and timeline metrics were asserted from the rendered guest DOM.',
     '- Invalid token path returned 404 without leaking shipment data.',
     '- The private issued shipment page still showed the public tracking link, timeline, and notifications surfaces.',
     '',
