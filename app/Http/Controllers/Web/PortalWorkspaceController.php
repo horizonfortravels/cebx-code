@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Exceptions\BusinessException;
 use App\Http\Controllers\Controller;
 use App\Models\Account;
+use App\Models\Address;
 use App\Models\BillingWallet;
 use App\Models\CarrierError;
 use App\Models\ContentDeclaration;
@@ -20,40 +21,33 @@ use App\Models\User;
 use App\Models\WaiverVersion;
 use App\Models\WalletLedgerEntry;
 use App\Models\WebhookEvent;
+use App\Services\AddressValidationService;
 use App\Services\CarrierService;
+use App\Services\PublicTrackingService;
 use App\Services\ShipmentTimelineService;
 use App\Support\PortalShipmentLabeler;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use League\Csv\Writer;
 
 class PortalWorkspaceController extends Controller
 {
-        public function b2cShipments(): View
+    public function b2cShipments(Request $request): View
     {
-        $account = $this->currentAccount();
-        $accountId = (string) $account->id;
+        return $this->shipmentIndexWorkspace($request, 'b2c');
+    }
 
-        $shipments = Shipment::query()
-            ->where('account_id', $accountId)
-            ->latest()
-            ->paginate(10)
-            ->withQueryString();
-
-        return view('pages.portal.b2c.shipments', [
-            'account' => $account,
-            'shipments' => $shipments,
-            'canCreateShipment' => auth()->user()?->can('create', Shipment::class) ?? false,
-            'createRoute' => route('b2c.shipments.create'),
-            'createRouteName' => 'b2c.shipments.create',
-            'showRoute' => 'b2c.shipments.show',
-            'copy' => $this->shipmentIndexCopy('b2c'),
-            'stats' => $this->shipmentIndexStats($accountId, 'b2c'),
-        ]);
+    public function exportB2cShipments(Request $request): Response
+    {
+        return $this->shipmentIndexExportWorkspace($request, 'b2c');
     }
     public function b2cWallet(): View
     {
@@ -126,27 +120,14 @@ class PortalWorkspaceController extends Controller
         ]);
     }
 
-        public function b2bShipments(): View
+    public function b2bShipments(Request $request): View
     {
-        $account = $this->currentAccount();
-        $accountId = (string) $account->id;
+        return $this->shipmentIndexWorkspace($request, 'b2b');
+    }
 
-        $shipments = Shipment::query()
-            ->where('account_id', $accountId)
-            ->latest()
-            ->paginate(10)
-            ->withQueryString();
-
-        return view('pages.portal.b2b.shipments', [
-            'account' => $account,
-            'shipments' => $shipments,
-            'canCreateShipment' => auth()->user()?->can('create', Shipment::class) ?? false,
-            'createRoute' => route('b2b.shipments.create'),
-            'createRouteName' => 'b2b.shipments.create',
-            'showRoute' => 'b2b.shipments.show',
-            'copy' => $this->shipmentIndexCopy('b2b'),
-            'stats' => $this->shipmentIndexStats($accountId, 'b2b'),
-        ]);
+    public function exportB2bShipments(Request $request): Response
+    {
+        return $this->shipmentIndexExportWorkspace($request, 'b2b');
     }
     public function b2cShipmentShow(Request $request, string $id): View
     {
@@ -168,6 +149,11 @@ class PortalWorkspaceController extends Controller
         return $this->storeShipmentDraftWorkspace($request, 'b2c');
     }
 
+    public function validateB2cShipmentAddress(Request $request): RedirectResponse
+    {
+        return $this->validateShipmentAddressWorkspace($request, 'b2c');
+    }
+
     public function b2bShipmentDraft(): View
     {
         return $this->shipmentDraftWorkspace('b2b');
@@ -176,6 +162,11 @@ class PortalWorkspaceController extends Controller
     public function storeB2bShipmentDraft(Request $request): RedirectResponse
     {
         return $this->storeShipmentDraftWorkspace($request, 'b2b');
+    }
+
+    public function validateB2bShipmentAddress(Request $request): RedirectResponse
+    {
+        return $this->validateShipmentAddressWorkspace($request, 'b2b');
     }
 
     public function b2cShipmentOffers(Request $request, string $id): View
@@ -496,6 +487,389 @@ class PortalWorkspaceController extends Controller
         return $user->account;
     }
 
+    private function shipmentIndexWorkspace(Request $request, string $portal): View
+    {
+        $account = $this->currentAccount();
+        $accountId = (string) $account->id;
+        $filters = $this->validateShipmentIndexFilters($request);
+
+        $shipments = $this->buildShipmentIndexQuery($accountId, $filters)
+            ->latest()
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('pages.portal.' . $portal . '.shipments', [
+            'account' => $account,
+            'shipments' => $shipments,
+            'canCreateShipment' => auth()->user()?->can('create', Shipment::class) ?? false,
+            'canExportShipments' => auth()->user()?->can('viewAny', Shipment::class) ?? false,
+            'createRoute' => route($portal . '.shipments.create'),
+            'createRouteName' => $portal . '.shipments.create',
+            'showRoute' => $portal . '.shipments.show',
+            'indexRoute' => route($portal . '.shipments.index'),
+            'exportRoute' => route($portal . '.shipments.export', $this->shipmentIndexPersistedFilters($filters)),
+            'copy' => $this->shipmentIndexCopy($portal),
+            'stats' => $this->shipmentIndexStats($accountId, $portal),
+            'filters' => $filters,
+            'hasActiveFilters' => $this->shipmentIndexHasActiveFilters($filters),
+            'statusOptions' => $this->shipmentIndexStatusOptions($accountId),
+            'carrierOptions' => $this->shipmentIndexCarrierOptions($accountId),
+        ]);
+    }
+
+    private function shipmentIndexExportWorkspace(Request $request, string $portal): Response
+    {
+        $this->authorize('viewAny', Shipment::class);
+
+        $accountId = (string) $this->currentAccount()->id;
+        $filters = $this->validateShipmentIndexFilters($request);
+
+        $shipments = $this->buildShipmentIndexQuery($accountId, $filters)
+            ->orderByDesc('created_at')
+            ->get($this->shipmentIndexExportColumns());
+
+        $writer = Writer::createFromString('');
+        $writer->insertOne([
+            __('portal_shipments.common.reference'),
+            __('portal_shipments.common.created_at'),
+            __('portal_shipments.common.status'),
+            __('portal_shipments.common.carrier'),
+            __('portal_shipments.common.service'),
+            __('portal_shipments.common.tracking_number'),
+            __('portal_shipments.common.sender'),
+            __('portal_shipments.common.recipient'),
+            __('portal_shipments.common.origin'),
+            __('portal_shipments.common.destination'),
+            __('portal_shipments.common.total_charge'),
+            __('portal_shipments.common.currency'),
+        ]);
+
+        foreach ($shipments as $shipment) {
+            $writer->insertOne([
+                (string) ($shipment->reference_number ?? __('portal_shipments.common.not_available')),
+                $shipment->created_at?->format('Y-m-d H:i') ?? '',
+                $this->translatedShipmentStatus($shipment->status),
+                $this->shipmentCarrierLabel($shipment->carrier_name, $shipment->carrier_code),
+                $this->shipmentServiceLabel($shipment->service_name, $shipment->service_code),
+                $this->shipmentTrackingLabel($shipment->tracking_number, $shipment->carrier_tracking_number),
+                (string) ($shipment->sender_name ?? ''),
+                (string) ($shipment->recipient_name ?? ''),
+                $this->shipmentLocationLabel($shipment->sender_city, $shipment->sender_country),
+                $this->shipmentLocationLabel($shipment->recipient_city, $shipment->recipient_country),
+                $shipment->total_charge !== null ? number_format((float) $shipment->total_charge, 2, '.', '') : '',
+                (string) ($shipment->currency ?? ''),
+            ]);
+        }
+
+        $csvUtf8 = $writer->toString();
+        $csvExcel = "\xFF\xFE" . mb_convert_encoding($csvUtf8, 'UTF-16LE', 'UTF-8');
+        $filename = 'shipments-' . $portal . '-' . now()->format('Y-m-d-His') . '.csv';
+
+        return response($csvExcel, 200, [
+            'Content-Type' => 'text/csv; charset=UTF-16LE',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    }
+
+    /**
+     * @return array{search: ?string, status: ?string, carrier: ?string, from: ?string, to: ?string}
+     */
+    private function validateShipmentIndexFilters(Request $request): array
+    {
+        $filters = $request->validate([
+            'search' => ['nullable', 'string', 'max:120'],
+            'status' => ['nullable', 'string', Rule::in(array_keys($this->shipmentStatusCatalog()))],
+            'carrier' => ['nullable', 'string', 'max:50'],
+            'from' => ['nullable', 'date'],
+            'to' => ['nullable', 'date', 'after_or_equal:from'],
+        ]);
+
+        foreach (['search', 'status', 'carrier', 'from', 'to'] as $key) {
+            $value = trim((string) ($filters[$key] ?? ''));
+            $filters[$key] = $value === '' ? null : $value;
+        }
+
+        return $filters;
+    }
+
+    /**
+     * @param array{search: ?string, status: ?string, carrier: ?string, from: ?string, to: ?string} $filters
+     */
+    private function buildShipmentIndexQuery(string $accountId, array $filters): Builder
+    {
+        $query = Shipment::query()
+            ->where('account_id', $accountId);
+
+        if ($filters['search'] !== null) {
+            $search = $filters['search'];
+            $columns = $this->shipmentIndexSearchColumns();
+
+            if ($columns !== []) {
+                $query->where(function (Builder $builder) use ($columns, $search): void {
+                    foreach ($columns as $index => $column) {
+                        $method = $index === 0 ? 'where' : 'orWhere';
+                        $builder->{$method}($column, 'like', '%' . $search . '%');
+                    }
+                });
+            }
+        }
+
+        if ($filters['status'] !== null) {
+            $query->where('status', $filters['status']);
+        }
+
+        if ($filters['carrier'] !== null) {
+            $query->where('carrier_code', $filters['carrier']);
+        }
+
+        if ($filters['from'] !== null) {
+            $query->whereDate('created_at', '>=', $filters['from']);
+        }
+
+        if ($filters['to'] !== null) {
+            $query->whereDate('created_at', '<=', $filters['to']);
+        }
+
+        return $query;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function shipmentIndexSearchColumns(): array
+    {
+        return array_values(array_filter([
+            Schema::hasColumn('shipments', 'reference_number') ? 'reference_number' : null,
+            Schema::hasColumn('shipments', 'tracking_number') ? 'tracking_number' : null,
+            Schema::hasColumn('shipments', 'carrier_tracking_number') ? 'carrier_tracking_number' : null,
+            Schema::hasColumn('shipments', 'sender_name') ? 'sender_name' : null,
+            Schema::hasColumn('shipments', 'recipient_name') ? 'recipient_name' : null,
+        ]));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function shipmentIndexExportColumns(): array
+    {
+        return array_values(array_filter([
+            'id',
+            Schema::hasColumn('shipments', 'reference_number') ? 'reference_number' : null,
+            Schema::hasColumn('shipments', 'created_at') ? 'created_at' : null,
+            Schema::hasColumn('shipments', 'status') ? 'status' : null,
+            Schema::hasColumn('shipments', 'carrier_name') ? 'carrier_name' : null,
+            Schema::hasColumn('shipments', 'carrier_code') ? 'carrier_code' : null,
+            Schema::hasColumn('shipments', 'service_name') ? 'service_name' : null,
+            Schema::hasColumn('shipments', 'service_code') ? 'service_code' : null,
+            Schema::hasColumn('shipments', 'tracking_number') ? 'tracking_number' : null,
+            Schema::hasColumn('shipments', 'carrier_tracking_number') ? 'carrier_tracking_number' : null,
+            Schema::hasColumn('shipments', 'sender_name') ? 'sender_name' : null,
+            Schema::hasColumn('shipments', 'recipient_name') ? 'recipient_name' : null,
+            Schema::hasColumn('shipments', 'sender_city') ? 'sender_city' : null,
+            Schema::hasColumn('shipments', 'sender_country') ? 'sender_country' : null,
+            Schema::hasColumn('shipments', 'recipient_city') ? 'recipient_city' : null,
+            Schema::hasColumn('shipments', 'recipient_country') ? 'recipient_country' : null,
+            Schema::hasColumn('shipments', 'total_charge') ? 'total_charge' : null,
+            Schema::hasColumn('shipments', 'currency') ? 'currency' : null,
+        ]));
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function shipmentIndexStatusOptions(string $accountId): array
+    {
+        $available = Shipment::query()
+            ->where('account_id', $accountId)
+            ->whereNotNull('status')
+            ->distinct()
+            ->pluck('status')
+            ->filter(fn ($status): bool => filled($status))
+            ->map(fn ($status): string => (string) $status)
+            ->values();
+
+        $catalog = $this->shipmentStatusCatalog();
+        $options = [];
+
+        foreach ($catalog as $status => $label) {
+            if ($available->contains($status)) {
+                $options[$status] = $label;
+            }
+        }
+
+        foreach ($available as $status) {
+            if (! array_key_exists($status, $options)) {
+                $options[$status] = $this->translatedShipmentStatus($status);
+            }
+        }
+
+        return $options;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function shipmentIndexCarrierOptions(string $accountId): array
+    {
+        $options = [];
+
+        $carriers = Shipment::query()
+            ->where('account_id', $accountId)
+            ->whereNotNull('carrier_code')
+            ->where('carrier_code', '!=', '')
+            ->orderBy('carrier_name')
+            ->orderBy('carrier_code')
+            ->get(['carrier_code', 'carrier_name'])
+            ->unique('carrier_code');
+
+        foreach ($carriers as $shipment) {
+            $code = trim((string) $shipment->carrier_code);
+            if ($code === '') {
+                continue;
+            }
+
+            $options[$code] = $this->shipmentCarrierLabel($shipment->carrier_name, $code);
+        }
+
+        return $options;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function shipmentStatusCatalog(): array
+    {
+        $statuses = [
+            Shipment::STATUS_DRAFT,
+            Shipment::STATUS_VALIDATED,
+            Shipment::STATUS_KYC_BLOCKED,
+            Shipment::STATUS_READY_FOR_RATES,
+            Shipment::STATUS_RATED,
+            Shipment::STATUS_OFFER_SELECTED,
+            Shipment::STATUS_DECLARATION_REQUIRED,
+            Shipment::STATUS_DECLARATION_COMPLETE,
+            Shipment::STATUS_REQUIRES_ACTION,
+            Shipment::STATUS_PAYMENT_PENDING,
+            Shipment::STATUS_PURCHASED,
+            Shipment::STATUS_READY_FOR_PICKUP,
+            Shipment::STATUS_PICKED_UP,
+            Shipment::STATUS_IN_TRANSIT,
+            Shipment::STATUS_OUT_FOR_DELIVERY,
+            Shipment::STATUS_DELIVERED,
+            Shipment::STATUS_RETURNED,
+            Shipment::STATUS_EXCEPTION,
+            Shipment::STATUS_CANCELLED,
+            Shipment::STATUS_FAILED,
+        ];
+
+        $catalog = [];
+
+        foreach ($statuses as $status) {
+            $catalog[$status] = $this->translatedShipmentStatus($status);
+        }
+
+        return $catalog;
+    }
+
+    private function translatedShipmentStatus(?string $status): string
+    {
+        $resolved = trim((string) $status);
+        if ($resolved === '') {
+            return __('portal_shipments.common.not_available');
+        }
+
+        $key = 'portal_shipments.statuses.' . $resolved;
+        $translated = __($key);
+
+        return $translated === $key ? $resolved : $translated;
+    }
+
+    private function shipmentCarrierLabel(mixed $carrierName, mixed $carrierCode): string
+    {
+        $resolvedName = trim((string) ($carrierName ?? ''));
+        if ($resolvedName !== '') {
+            return $resolvedName;
+        }
+
+        $resolvedCode = trim((string) ($carrierCode ?? ''));
+        if ($resolvedCode === '') {
+            return __('portal_shipments.common.not_available');
+        }
+
+        $key = 'portal_shipments.carriers.' . Str::lower($resolvedCode);
+        $translated = __($key);
+
+        return $translated === $key
+            ? Str::headline(str_replace(['_', '-'], ' ', $resolvedCode))
+            : $translated;
+    }
+
+    private function shipmentServiceLabel(mixed $serviceName, mixed $serviceCode): string
+    {
+        $resolvedName = trim((string) ($serviceName ?? ''));
+        if ($resolvedName !== '') {
+            return $resolvedName;
+        }
+
+        $resolvedCode = trim((string) ($serviceCode ?? ''));
+        if ($resolvedCode === '') {
+            return __('portal_shipments.common.not_available');
+        }
+
+        $key = 'portal_shipments.services.' . Str::lower($resolvedCode);
+        $translated = __($key);
+
+        return $translated === $key
+            ? Str::headline(str_replace(['_', '-'], ' ', $resolvedCode))
+            : $translated;
+    }
+
+    private function shipmentTrackingLabel(mixed $trackingNumber, mixed $carrierTrackingNumber): string
+    {
+        $tracking = trim((string) ($trackingNumber ?? ''));
+        if ($tracking !== '') {
+            return $tracking;
+        }
+
+        $carrierTracking = trim((string) ($carrierTrackingNumber ?? ''));
+
+        return $carrierTracking === ''
+            ? __('portal_shipments.common.not_available')
+            : $carrierTracking;
+    }
+
+    private function shipmentLocationLabel(mixed $city, mixed $country): string
+    {
+        $summary = collect([$city, $country])
+            ->map(fn ($value): string => trim((string) ($value ?? '')))
+            ->filter(fn (string $value): bool => $value !== '')
+            ->implode(' / ');
+
+        return $summary === ''
+            ? __('portal_shipments.common.not_specified')
+            : $summary;
+    }
+
+    /**
+     * @param array{search: ?string, status: ?string, carrier: ?string, from: ?string, to: ?string} $filters
+     * @return array<string, string>
+     */
+    private function shipmentIndexPersistedFilters(array $filters): array
+    {
+        return collect($filters)
+            ->filter(fn ($value): bool => filled($value))
+            ->map(fn ($value): string => (string) $value)
+            ->all();
+    }
+
+    /**
+     * @param array{search: ?string, status: ?string, carrier: ?string, from: ?string, to: ?string} $filters
+     */
+    private function shipmentIndexHasActiveFilters(array $filters): bool
+    {
+        return collect($filters)->contains(fn ($value): bool => filled($value));
+    }
+
     private function shipmentDraftWorkspace(string $portal): View
     {
         $this->authorize('create', Shipment::class);
@@ -505,11 +879,20 @@ class PortalWorkspaceController extends Controller
         $config = $this->shipmentPortalConfig($portal);
         $draftId = trim((string) request()->query('draft', ''));
         $cloneId = trim((string) request()->query('clone', ''));
+        $senderAddressQuery = trim((string) request()->query('sender_address', ''));
+        $recipientAddressQuery = trim((string) request()->query('recipient_address', ''));
 
         $draftShipment = null;
         $cloneSourceShipment = null;
         $cloneFormDefaults = [];
         $cloneDropsAdditionalParcels = false;
+        $addressFormDefaults = [];
+        $selectedSenderAddress = null;
+        $selectedRecipientAddress = null;
+        $canViewAddressBook = auth()->user()?->can('viewAny', Address::class) ?? false;
+        $canManageAddressBook = auth()->user()?->can('create', Address::class) ?? false;
+        $senderAddresses = collect();
+        $recipientAddresses = collect();
 
         if ($draftId !== '') {
             $draftShipment = Shipment::query()
@@ -530,6 +913,32 @@ class PortalWorkspaceController extends Controller
             $cloneDropsAdditionalParcels = $cloneSourceShipment->parcels->count() > 1;
         }
 
+        if (($senderAddressQuery !== '' || $recipientAddressQuery !== '') && ! $canViewAddressBook) {
+            abort(403);
+        }
+
+        if ($canViewAddressBook) {
+            $shipmentService = app(\App\Services\ShipmentService::class);
+            $senderAddresses = $shipmentService->listAddresses($accountId, 'sender');
+            $recipientAddresses = $shipmentService->listAddresses($accountId, 'recipient');
+
+            if ($senderAddressQuery !== '') {
+                $selectedSenderAddress = $shipmentService->findAddress($accountId, $senderAddressQuery, 'sender');
+                $addressFormDefaults = array_merge(
+                    $addressFormDefaults,
+                    $this->buildAddressFormDefaults($selectedSenderAddress, 'sender')
+                );
+            }
+
+            if ($recipientAddressQuery !== '') {
+                $selectedRecipientAddress = $shipmentService->findAddress($accountId, $recipientAddressQuery, 'recipient');
+                $addressFormDefaults = array_merge(
+                    $addressFormDefaults,
+                    $this->buildAddressFormDefaults($selectedRecipientAddress, 'recipient')
+                );
+            }
+        }
+
         $recentDrafts = Shipment::query()
             ->where('account_id', $accountId)
             ->latest()
@@ -542,6 +951,13 @@ class PortalWorkspaceController extends Controller
             'cloneSourceShipment' => $cloneSourceShipment,
             'cloneFormDefaults' => $cloneFormDefaults,
             'cloneDropsAdditionalParcels' => $cloneDropsAdditionalParcels,
+            'addressFormDefaults' => $addressFormDefaults,
+            'selectedSenderAddress' => $selectedSenderAddress,
+            'selectedRecipientAddress' => $selectedRecipientAddress,
+            'senderAddresses' => $senderAddresses,
+            'recipientAddresses' => $recipientAddresses,
+            'canViewAddressBook' => $canViewAddressBook,
+            'canManageAddressBook' => $canManageAddressBook,
             'portal' => $portal,
             'portalConfig' => $config,
             'recentDrafts' => $recentDrafts,
@@ -558,6 +974,7 @@ class PortalWorkspaceController extends Controller
         $accountId = (string) $account->id;
         $config = $this->shipmentPortalConfig($portal);
         $data = $this->validateShipmentDraftPayload($request);
+        $data = $this->safeguardSelectedShipmentAddresses($accountId, $data);
 
         $shipment = app(\App\Services\ShipmentService::class)->createDirect($accountId, $data, $request->user());
 
@@ -602,6 +1019,66 @@ class PortalWorkspaceController extends Controller
                     'capabilities' => $context['capabilities'] ?? [],
                 ]);
         }
+    }
+
+    private function validateShipmentAddressWorkspace(Request $request, string $portal): RedirectResponse
+    {
+        $this->authorize('create', Shipment::class);
+
+        $accountId = (string) $this->currentAccount()->id;
+        $config = $this->shipmentPortalConfig($portal);
+        $payload = $this->snapshotShipmentDraftInput($request);
+
+        [$mode, $prefix] = $this->resolveShipmentAddressValidationAction(
+            trim((string) $request->input('address_validation_action'))
+        );
+
+        if ($mode === 'dismiss') {
+            $payload = $this->safeguardSelectedShipmentAddresses($accountId, $payload);
+
+            return redirect()
+                ->route($config['create_route'], $this->shipmentCreateRouteState($payload))
+                ->withInput($payload);
+        }
+
+        if ($mode === 'apply') {
+            $payload = array_merge($payload, $this->validationSuggestionInput($request, $prefix));
+            $payload = $this->normalizeValidatedShipmentAddressInput($payload, $prefix);
+            $payload = $this->safeguardSelectedShipmentAddresses($accountId, $payload);
+
+            return redirect()
+                ->route($config['create_route'], $this->shipmentCreateRouteState($payload))
+                ->withInput($payload)
+                ->with('address_validation_results', [
+                    $prefix => app(AddressValidationService::class)->validateSection($payload, $prefix),
+                ]);
+        }
+
+        $validator = Validator::make(
+            $request->all(),
+            $this->shipmentAddressValidationRules($request, $prefix),
+            $this->shipmentAddressValidationMessages($prefix)
+        );
+
+        if ($validator->fails()) {
+            return redirect()
+                ->route($config['create_route'], $this->shipmentCreateRouteState($payload))
+                ->withErrors($validator)
+                ->withInput($payload);
+        }
+
+        $evaluationPayload = array_merge($payload, $this->normalizeValidatedShipmentAddressInput($validator->validated(), $prefix));
+        $evaluationPayload = $this->safeguardSelectedShipmentAddresses($accountId, $evaluationPayload);
+        foreach (['sender', 'recipient'] as $party) {
+            $payload[$party . '_address_id'] = $evaluationPayload[$party . '_address_id'] ?? null;
+        }
+
+        return redirect()
+            ->route($config['create_route'], $this->shipmentCreateRouteState($evaluationPayload))
+            ->withInput($payload)
+            ->with('address_validation_results', [
+                $prefix => app(AddressValidationService::class)->validateSection($payload, $prefix),
+            ]);
     }
 
     private function shipmentOffersWorkspace(Request $request, string $shipmentId, string $portal): View
@@ -1172,6 +1649,7 @@ class PortalWorkspaceController extends Controller
             'canIssueShipment' => $request->user()?->can('issueAtCarrier', $shipment) ?? false,
             'canViewNotifications' => $canViewNotifications,
             'shipmentNotifications' => $shipmentNotifications,
+            'publicTrackingUrl' => app(PublicTrackingService::class)->publicUrl($shipment),
             'carrierDisplayLabel' => PortalShipmentLabeler::carrier(
                 (string) ($shipment->carrierShipment?->carrier_code ?? $selectedOption?->carrier_code ?? $shipment->carrier_code ?? ''),
                 (string) ($shipment->carrierShipment?->carrier_name ?? $selectedOption?->carrier_name ?? $shipment->carrier_name ?? '')
@@ -1343,15 +1821,21 @@ class PortalWorkspaceController extends Controller
 
         return [
             'sender_name' => (string) ($shipment->sender_name ?? ''),
+            'sender_company' => $this->nullableCloneString($shipment->sender_company ?? null),
             'sender_phone' => (string) ($shipment->sender_phone ?? ''),
+            'sender_email' => $this->nullableCloneString($shipment->sender_email ?? null),
             'sender_address_1' => (string) ($shipment->sender_address_1 ?? $shipment->sender_address ?? ''),
+            'sender_address_2' => $this->nullableCloneString($shipment->sender_address_2 ?? null),
             'sender_city' => (string) ($shipment->sender_city ?? ''),
             'sender_state' => $this->normalizeCloneState($shipment->sender_country ?? null, $shipment->sender_state ?? null),
             'sender_postal_code' => $this->nullableCloneString($shipment->sender_postal_code ?? null),
             'sender_country' => $this->normalizeCloneCountry($shipment->sender_country ?? null) ?? 'SA',
             'recipient_name' => (string) ($shipment->recipient_name ?? ''),
+            'recipient_company' => $this->nullableCloneString($shipment->recipient_company ?? null),
             'recipient_phone' => (string) ($shipment->recipient_phone ?? ''),
+            'recipient_email' => $this->nullableCloneString($shipment->recipient_email ?? null),
             'recipient_address_1' => (string) ($shipment->recipient_address_1 ?? $shipment->recipient_address ?? ''),
+            'recipient_address_2' => $this->nullableCloneString($shipment->recipient_address_2 ?? null),
             'recipient_city' => (string) ($shipment->recipient_city ?? ''),
             'recipient_state' => $this->normalizeCloneState($shipment->recipient_country ?? null, $shipment->recipient_state ?? null),
             'recipient_postal_code' => $this->nullableCloneString($shipment->recipient_postal_code ?? null),
@@ -1362,6 +1846,26 @@ class PortalWorkspaceController extends Controller
                 'width' => $firstParcel?->width !== null ? (string) $firstParcel->width : null,
                 'height' => $firstParcel?->height !== null ? (string) $firstParcel->height : null,
             ]],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildAddressFormDefaults(Address $address, string $prefix): array
+    {
+        return [
+            $prefix . '_name' => (string) ($address->contact_name ?? ''),
+            $prefix . '_company' => $this->nullableCloneString($address->company_name ?? null),
+            $prefix . '_phone' => (string) ($address->phone ?? ''),
+            $prefix . '_email' => $this->nullableCloneString($address->email ?? null),
+            $prefix . '_address_1' => (string) ($address->address_line_1 ?? ''),
+            $prefix . '_address_2' => $this->nullableCloneString($address->address_line_2 ?? null),
+            $prefix . '_city' => (string) ($address->city ?? ''),
+            $prefix . '_state' => $this->normalizeCloneState($address->country ?? null, $address->state ?? null),
+            $prefix . '_postal_code' => $this->nullableCloneString($address->postal_code ?? null),
+            $prefix . '_country' => $this->normalizeCloneCountry($address->country ?? null) ?? 'SA',
+            $prefix . '_address_id' => (string) $address->id,
         ];
     }
 
@@ -1384,6 +1888,40 @@ class PortalWorkspaceController extends Controller
             : $value;
     }
 
+    /**
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    private function normalizeValidatedShipmentAddressInput(array $data, string $prefix): array
+    {
+        $countryKey = $prefix . '_country';
+        $stateKey = $prefix . '_state';
+
+        if (array_key_exists($countryKey, $data)) {
+            $country = trim((string) $data[$countryKey]);
+            $data[$countryKey] = $country === '' ? null : Str::upper($country);
+        }
+
+        if (array_key_exists($stateKey, $data)) {
+            $state = trim((string) ($data[$stateKey] ?? ''));
+
+            $data[$stateKey] = $state === ''
+                ? null
+                : (($data[$countryKey] ?? null) === 'US' ? Str::upper($state) : $state);
+        }
+
+        foreach ([$prefix . '_address_1', $prefix . '_address_2', $prefix . '_city', $prefix . '_postal_code'] as $field) {
+            if (! array_key_exists($field, $data)) {
+                continue;
+            }
+
+            $value = preg_replace('/\s+/u', ' ', trim((string) ($data[$field] ?? '')));
+            $data[$field] = $value === '' ? null : $value;
+        }
+
+        return $data;
+    }
+
     private function nullableCloneString(mixed $value): ?string
     {
         if (! is_scalar($value)) {
@@ -1396,9 +1934,165 @@ class PortalWorkspaceController extends Controller
     }
 
     /**
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    private function safeguardSelectedShipmentAddresses(string $accountId, array $data): array
+    {
+        $shipmentService = app(\App\Services\ShipmentService::class);
+
+        foreach (['sender', 'recipient'] as $prefix) {
+            $addressId = trim((string) ($data[$prefix . '_address_id'] ?? ''));
+
+            if ($addressId === '') {
+                $data[$prefix . '_address_id'] = null;
+                continue;
+            }
+
+            $address = $shipmentService->findAddress($accountId, $addressId, $prefix);
+
+            if (! $this->selectedAddressStillMatchesSubmittedFields($address, $data, $prefix)) {
+                $data[$prefix . '_address_id'] = null;
+            }
+        }
+
+        return $data;
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    private function selectedAddressStillMatchesSubmittedFields(Address $address, array $data, string $prefix): bool
+    {
+        return $this->submittedShipmentAddressComparable($data, $prefix)
+            === $this->savedShipmentAddressComparable($address);
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     * @return array<string, ?string>
+     */
+    private function submittedShipmentAddressComparable(array $data, string $prefix): array
+    {
+        return [
+            'contact_name' => trim((string) ($data[$prefix . '_name'] ?? '')),
+            'company_name' => $this->nullableCloneString($data[$prefix . '_company'] ?? null),
+            'phone' => trim((string) ($data[$prefix . '_phone'] ?? '')),
+            'email' => $this->nullableCloneString($data[$prefix . '_email'] ?? null),
+            'address_line_1' => trim((string) ($data[$prefix . '_address_1'] ?? '')),
+            'address_line_2' => $this->nullableCloneString($data[$prefix . '_address_2'] ?? null),
+            'city' => trim((string) ($data[$prefix . '_city'] ?? '')),
+            'state' => $this->normalizeCloneState($data[$prefix . '_country'] ?? null, $data[$prefix . '_state'] ?? null),
+            'postal_code' => $this->nullableCloneString($data[$prefix . '_postal_code'] ?? null),
+            'country' => $this->normalizeCloneCountry($data[$prefix . '_country'] ?? null),
+        ];
+    }
+
+    /**
+     * @return array<string, ?string>
+     */
+    private function savedShipmentAddressComparable(Address $address): array
+    {
+        return [
+            'contact_name' => trim((string) ($address->contact_name ?? '')),
+            'company_name' => $this->nullableCloneString($address->company_name ?? null),
+            'phone' => trim((string) ($address->phone ?? '')),
+            'email' => $this->nullableCloneString($address->email ?? null),
+            'address_line_1' => trim((string) ($address->address_line_1 ?? '')),
+            'address_line_2' => $this->nullableCloneString($address->address_line_2 ?? null),
+            'city' => trim((string) ($address->city ?? '')),
+            'state' => $this->normalizeCloneState($address->country ?? null, $address->state ?? null),
+            'postal_code' => $this->nullableCloneString($address->postal_code ?? null),
+            'country' => $this->normalizeCloneCountry($address->country ?? null),
+        ];
+    }
+
+    /**
+     * @return array{0: string, 1: string}
+     */
+    private function resolveShipmentAddressValidationAction(string $action): array
+    {
+        return match ($action) {
+            'validate_recipient' => ['validate', 'recipient'],
+            'apply_sender' => ['apply', 'sender'],
+            'apply_recipient' => ['apply', 'recipient'],
+            'dismiss_sender' => ['dismiss', 'sender'],
+            'dismiss_recipient' => ['dismiss', 'recipient'],
+            default => ['validate', 'sender'],
+        };
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function snapshotShipmentDraftInput(Request $request): array
+    {
+        return $request->except([
+            '_token',
+            'address_validation_action',
+            'address_validation_suggestions',
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function shipmentCreateRouteState(array $payload): array
+    {
+        return collect([
+            'draft' => trim((string) ($payload['draft'] ?? '')),
+            'clone' => trim((string) ($payload['clone'] ?? '')),
+            'sender_address' => trim((string) ($payload['sender_address_id'] ?? '')),
+            'recipient_address' => trim((string) ($payload['recipient_address_id'] ?? '')),
+        ])
+            ->filter(fn (string $value): bool => $value !== '')
+            ->all();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function validationSuggestionInput(Request $request, string $prefix): array
+    {
+        $suggestions = $request->input('address_validation_suggestions', []);
+        $resolved = is_array($suggestions[$prefix] ?? null) ? $suggestions[$prefix] : [];
+
+        return $this->normalizeValidatedShipmentAddressInput($resolved, $prefix);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function shipmentAddressValidationRules(Request $request, string $prefix): array
+    {
+        return [
+            $prefix . '_address_1' => ['required', 'string', 'max:300'],
+            $prefix . '_address_2' => ['nullable', 'string', 'max:300'],
+            $prefix . '_city' => ['required', 'string', 'max:100'],
+            $prefix . '_state' => ['nullable', 'string', 'max:100', Rule::requiredIf(
+                fn (): bool => $this->normalizeCloneCountry($request->input($prefix . '_country')) === 'US'
+            )],
+            $prefix . '_postal_code' => ['nullable', 'string', 'max:20'],
+            $prefix . '_country' => ['required', 'string', 'max:100'],
+        ];
+    }
+
+    /**
      * @return array<string, string>
      */
-        private function shipmentPortalConfig(string $portal): array
+    private function shipmentAddressValidationMessages(string $prefix): array
+    {
+        return [
+            $prefix . '_state.required' => $prefix === 'sender'
+                ? __('portal_shipments.validation.sender_state_required')
+                : __('portal_shipments.validation.recipient_state_required'),
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function shipmentPortalConfig(string $portal): array
     {
         return match ($portal) {
             'b2c' => [
@@ -1409,6 +2103,7 @@ class PortalWorkspaceController extends Controller
                 'index_route' => 'b2c.shipments.index',
                 'create_route' => 'b2c.shipments.create',
                 'store_route' => 'b2c.shipments.store',
+                'address_validation_route' => 'b2c.shipments.address-validation',
                 'offers_route' => 'b2c.shipments.offers',
                 'offers_fetch_route' => 'b2c.shipments.offers.fetch',
                 'offers_select_route' => 'b2c.shipments.offers.select',
@@ -1417,6 +2112,8 @@ class PortalWorkspaceController extends Controller
                 'show_route' => 'b2c.shipments.show',
                 'preflight_route' => 'b2c.shipments.preflight',
                 'issue_route' => 'b2c.shipments.issue',
+                'addresses_index_route' => 'b2c.addresses.index',
+                'addresses_create_route' => 'b2c.addresses.create',
             ],
             'b2b' => [
                 'label' => __('portal_shipments.workflow.b2b.label'),
@@ -1426,6 +2123,7 @@ class PortalWorkspaceController extends Controller
                 'index_route' => 'b2b.shipments.index',
                 'create_route' => 'b2b.shipments.create',
                 'store_route' => 'b2b.shipments.store',
+                'address_validation_route' => 'b2b.shipments.address-validation',
                 'offers_route' => 'b2b.shipments.offers',
                 'offers_fetch_route' => 'b2b.shipments.offers.fetch',
                 'offers_select_route' => 'b2b.shipments.offers.select',
@@ -1434,6 +2132,8 @@ class PortalWorkspaceController extends Controller
                 'show_route' => 'b2b.shipments.show',
                 'preflight_route' => 'b2b.shipments.preflight',
                 'issue_route' => 'b2b.shipments.issue',
+                'addresses_index_route' => 'b2b.addresses.index',
+                'addresses_create_route' => 'b2b.addresses.create',
             ],
             default => abort(404),
         };
@@ -1468,6 +2168,7 @@ class PortalWorkspaceController extends Controller
             'description' => __('portal_shipments.index.' . $portal . '.description'),
             'create_cta' => __('portal_shipments.index.' . $portal . '.create_cta'),
             'table_title' => __('portal_shipments.index.' . $portal . '.table_title'),
+            'search_placeholder' => __('portal_shipments.index.' . $portal . '.search_placeholder'),
             'empty_state' => __('portal_shipments.index.' . $portal . '.empty_state'),
             'guidance_title' => __('portal_shipments.index.' . $portal . '.guidance_title'),
             'guidance_cards' => __('portal_shipments.index.' . $portal . '.guidance_cards'),

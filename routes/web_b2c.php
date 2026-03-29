@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Web\B2CAuthWebController;
+use App\Http\Controllers\Web\PortalAddressBookController;
 use App\Http\Controllers\Web\PortalWorkspaceController;
 use App\Http\Controllers\Web\ShipmentDocumentWebController;
 use Illuminate\Support\Facades\Route;
@@ -29,8 +30,11 @@ Route::prefix('b2c')->name('b2c.')->middleware('portal:b2c')->group(function () 
 
         Route::prefix('shipments')->name('shipments.')->group(function () {
             Route::get('/', [PortalWorkspaceController::class, 'b2cShipments'])->name('index');
+            Route::get('/export', [PortalWorkspaceController::class, 'exportB2cShipments'])->name('export');
             Route::get('/create', [PortalWorkspaceController::class, 'b2cShipmentDraft'])
                 ->name('create');
+            Route::post('/validate-address', [PortalWorkspaceController::class, 'validateB2cShipmentAddress'])
+                ->name('address-validation');
             Route::post('/', [PortalWorkspaceController::class, 'storeB2cShipmentDraft'])
                 ->name('store');
             Route::get('/{id}/offers', [PortalWorkspaceController::class, 'b2cShipmentOffers'])
@@ -68,9 +72,12 @@ Route::prefix('b2c')->name('b2c.')->middleware('portal:b2c')->group(function () 
         });
 
         Route::prefix('addresses')->name('addresses.')->group(function () {
-            Route::get('/', function () {
-                return view('b2c.dashboard');
-            })->name('index');
+            Route::get('/', [PortalAddressBookController::class, 'b2cIndex'])->name('index');
+            Route::get('/create', [PortalAddressBookController::class, 'b2cCreate'])->name('create');
+            Route::post('/', [PortalAddressBookController::class, 'storeB2c'])->name('store');
+            Route::get('/{id}/edit', [PortalAddressBookController::class, 'b2cEdit'])->name('edit');
+            Route::match(['put', 'patch'], '/{id}', [PortalAddressBookController::class, 'updateB2c'])->name('update');
+            Route::delete('/{id}', [PortalAddressBookController::class, 'destroyB2c'])->name('destroy');
         });
 
         Route::prefix('support')->name('support.')->group(function () {

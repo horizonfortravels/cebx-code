@@ -45,6 +45,8 @@ class Shipment extends Model {
         'actual_delivery_at' => 'datetime',
         'picked_up_at' => 'datetime',
         'label_created_at' => 'datetime',
+        'public_tracking_enabled_at' => 'datetime',
+        'public_tracking_expires_at' => 'datetime',
         'is_cod' => 'boolean',
         'is_international' => 'boolean',
         'is_insured' => 'boolean',
@@ -53,6 +55,7 @@ class Shipment extends Model {
         'kyc_verified' => 'boolean',
         'metadata' => 'array',
         'rule_evaluation_log' => 'array',
+        'public_tracking_token' => 'encrypted',
     ];
 
     public function account(): BelongsTo { return $this->belongsTo(Account::class); }

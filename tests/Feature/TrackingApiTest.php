@@ -10,6 +10,7 @@ use App\Models\StatusMapping;
 use App\Models\TrackingEvent;
 use App\Models\TrackingSubscription;
 use App\Models\User;
+use App\Services\PublicTrackingService;
 use App\Services\Carriers\DhlApiService;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -142,6 +143,67 @@ class TrackingApiTest extends TestCase
 
         $response->assertStatus(403)
             ->assertJsonPath('status', 'rejected');
+    }
+
+    #[\PHPUnit\Framework\Attributes\Test]
+    public function test_api_public_tracking_token_returns_public_safe_timeline_only(): void
+    {
+        $this->shipment->forceFill([
+            'status' => Shipment::STATUS_PURCHASED,
+            'reference_number' => 'REF-TRACKING-PRIVATE',
+            'sender_name' => 'Sender Secret',
+            'recipient_name' => 'Recipient Secret',
+            'tracking_updated_at' => now(),
+        ])->save();
+
+        ShipmentEvent::factory()->delivered()->create([
+            'shipment_id' => (string) $this->shipment->id,
+            'account_id' => (string) $this->account->id,
+            'event_at' => now(),
+            'payload' => [
+                'location_city' => 'Austin',
+                'location_country' => 'US',
+                'signatory' => 'Hidden',
+                'raw_status_code' => 'DL',
+            ],
+        ]);
+
+        $token = app(PublicTrackingService::class)->ensureToken($this->shipment->fresh());
+
+        $response = $this->getJson('/api/v1/webhooks/track/' . $token);
+
+        $response->assertOk()
+            ->assertJsonPath('status', 'success')
+            ->assertJsonPath('data.current_status', TrackingEvent::STATUS_DELIVERED)
+            ->assertJsonMissingPath('data.shipment_id')
+            ->assertJsonMissingPath('data.account_id')
+            ->assertJsonMissingPath('data.events.0.payload');
+
+        $payload = json_encode($response->json('data'));
+
+        $this->assertStringContainsString('Austin', (string) $response->json('data.events.0.location'));
+        $this->assertStringNotContainsString('794699999999', (string) $payload);
+        $this->assertStringNotContainsString('REF-TRACKING-PRIVATE', (string) $payload);
+    }
+
+    #[\PHPUnit\Framework\Attributes\Test]
+    public function test_api_public_tracking_invalid_or_expired_token_returns_404(): void
+    {
+        $this->shipment->forceFill([
+            'status' => Shipment::STATUS_PURCHASED,
+        ])->save();
+
+        $token = app(PublicTrackingService::class)->ensureToken($this->shipment->fresh());
+
+        $this->getJson('/api/v1/webhooks/track/NO-SUCH-PUBLIC-TOKEN')
+            ->assertNotFound();
+
+        $this->shipment->forceFill([
+            'public_tracking_expires_at' => now()->subMinute(),
+        ])->save();
+
+        $this->getJson('/api/v1/webhooks/track/' . $token)
+            ->assertNotFound();
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -461,6 +523,22 @@ class TrackingApiTest extends TestCase
 
             if (!Schema::hasColumn('shipments', 'tracking_status')) {
                 $table->string('tracking_status')->nullable()->index();
+            }
+
+            if (!Schema::hasColumn('shipments', 'public_tracking_token')) {
+                $table->text('public_tracking_token')->nullable();
+            }
+
+            if (!Schema::hasColumn('shipments', 'public_tracking_token_hash')) {
+                $table->string('public_tracking_token_hash', 64)->nullable()->unique();
+            }
+
+            if (!Schema::hasColumn('shipments', 'public_tracking_enabled_at')) {
+                $table->timestamp('public_tracking_enabled_at')->nullable();
+            }
+
+            if (!Schema::hasColumn('shipments', 'public_tracking_expires_at')) {
+                $table->timestamp('public_tracking_expires_at')->nullable();
             }
         });
     }

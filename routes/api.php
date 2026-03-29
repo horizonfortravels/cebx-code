@@ -116,7 +116,7 @@ Route::prefix('v1/webhooks')->group(function () {
          ->name('api.v1.webhooks.dhl-tracking');
 
     // FR-TR-007: External tracking API (API key auth)
-    Route::get('/track/{trackingNumber}', [TrackingController::class, 'apiTrack'])
+    Route::get('/track/{token}', [TrackingController::class, 'apiTrack'])
          ->name('api.v1.tracking.public-track');
 
     Route::post('/{platform}/{storeId}', [WebhookController::class, 'handle'])
