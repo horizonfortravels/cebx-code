@@ -21,6 +21,7 @@ use App\Models\User;
 use App\Models\WaiverVersion;
 use App\Models\WalletLedgerEntry;
 use App\Models\WebhookEvent;
+use App\Services\AddressValidationService;
 use App\Services\CarrierService;
 use App\Services\ShipmentTimelineService;
 use App\Support\PortalShipmentLabeler;
@@ -31,6 +32,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use League\Csv\Writer;
@@ -146,6 +148,11 @@ class PortalWorkspaceController extends Controller
         return $this->storeShipmentDraftWorkspace($request, 'b2c');
     }
 
+    public function validateB2cShipmentAddress(Request $request): RedirectResponse
+    {
+        return $this->validateShipmentAddressWorkspace($request, 'b2c');
+    }
+
     public function b2bShipmentDraft(): View
     {
         return $this->shipmentDraftWorkspace('b2b');
@@ -154,6 +161,11 @@ class PortalWorkspaceController extends Controller
     public function storeB2bShipmentDraft(Request $request): RedirectResponse
     {
         return $this->storeShipmentDraftWorkspace($request, 'b2b');
+    }
+
+    public function validateB2bShipmentAddress(Request $request): RedirectResponse
+    {
+        return $this->validateShipmentAddressWorkspace($request, 'b2b');
     }
 
     public function b2cShipmentOffers(Request $request, string $id): View
@@ -1008,6 +1020,66 @@ class PortalWorkspaceController extends Controller
         }
     }
 
+    private function validateShipmentAddressWorkspace(Request $request, string $portal): RedirectResponse
+    {
+        $this->authorize('create', Shipment::class);
+
+        $accountId = (string) $this->currentAccount()->id;
+        $config = $this->shipmentPortalConfig($portal);
+        $payload = $this->snapshotShipmentDraftInput($request);
+
+        [$mode, $prefix] = $this->resolveShipmentAddressValidationAction(
+            trim((string) $request->input('address_validation_action'))
+        );
+
+        if ($mode === 'dismiss') {
+            $payload = $this->safeguardSelectedShipmentAddresses($accountId, $payload);
+
+            return redirect()
+                ->route($config['create_route'], $this->shipmentCreateRouteState($payload))
+                ->withInput($payload);
+        }
+
+        if ($mode === 'apply') {
+            $payload = array_merge($payload, $this->validationSuggestionInput($request, $prefix));
+            $payload = $this->normalizeValidatedShipmentAddressInput($payload, $prefix);
+            $payload = $this->safeguardSelectedShipmentAddresses($accountId, $payload);
+
+            return redirect()
+                ->route($config['create_route'], $this->shipmentCreateRouteState($payload))
+                ->withInput($payload)
+                ->with('address_validation_results', [
+                    $prefix => app(AddressValidationService::class)->validateSection($payload, $prefix),
+                ]);
+        }
+
+        $validator = Validator::make(
+            $request->all(),
+            $this->shipmentAddressValidationRules($request, $prefix),
+            $this->shipmentAddressValidationMessages($prefix)
+        );
+
+        if ($validator->fails()) {
+            return redirect()
+                ->route($config['create_route'], $this->shipmentCreateRouteState($payload))
+                ->withErrors($validator)
+                ->withInput($payload);
+        }
+
+        $evaluationPayload = array_merge($payload, $this->normalizeValidatedShipmentAddressInput($validator->validated(), $prefix));
+        $evaluationPayload = $this->safeguardSelectedShipmentAddresses($accountId, $evaluationPayload);
+        foreach (['sender', 'recipient'] as $party) {
+            $payload[$party . '_address_id'] = $evaluationPayload[$party . '_address_id'] ?? null;
+        }
+
+        return redirect()
+            ->route($config['create_route'], $this->shipmentCreateRouteState($evaluationPayload))
+            ->withInput($payload)
+            ->with('address_validation_results', [
+                $prefix => app(AddressValidationService::class)->validateSection($payload, $prefix),
+            ]);
+    }
+
     private function shipmentOffersWorkspace(Request $request, string $shipmentId, string $portal): View
     {
         $account = $this->currentAccount();
@@ -1814,6 +1886,40 @@ class PortalWorkspaceController extends Controller
             : $value;
     }
 
+    /**
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    private function normalizeValidatedShipmentAddressInput(array $data, string $prefix): array
+    {
+        $countryKey = $prefix . '_country';
+        $stateKey = $prefix . '_state';
+
+        if (array_key_exists($countryKey, $data)) {
+            $country = trim((string) $data[$countryKey]);
+            $data[$countryKey] = $country === '' ? null : Str::upper($country);
+        }
+
+        if (array_key_exists($stateKey, $data)) {
+            $state = trim((string) ($data[$stateKey] ?? ''));
+
+            $data[$stateKey] = $state === ''
+                ? null
+                : (($data[$countryKey] ?? null) === 'US' ? Str::upper($state) : $state);
+        }
+
+        foreach ([$prefix . '_address_1', $prefix . '_address_2', $prefix . '_city', $prefix . '_postal_code'] as $field) {
+            if (! array_key_exists($field, $data)) {
+                continue;
+            }
+
+            $value = preg_replace('/\s+/u', ' ', trim((string) ($data[$field] ?? '')));
+            $data[$field] = $value === '' ? null : $value;
+        }
+
+        return $data;
+    }
+
     private function nullableCloneString(mixed $value): ?string
     {
         if (! is_scalar($value)) {
@@ -1900,9 +2006,91 @@ class PortalWorkspaceController extends Controller
     }
 
     /**
+     * @return array{0: string, 1: string}
+     */
+    private function resolveShipmentAddressValidationAction(string $action): array
+    {
+        return match ($action) {
+            'validate_recipient' => ['validate', 'recipient'],
+            'apply_sender' => ['apply', 'sender'],
+            'apply_recipient' => ['apply', 'recipient'],
+            'dismiss_sender' => ['dismiss', 'sender'],
+            'dismiss_recipient' => ['dismiss', 'recipient'],
+            default => ['validate', 'sender'],
+        };
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function snapshotShipmentDraftInput(Request $request): array
+    {
+        return $request->except([
+            '_token',
+            'address_validation_action',
+            'address_validation_suggestions',
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function shipmentCreateRouteState(array $payload): array
+    {
+        return collect([
+            'draft' => trim((string) ($payload['draft'] ?? '')),
+            'clone' => trim((string) ($payload['clone'] ?? '')),
+            'sender_address' => trim((string) ($payload['sender_address_id'] ?? '')),
+            'recipient_address' => trim((string) ($payload['recipient_address_id'] ?? '')),
+        ])
+            ->filter(fn (string $value): bool => $value !== '')
+            ->all();
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function validationSuggestionInput(Request $request, string $prefix): array
+    {
+        $suggestions = $request->input('address_validation_suggestions', []);
+        $resolved = is_array($suggestions[$prefix] ?? null) ? $suggestions[$prefix] : [];
+
+        return $this->normalizeValidatedShipmentAddressInput($resolved, $prefix);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function shipmentAddressValidationRules(Request $request, string $prefix): array
+    {
+        return [
+            $prefix . '_address_1' => ['required', 'string', 'max:300'],
+            $prefix . '_address_2' => ['nullable', 'string', 'max:300'],
+            $prefix . '_city' => ['required', 'string', 'max:100'],
+            $prefix . '_state' => ['nullable', 'string', 'max:100', Rule::requiredIf(
+                fn (): bool => $this->normalizeCloneCountry($request->input($prefix . '_country')) === 'US'
+            )],
+            $prefix . '_postal_code' => ['nullable', 'string', 'max:20'],
+            $prefix . '_country' => ['required', 'string', 'max:100'],
+        ];
+    }
+
+    /**
      * @return array<string, string>
      */
-        private function shipmentPortalConfig(string $portal): array
+    private function shipmentAddressValidationMessages(string $prefix): array
+    {
+        return [
+            $prefix . '_state.required' => $prefix === 'sender'
+                ? __('portal_shipments.validation.sender_state_required')
+                : __('portal_shipments.validation.recipient_state_required'),
+        ];
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function shipmentPortalConfig(string $portal): array
     {
         return match ($portal) {
             'b2c' => [
@@ -1913,6 +2101,7 @@ class PortalWorkspaceController extends Controller
                 'index_route' => 'b2c.shipments.index',
                 'create_route' => 'b2c.shipments.create',
                 'store_route' => 'b2c.shipments.store',
+                'address_validation_route' => 'b2c.shipments.address-validation',
                 'offers_route' => 'b2c.shipments.offers',
                 'offers_fetch_route' => 'b2c.shipments.offers.fetch',
                 'offers_select_route' => 'b2c.shipments.offers.select',
@@ -1932,6 +2121,7 @@ class PortalWorkspaceController extends Controller
                 'index_route' => 'b2b.shipments.index',
                 'create_route' => 'b2b.shipments.create',
                 'store_route' => 'b2b.shipments.store',
+                'address_validation_route' => 'b2b.shipments.address-validation',
                 'offers_route' => 'b2b.shipments.offers',
                 'offers_fetch_route' => 'b2b.shipments.offers.fetch',
                 'offers_select_route' => 'b2b.shipments.offers.select',

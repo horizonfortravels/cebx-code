@@ -33,6 +33,8 @@ Route::prefix('b2c')->name('b2c.')->middleware('portal:b2c')->group(function () 
             Route::get('/export', [PortalWorkspaceController::class, 'exportB2cShipments'])->name('export');
             Route::get('/create', [PortalWorkspaceController::class, 'b2cShipmentDraft'])
                 ->name('create');
+            Route::post('/validate-address', [PortalWorkspaceController::class, 'validateB2cShipmentAddress'])
+                ->name('address-validation');
             Route::post('/', [PortalWorkspaceController::class, 'storeB2cShipmentDraft'])
                 ->name('store');
             Route::get('/{id}/offers', [PortalWorkspaceController::class, 'b2cShipmentOffers'])

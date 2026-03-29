@@ -43,6 +43,39 @@
     $canContinueToOffers = $draftShipment && in_array($draftShipment->status, ['ready_for_rates', 'rated', 'offer_selected', 'declaration_required', 'declaration_complete', 'requires_action'], true);
     $selectedSenderAddressId = (string) old('sender_address_id', $prefill('sender_address_id'));
     $selectedRecipientAddressId = (string) old('recipient_address_id', $prefill('recipient_address_id'));
+    $addressValidationResults = session('address_validation_results', []);
+    $senderValidation = data_get($addressValidationResults, 'sender');
+    $recipientValidation = data_get($addressValidationResults, 'recipient');
+    $validationFieldLabels = [
+        'address_1' => __('portal_shipments.address_validation.fields.address_1'),
+        'address_2' => __('portal_shipments.address_validation.fields.address_2'),
+        'city' => __('portal_shipments.address_validation.fields.city'),
+        'state' => __('portal_shipments.address_validation.fields.state'),
+        'postal_code' => __('portal_shipments.address_validation.fields.postal_code'),
+        'country' => __('portal_shipments.address_validation.fields.country'),
+    ];
+    $addressValidationStyle = static function (?array $result): array {
+        return match (data_get($result, 'classification')) {
+            'exact_validation_pass' => [
+                'border' => 'rgba(4,120,87,.22)',
+                'background' => 'rgba(4,120,87,.08)',
+                'color' => '#065f46',
+            ],
+            'normalized_suggestion' => [
+                'border' => 'rgba(37,99,235,.18)',
+                'background' => 'rgba(37,99,235,.06)',
+                'color' => '#1d4ed8',
+            ],
+            default => [
+                'border' => 'rgba(234,88,12,.18)',
+                'background' => 'rgba(234,88,12,.08)',
+                'color' => '#9a3412',
+            ],
+        };
+    };
+    $validationProviderUnavailable = collect($addressValidationResults)->contains(
+        fn ($result) => data_get($result, 'source') === 'provider_unavailable'
+    );
 @endphp
 
 <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:24px">
@@ -193,19 +226,85 @@
     </div>
 @endif
 
+@if($validationProviderUnavailable)
+    <div style="margin-bottom:20px;padding:16px 18px;border-radius:16px;border:1px solid rgba(15,23,42,.12);background:rgba(15,23,42,.04);color:var(--tx)" data-testid="address-validation-provider-warning">
+        <div style="font-weight:800;margin-bottom:4px">{{ __('portal_shipments.address_validation.provider_title') }}</div>
+        <div>{{ __('portal_shipments.address_validation.provider_message') }}</div>
+    </div>
+@endif
+
 <div class="grid-2">
     <x-card title="بيانات طلب الشحنة">
         <form method="POST" action="{{ route($portalConfig['store_route']) }}" style="display:flex;flex-direction:column;gap:18px">
             @csrf
+            @if(request()->filled('draft'))
+                <input type="hidden" name="draft" value="{{ request()->query('draft') }}">
+            @endif
+            @if(request()->filled('clone'))
+                <input type="hidden" name="clone" value="{{ request()->query('clone') }}">
+            @endif
             <input type="hidden" name="sender_address_id" value="{{ $selectedSenderAddressId }}">
             <input type="hidden" name="recipient_address_id" value="{{ $selectedRecipientAddressId }}">
 
             <div>
-                <div style="font-size:13px;font-weight:700;color:var(--tx);margin-bottom:8px">المرسل</div>
+                @php($senderValidationStyle = $addressValidationStyle($senderValidation))
+                <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;margin-bottom:8px">
+                    <div style="font-size:13px;font-weight:700;color:var(--tx)">المرسل</div>
+                    <button type="submit" class="btn btn-s" formaction="{{ route($portalConfig['address_validation_route']) }}" name="address_validation_action" value="validate_sender" data-testid="validate-sender-address">
+                        {{ __('portal_shipments.address_validation.sender_cta') }}
+                    </button>
+                </div>
                 @if($selectedSenderAddress)
                     <div style="margin-bottom:12px;padding:12px 14px;border-radius:14px;border:1px solid rgba(37,99,235,.18);background:rgba(37,99,235,.06)" data-testid="selected-sender-address-banner">
                         <div style="font-weight:700;color:var(--tx)">{{ __('portal_addresses.common.selected_sender') }}</div>
                         <div style="color:var(--td);font-size:13px;margin-top:4px">{{ $selectedSenderAddress->label ?: $selectedSenderAddress->contact_name }}</div>
+                    </div>
+                @endif
+                @if($senderValidation)
+                    <div style="margin-bottom:12px;padding:14px;border-radius:16px;border:1px solid {{ $senderValidationStyle['border'] }};background:{{ $senderValidationStyle['background'] }}" data-testid="sender-address-validation">
+                        <div style="font-weight:800;color:{{ $senderValidationStyle['color'] }}">{{ data_get($senderValidation, 'title') }}</div>
+                        <div style="color:var(--td);font-size:13px;margin-top:4px">{{ data_get($senderValidation, 'message') }}</div>
+
+                        @if(data_get($senderValidation, 'changes'))
+                            <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px">
+                                @foreach(data_get($senderValidation, 'changes', []) as $change)
+                                    <div style="padding:10px 12px;border-radius:12px;background:white;border:1px solid rgba(15,23,42,.08)">
+                                        <div style="font-size:12px;color:var(--tm);margin-bottom:4px">
+                                            {{ data_get($validationFieldLabels, data_get($change, 'field_key'), data_get($change, 'field_key')) }}
+                                        </div>
+                                        <div style="font-size:13px;color:var(--td)">
+                                            <strong style="color:var(--tx)">{{ data_get($change, 'suggested') }}</strong>
+                                            @if(filled(data_get($change, 'original')))
+                                                <span style="margin:0 6px">/</span>
+                                                <span>{{ data_get($change, 'original') }}</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+
+                        @if(data_get($senderValidation, 'warnings'))
+                            <ul style="margin:10px 0 0;padding-right:18px;color:var(--td);font-size:13px">
+                                @foreach(data_get($senderValidation, 'warnings', []) as $warning)
+                                    <li>{{ data_get($warning, 'message') }}</li>
+                                @endforeach
+                            </ul>
+                        @endif
+
+                        @if(data_get($senderValidation, 'classification') === 'normalized_suggestion')
+                            @foreach(data_get($senderValidation, 'normalized', []) as $field => $value)
+                                <input type="hidden" name="address_validation_suggestions[sender][{{ $field }}]" value="{{ $value ?? '' }}">
+                            @endforeach
+                            <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+                                <button type="submit" class="btn btn-s" formaction="{{ route($portalConfig['address_validation_route']) }}" name="address_validation_action" value="apply_sender" data-testid="apply-sender-address-suggestion">
+                                    {{ __('portal_shipments.address_validation.accept') }}
+                                </button>
+                                <button type="submit" class="btn btn-s" formaction="{{ route($portalConfig['address_validation_route']) }}" name="address_validation_action" value="dismiss_sender" data-testid="dismiss-sender-address-suggestion">
+                                    {{ __('portal_shipments.address_validation.keep_original') }}
+                                </button>
+                            </div>
+                        @endif
                     </div>
                 @endif
                 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
@@ -256,7 +355,66 @@
             </div>
 
             <div>
-                <div style="font-size:13px;font-weight:700;color:var(--tx);margin-bottom:8px">المستلم</div>
+                @php($recipientValidationStyle = $addressValidationStyle($recipientValidation))
+                <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;margin-bottom:8px">
+                    <div style="font-size:13px;font-weight:700;color:var(--tx)">المستلم</div>
+                    <button type="submit" class="btn btn-s" formaction="{{ route($portalConfig['address_validation_route']) }}" name="address_validation_action" value="validate_recipient" data-testid="validate-recipient-address">
+                        {{ __('portal_shipments.address_validation.recipient_cta') }}
+                    </button>
+                </div>
+                @if($selectedRecipientAddress)
+                    <div style="margin-bottom:12px;padding:12px 14px;border-radius:14px;border:1px solid rgba(37,99,235,.18);background:rgba(37,99,235,.06)" data-testid="selected-recipient-address-banner">
+                        <div style="font-weight:700;color:var(--tx)">{{ __('portal_addresses.common.selected_recipient') }}</div>
+                        <div style="color:var(--td);font-size:13px;margin-top:4px">{{ $selectedRecipientAddress->label ?: $selectedRecipientAddress->contact_name }}</div>
+                    </div>
+                @endif
+                @if($recipientValidation)
+                    <div style="margin-bottom:12px;padding:14px;border-radius:16px;border:1px solid {{ $recipientValidationStyle['border'] }};background:{{ $recipientValidationStyle['background'] }}" data-testid="recipient-address-validation">
+                        <div style="font-weight:800;color:{{ $recipientValidationStyle['color'] }}">{{ data_get($recipientValidation, 'title') }}</div>
+                        <div style="color:var(--td);font-size:13px;margin-top:4px">{{ data_get($recipientValidation, 'message') }}</div>
+
+                        @if(data_get($recipientValidation, 'changes'))
+                            <div style="margin-top:10px;display:flex;flex-direction:column;gap:8px">
+                                @foreach(data_get($recipientValidation, 'changes', []) as $change)
+                                    <div style="padding:10px 12px;border-radius:12px;background:white;border:1px solid rgba(15,23,42,.08)">
+                                        <div style="font-size:12px;color:var(--tm);margin-bottom:4px">
+                                            {{ data_get($validationFieldLabels, data_get($change, 'field_key'), data_get($change, 'field_key')) }}
+                                        </div>
+                                        <div style="font-size:13px;color:var(--td)">
+                                            <strong style="color:var(--tx)">{{ data_get($change, 'suggested') }}</strong>
+                                            @if(filled(data_get($change, 'original')))
+                                                <span style="margin:0 6px">/</span>
+                                                <span>{{ data_get($change, 'original') }}</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+
+                        @if(data_get($recipientValidation, 'warnings'))
+                            <ul style="margin:10px 0 0;padding-right:18px;color:var(--td);font-size:13px">
+                                @foreach(data_get($recipientValidation, 'warnings', []) as $warning)
+                                    <li>{{ data_get($warning, 'message') }}</li>
+                                @endforeach
+                            </ul>
+                        @endif
+
+                        @if(data_get($recipientValidation, 'classification') === 'normalized_suggestion')
+                            @foreach(data_get($recipientValidation, 'normalized', []) as $field => $value)
+                                <input type="hidden" name="address_validation_suggestions[recipient][{{ $field }}]" value="{{ $value ?? '' }}">
+                            @endforeach
+                            <div style="margin-top:12px;display:flex;gap:8px;flex-wrap:wrap">
+                                <button type="submit" class="btn btn-s" formaction="{{ route($portalConfig['address_validation_route']) }}" name="address_validation_action" value="apply_recipient" data-testid="apply-recipient-address-suggestion">
+                                    {{ __('portal_shipments.address_validation.accept') }}
+                                </button>
+                                <button type="submit" class="btn btn-s" formaction="{{ route($portalConfig['address_validation_route']) }}" name="address_validation_action" value="dismiss_recipient" data-testid="dismiss-recipient-address-suggestion">
+                                    {{ __('portal_shipments.address_validation.keep_original') }}
+                                </button>
+                            </div>
+                        @endif
+                    </div>
+                @endif
                 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
                     <label>
                         <span class="f-label">الاسم</span>

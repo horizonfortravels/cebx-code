@@ -32,6 +32,9 @@ return [
             explode(',', (string) env('FEDEX_CARRIER_CODES', 'FDXE,FDXG'))
         ))),
     ],
+    'address_validation' => [
+        'driver' => env('ADDRESS_VALIDATION_DRIVER', 'local_rules'),
+    ],
     'moyasar' => [
         'api_key' => env('MOYASAR_API_KEY'),
         'secret_key' => env('MOYASAR_SECRET_KEY'),
