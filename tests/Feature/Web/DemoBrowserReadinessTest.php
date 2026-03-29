@@ -22,17 +22,17 @@ class DemoBrowserReadinessTest extends TestCase
     }
 
     #[Test]
-    public function b2b_organization_owner_can_open_legacy_users_page_without_crashing(): void
+    public function b2b_organization_owner_can_open_modern_users_page_without_crashing(): void
     {
         $user = User::query()
             ->withoutGlobalScopes()
             ->where('email', 'e2e.c.organization_owner@example.test')
             ->firstOrFail();
 
-        $response = $this->actingAs($user, 'web')->get('/users');
+        $response = $this->actingAs($user, 'web')->get('/b2b/users');
 
         $response->assertOk();
-        $response->assertSeeText('إدارة المستخدمين');
+        $response->assertSeeText('فريق المنظمة');
         $response->assertDontSeeText('Internal Server Error');
         $response->assertDontSeeText('Undefined variable');
     }

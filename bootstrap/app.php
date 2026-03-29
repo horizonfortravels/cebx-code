@@ -29,6 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'ensureAccountType'   => \App\Http\Middleware\EnsureAccountTypeMiddleware::class,
             'userType'            => \App\Http\Middleware\EnsureUserTypeMiddleware::class,
             'tenantContext'       => \App\Http\Middleware\ResolveTenantContextMiddleware::class,
+            'legacyExternalSurface' => \App\Http\Middleware\LegacyExternalSurfaceLockdown::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

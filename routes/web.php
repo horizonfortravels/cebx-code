@@ -3,6 +3,7 @@
 use App\Http\Controllers\Web\AuthWebController;
 use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\InternalAdminWebController;
+use App\Http\Controllers\Web\InternalSmtpSettingsController;
 use App\Http\Controllers\Web\OrderWebController;
 use App\Http\Controllers\Web\PageController;
 use App\Http\Controllers\Web\PublicTrackingPortalController;
@@ -35,9 +36,16 @@ Route::middleware(['auth:web', 'userType:internal'])->prefix('internal')->name('
         Route::post('/tenant-context', [InternalAdminWebController::class, 'storeTenantContext'])->name('tenant-context.store');
         Route::post('/tenant-context/clear', [InternalAdminWebController::class, 'clearTenantContext'])->name('tenant-context.clear');
     });
+
+    Route::middleware('permission:notifications.channels.manage')->group(function (): void {
+        Route::get('/smtp-settings', [InternalSmtpSettingsController::class, 'edit'])->name('smtp-settings.edit');
+        Route::put('/smtp-settings', [InternalSmtpSettingsController::class, 'update'])->name('smtp-settings.update');
+        Route::post('/smtp-settings/test-connection', [InternalSmtpSettingsController::class, 'testConnection'])->name('smtp-settings.test-connection');
+        Route::post('/smtp-settings/test-email', [InternalSmtpSettingsController::class, 'sendTestEmail'])->name('smtp-settings.test-email');
+    });
 });
 
-Route::middleware(['auth:web', 'userType:external', 'tenant'])->group(function (): void {
+Route::middleware(['auth:web', 'userType:external', 'tenant', 'legacyExternalSurface'])->group(function (): void {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::get('/shipments', [ShipmentWebController::class, 'index'])->name('shipments.index');
