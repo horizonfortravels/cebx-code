@@ -37,7 +37,7 @@ Route::middleware(['auth:web', 'userType:internal'])->prefix('internal')->name('
     });
 });
 
-Route::middleware(['auth:web', 'userType:external', 'tenant'])->group(function (): void {
+Route::middleware(['auth:web', 'userType:external', 'tenant', 'legacyExternalSurface'])->group(function (): void {
     Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 
     Route::get('/shipments', [ShipmentWebController::class, 'index'])->name('shipments.index');
