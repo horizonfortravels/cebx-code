@@ -4,10 +4,11 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Models\Shipment;
+use App\Services\PublicTrackingService;
 use App\Services\TrackingService;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Schema;
 
 /**
  * TrackingController — FR-TR-001→007
@@ -28,7 +29,10 @@ use Illuminate\Support\Facades\Schema;
  */
 class TrackingController extends Controller
 {
-    public function __construct(private TrackingService $trackingService) {}
+    public function __construct(
+        private TrackingService $trackingService,
+        private PublicTrackingService $publicTracking,
+    ) {}
 
     /**
      * FR-TR-001/002: Receive DHL tracking webhook (public endpoint).
@@ -277,39 +281,20 @@ class TrackingController extends Controller
     /**
      * FR-TR-007: External API for tracking query.
      */
-    public function apiTrack(Request $request, string $trackingNumber): JsonResponse
+    public function apiTrack(Request $request, string $token): JsonResponse
     {
-        $trackingColumn = $this->resolvePublicTrackingColumn();
-        if ($trackingColumn === null) {
+        try {
+            $payload = $this->publicTracking->apiPayload($token);
+        } catch (ModelNotFoundException) {
             return response()->json([
                 'status' => 'error',
-                'message' => 'Tracking is currently unavailable',
+                'message' => 'Tracking not found',
             ], 404);
         }
 
-        $shipment = Shipment::where($trackingColumn, $trackingNumber)->first();
-        if (!$shipment) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'Shipment not found',
-            ], 404);
-        }
-
-        // API key auth checked via middleware
         return response()->json([
             'status' => 'success',
-            'data'   => $this->trackingService->getTimeline($shipment),
+            'data'   => $payload,
         ]);
-    }
-
-    private function resolvePublicTrackingColumn(): ?string
-    {
-        foreach (['tracking_number', 'carrier_tracking_number', 'reference_number'] as $column) {
-            if (Schema::hasColumn('shipments', $column)) {
-                return $column;
-            }
-        }
-
-        return null;
     }
 }

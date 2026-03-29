@@ -8,6 +8,7 @@
     $shipmentNotifications = $shipmentNotifications ?? [];
     $completionFeedback = $completionFeedback ?? session('shipment_completion_feedback');
     $canCreateShipment = $canCreateShipment ?? false;
+    $publicTrackingUrl = $publicTrackingUrl ?? null;
     $reservation = $shipment->balanceReservation;
     $reservationStatus = $reservation?->status;
     $workflowStatusLabels = [
@@ -119,6 +120,15 @@
                 data-testid="shipment-clone-primary"
             >{{ __('portal_shipments.common.clone_long') }}</a>
         @endif
+        @if($publicTrackingUrl)
+            <a
+                href="{{ $publicTrackingUrl }}"
+                class="btn btn-pr"
+                target="_blank"
+                rel="noopener noreferrer"
+                data-testid="public-tracking-link"
+            >{{ __('public_tracking.manage.share_cta') }}</a>
+        @endif
         <a href="{{ route($portalConfig['shipments_index_route']) }}" class="btn btn-s">العودة إلى الشحنات</a>
         @if(!empty($documents))
             <a href="{{ route($portalConfig['documents_route'], ['id' => $shipment->id]) }}" class="btn btn-pr">عرض المستندات</a>
@@ -128,6 +138,27 @@
         @endif
     </div>
 </div>
+
+@if($publicTrackingUrl)
+    <x-card title="{{ __('public_tracking.manage.card_title') }}" style="margin-bottom:24px">
+        <div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap">
+            <div style="max-width:760px">
+                <div style="font-size:14px;color:var(--td);margin-bottom:10px">{{ __('public_tracking.manage.card_description') }}</div>
+                <div class="td-mono" style="padding:12px 14px;border-radius:14px;background:rgba(15,23,42,.04);border:1px solid var(--bd);word-break:break-all">
+                    {{ $publicTrackingUrl }}
+                </div>
+            </div>
+            <div style="display:flex;align-items:center">
+                <a
+                    href="{{ $publicTrackingUrl }}"
+                    class="btn btn-s"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                >{{ __('public_tracking.manage.open_public_page') }}</a>
+            </div>
+        </div>
+    </x-card>
+@endif
 
 @if($completionFeedback)
     @php($isSuccessFeedback = ($completionFeedback['level'] ?? 'warning') === 'success')

@@ -68,6 +68,7 @@ class ShipmentPostIssuanceJourneyWebTest extends TestCase
             ->assertSee('794699999999')
             ->assertSee(Lang::get('portal_shipments.events.carrier_documents_available', [], 'ar'))
             ->assertSee(Lang::get('portal_shipments.events.shipment_purchased', [], 'ar'))
+            ->assertSee('data-testid="public-tracking-link"', false)
             ->assertSee('data-testid="shipment-notifications-link"', false);
 
         $shipment->refresh();
@@ -90,6 +91,7 @@ class ShipmentPostIssuanceJourneyWebTest extends TestCase
             ->assertSee('الحالة المعيارية الحالية')
             ->assertSee(Lang::get('portal_shipments.events.shipment_purchased', [], 'ar'))
             ->assertSee(Lang::get('portal_shipments.events.carrier_documents_available', [], 'ar'))
+            ->assertSee('data-testid="public-tracking-link"', false)
             ->assertSee((string) $document->original_filename)
             ->assertSee('الإشعارات المرتبطة بالشحنة')
             ->assertSee((string) $notification->subject)

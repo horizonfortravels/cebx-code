@@ -23,6 +23,7 @@ use App\Models\WalletLedgerEntry;
 use App\Models\WebhookEvent;
 use App\Services\AddressValidationService;
 use App\Services\CarrierService;
+use App\Services\PublicTrackingService;
 use App\Services\ShipmentTimelineService;
 use App\Support\PortalShipmentLabeler;
 use Illuminate\Database\Eloquent\Builder;
@@ -1648,6 +1649,7 @@ class PortalWorkspaceController extends Controller
             'canIssueShipment' => $request->user()?->can('issueAtCarrier', $shipment) ?? false,
             'canViewNotifications' => $canViewNotifications,
             'shipmentNotifications' => $shipmentNotifications,
+            'publicTrackingUrl' => app(PublicTrackingService::class)->publicUrl($shipment),
             'carrierDisplayLabel' => PortalShipmentLabeler::carrier(
                 (string) ($shipment->carrierShipment?->carrier_code ?? $selectedOption?->carrier_code ?? $shipment->carrier_code ?? ''),
                 (string) ($shipment->carrierShipment?->carrier_name ?? $selectedOption?->carrier_name ?? $shipment->carrier_name ?? '')

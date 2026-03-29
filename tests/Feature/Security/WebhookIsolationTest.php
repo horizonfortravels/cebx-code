@@ -60,7 +60,7 @@ class WebhookIsolationTest extends TestCase
         ]);
         $this->assertNotSame(401, $dhlResponse->status(), 'DHL webhook endpoint must not require sanctum auth.');
 
-        $trackingResponse = $this->getJson('/api/v1/webhooks/track/NO-SUCH-TRACKING-NUMBER');
+        $trackingResponse = $this->getJson('/api/v1/webhooks/track/NO-SUCH-PUBLIC-TOKEN');
         $this->assertNotContains($trackingResponse->status(), [401, 403], 'Public tracking webhook endpoint must not require sanctum/permission auth.');
     }
 }

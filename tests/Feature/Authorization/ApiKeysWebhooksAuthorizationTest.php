@@ -106,7 +106,7 @@ class ApiKeysWebhooksAuthorizationTest extends TestCase
     {
         Log::spy();
 
-        $response = $this->getJson('/api/v1/webhooks/track/NO-SUCH-TRACKING-NUMBER');
+        $response = $this->getJson('/api/v1/webhooks/track/NO-SUCH-PUBLIC-TOKEN');
 
         $this->assertNotContains($response->status(), [401, 403]);
         $this->assertNotEquals(500, $response->status());

@@ -5,12 +5,17 @@ use App\Http\Controllers\Web\DashboardController;
 use App\Http\Controllers\Web\InternalAdminWebController;
 use App\Http\Controllers\Web\OrderWebController;
 use App\Http\Controllers\Web\PageController;
+use App\Http\Controllers\Web\PublicTrackingPortalController;
 use App\Http\Controllers\Web\ShipmentWebController;
 use App\Http\Controllers\Web\StoreWebController;
 use App\Http\Controllers\Web\SupportWebController;
 use App\Http\Controllers\Web\UserWebController;
 use App\Http\Controllers\Web\WalletWebController;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/track/{token}', [PublicTrackingPortalController::class, 'show'])
+    ->middleware('throttle:30,1')
+    ->name('public.tracking.show');
 
 Route::get('/login', [AuthWebController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthWebController::class, 'login']);
