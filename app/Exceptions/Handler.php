@@ -18,6 +18,8 @@ class Handler extends ExceptionHandler
         'current_password',
         'password',
         'password_confirmation',
+        'smtp_username',
+        'smtp_password',
     ];
 
     public function render($request, Throwable $exception): Response

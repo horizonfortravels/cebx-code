@@ -35,6 +35,7 @@
 
     $canAdminAccess = $currentUser?->hasPermission('admin.access') ?? false;
     $canSelectTenant = $currentUser?->hasPermission('tenancy.context.select') ?? false;
+    $canManageNotificationChannels = $currentUser?->hasPermission('notifications.channels.manage') ?? false;
     $canReadIntegrations = $currentUser?->hasPermission('integrations.read') ?? false;
     $canReadApiKeys = $currentUser?->hasPermission('api_keys.read') ?? false;
     $canReadWebhooks = $currentUser?->hasPermission('webhooks.read') ?? false;
@@ -53,6 +54,11 @@
 
         if ($canSelectTenant) {
             $menu[] = ['active' => ['admin.tenant-context', 'internal.tenant-context'], 'route' => $canAdminAccess ? 'admin.tenant-context' : 'internal.tenant-context', 'icon' => 'CTX', 'label' => 'اختيار الحساب'];
+        }
+
+        if ($canManageNotificationChannels && Route::has('internal.smtp-settings.edit')) {
+            $menu[] = ['divider' => 'البريد والمنصة'];
+            $menu[] = ['active' => ['internal.smtp-settings.*'], 'route' => 'internal.smtp-settings.edit', 'icon' => 'SMTP', 'label' => 'إعدادات SMTP'];
         }
 
         if ($canAdminAccess) {

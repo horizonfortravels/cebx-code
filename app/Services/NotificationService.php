@@ -14,6 +14,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Str;
+use Throwable;
 
 /**
  * NotificationService — FR-NTF-001→009 (9 requirements)
@@ -36,6 +37,7 @@ class NotificationService
 
     public function __construct(
         private AuditService $audit,
+        private SmtpSettingsService $smtpSettings,
     ) {}
 
     // ═══════════════════════════════════════════════════════════
@@ -264,15 +266,14 @@ class NotificationService
             };
 
             $notification->markSent($externalId);
-        } catch (\Exception $e) {
-            $notification->markFailed($e->getMessage());
+        } catch (Throwable $e) {
+            $notification->markFailed($this->safeFailureReason($e, $notification->channel));
         }
     }
 
     private function sendEmail(Notification $n): ?string
     {
-        // In production: Mail::to($n->destination)->send(new NotificationMail($n));
-        return 'email_' . Str::random(16);
+        return $this->smtpSettings->sendNotification($n);
     }
 
     private function sendSms(Notification $n): ?string
@@ -648,10 +649,19 @@ class NotificationService
             ->first();
 
         return $config?->provider ?? match ($channel) {
-            Notification::CHANNEL_EMAIL => 'mailgun',
+            Notification::CHANNEL_EMAIL => $this->smtpSettings->providerName(),
             Notification::CHANNEL_SMS   => 'twilio',
             default => null,
         };
+    }
+
+    private function safeFailureReason(Throwable $exception, string $channel): string
+    {
+        if ($channel === Notification::CHANNEL_EMAIL) {
+            return 'Email transport failed. Verify SMTP settings and connectivity.';
+        }
+
+        return $exception->getMessage();
     }
 
     private function isUniqueConstraintViolation(QueryException $exception): bool

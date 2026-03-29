@@ -8,7 +8,11 @@ use App\Models\NotificationChannel;
 use App\Models\NotificationTemplate;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Mail\MailManager;
+use Illuminate\Mail\Mailer;
+use Illuminate\Mail\SentMessage;
 use Laravel\Sanctum\Sanctum;
+use Mockery;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -40,6 +44,13 @@ class NotificationApiTest extends TestCase
         ], 'organization_owner_notification_api');
 
         Sanctum::actingAs($this->owner);
+    }
+
+    protected function tearDown(): void
+    {
+        Mockery::close();
+
+        parent::tearDown();
     }
 
     #[Test]
@@ -236,6 +247,17 @@ class NotificationApiTest extends TestCase
     #[Test]
     public function test_api_test_send(): void
     {
+        $sentMessage = Mockery::mock(SentMessage::class);
+        $sentMessage->shouldReceive('getMessageId')->andReturn('api-notification-test');
+
+        $mailer = Mockery::mock(Mailer::class);
+        $mailer->shouldReceive('raw')->once()->andReturn($sentMessage);
+
+        $mailManager = Mockery::mock(MailManager::class);
+        $mailManager->shouldReceive('mailer')->once()->andReturn($mailer);
+
+        $this->app->instance(MailManager::class, $mailManager);
+
         $this->postJson('/api/v1/notifications/test', [
             'event_type' => 'shipment.delivered',
             'channel' => 'email',
