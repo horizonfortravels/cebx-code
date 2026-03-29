@@ -3,6 +3,7 @@
 namespace Tests\Feature\Web;
 
 use App\Models\Account;
+use App\Models\Address;
 use App\Models\BillingWallet;
 use App\Models\CarrierShipment;
 use App\Models\ContentDeclaration;
@@ -147,6 +148,180 @@ class ShipmentCompletionFlowWebTest extends TestCase
         $this->assertSame('794699999999', (string) $carrierShipment->tracking_number);
         $this->assertSame('RI', (string) $shipment->sender_state);
         $this->assertSame('NY', (string) $shipment->recipient_state);
+
+        Http::assertSent(function (\Illuminate\Http\Client\Request $request): bool {
+            if ($request->url() !== 'https://apis-sandbox.fedex.com/ship/v1/shipments') {
+                return false;
+            }
+
+            return data_get($request->data(), 'requestedShipment.shipper.address.stateOrProvinceCode') === 'RI'
+                && data_get($request->data(), 'requestedShipment.recipients.0.address.stateOrProvinceCode') === 'NY';
+        });
+    }
+
+    public function test_b2b_saved_address_prefill_persists_state_codes_through_funded_issue_flow(): void
+    {
+        $this->configureFedex();
+
+        Storage::fake('local');
+        Http::preventStrayRequests();
+        Http::fake($this->fedexRateAndShipFakeResponses($this->shipSuccessBody()));
+
+        $account = Account::factory()->organization()->create([
+            'name' => 'Address Prefill ' . Str::upper(Str::random(4)),
+            'status' => 'active',
+        ]);
+
+        $user = $this->createCompletionUserForAccount($account, 'organization_owner', [
+            'addresses.read',
+            'addresses.manage',
+            'shipments.read',
+            'shipments.create',
+            'shipments.update_draft',
+            'rates.read',
+            'quotes.read',
+            'quotes.manage',
+            'dg.read',
+            'dg.manage',
+            'tracking.read',
+            'billing.view',
+            'billing.manage',
+        ]);
+
+        BillingWallet::factory()->funded(1000)->create([
+            'account_id' => (string) $user->account_id,
+            'currency' => 'USD',
+        ]);
+        PricingRule::factory()->create([
+            'account_id' => $user->account_id,
+            'is_active' => true,
+            'is_default' => true,
+            'markup_type' => 'fixed',
+            'markup_fixed' => 0,
+            'markup_percentage' => 0,
+            'service_fee_fixed' => 0,
+            'service_fee_percentage' => 0,
+            'min_profit' => 0,
+            'min_retail_price' => 0,
+            'rounding_mode' => 'none',
+            'rounding_precision' => 1,
+        ]);
+
+        $sender = Address::factory()->create([
+            'account_id' => (string) $account->id,
+            'type' => 'sender',
+            'label' => 'Shared Sender',
+            'contact_name' => 'Address Sender',
+            'company_name' => 'Sender Co',
+            'phone' => '+14015550101',
+            'email' => 'sender@example.test',
+            'address_line_1' => '1 Market Street',
+            'address_line_2' => 'Suite 10',
+            'city' => 'Providence',
+            'state' => 'RI',
+            'postal_code' => '02903',
+            'country' => 'US',
+        ]);
+
+        $recipient = Address::factory()->create([
+            'account_id' => (string) $account->id,
+            'type' => 'recipient',
+            'label' => 'Shared Recipient',
+            'contact_name' => 'Address Recipient',
+            'company_name' => 'Recipient Co',
+            'phone' => '+12125550123',
+            'email' => 'recipient@example.test',
+            'address_line_1' => '350 5th Ave',
+            'address_line_2' => 'Floor 20',
+            'city' => 'New York',
+            'state' => 'NY',
+            'postal_code' => '10118',
+            'country' => 'US',
+        ]);
+
+        $this->actingAs($user, 'web')
+            ->get('/b2b/shipments/create?sender_address=' . $sender->id . '&recipient_address=' . $recipient->id)
+            ->assertOk()
+            ->assertSee('name="sender_address_id" value="' . $sender->id . '"', false)
+            ->assertSee('name="recipient_address_id" value="' . $recipient->id . '"', false)
+            ->assertSee('value="Address Sender"', false)
+            ->assertSee('value="Address Recipient"', false);
+
+        $createResponse = $this->actingAs($user, 'web')
+            ->post('/b2b/shipments', array_replace_recursive($this->browserUsShipmentPayload(), [
+                'sender_address_id' => (string) $sender->id,
+                'sender_name' => 'Address Sender',
+                'sender_company' => 'Sender Co',
+                'sender_phone' => '+14015550101',
+                'sender_email' => 'sender@example.test',
+                'sender_address_1' => '1 Market Street',
+                'sender_address_2' => 'Suite 10',
+                'sender_city' => 'Providence',
+                'sender_state' => 'RI',
+                'sender_postal_code' => '02903',
+                'sender_country' => 'US',
+                'recipient_address_id' => (string) $recipient->id,
+                'recipient_name' => 'Address Recipient',
+                'recipient_company' => 'Recipient Co',
+                'recipient_phone' => '+12125550123',
+                'recipient_email' => 'recipient@example.test',
+                'recipient_address_1' => '350 5th Ave',
+                'recipient_address_2' => 'Floor 20',
+                'recipient_city' => 'New York',
+                'recipient_state' => 'NY',
+                'recipient_postal_code' => '10118',
+                'recipient_country' => 'US',
+            ]));
+
+        $createResponse->assertRedirect();
+
+        $shipment = Shipment::query()
+            ->where('account_id', $user->account_id)
+            ->latest('created_at')
+            ->firstOrFail();
+
+        $this->assertSame('Address Sender', (string) $shipment->sender_name);
+        $this->assertSame('Address Recipient', (string) $shipment->recipient_name);
+        $this->assertSame('RI', (string) $shipment->sender_state);
+        $this->assertSame('NY', (string) $shipment->recipient_state);
+        $this->assertSame(Shipment::STATUS_READY_FOR_RATES, (string) $shipment->status);
+
+        $this->actingAs($user, 'web')
+            ->post('/b2b/shipments/' . $shipment->id . '/offers/fetch')
+            ->assertRedirect('/b2b/shipments/' . $shipment->id . '/offers');
+
+        $quote = RateQuote::query()
+            ->where('shipment_id', (string) $shipment->id)
+            ->with('options')
+            ->latest('created_at')
+            ->firstOrFail();
+        $option = $quote->options->firstWhere('is_available', true);
+
+        $this->assertNotNull($option);
+
+        $this->actingAs($user, 'web')
+            ->post('/b2b/shipments/' . $shipment->id . '/offers/select', [
+                'option_id' => (string) $option->id,
+            ])
+            ->assertRedirect('/b2b/shipments/' . $shipment->id . '/declaration');
+
+        $this->actingAs($user, 'web')
+            ->post('/b2b/shipments/' . $shipment->id . '/declaration', [
+                'contains_dangerous_goods' => 'no',
+                'accept_disclaimer' => '1',
+            ])
+            ->assertRedirect('/b2b/shipments/' . $shipment->id . '/declaration');
+
+        $this->actingAs($user, 'web')
+            ->post('/b2b/shipments/' . $shipment->id . '/wallet-preflight')
+            ->assertRedirect('/b2b/shipments/' . $shipment->id);
+
+        $this->actingAs($user, 'web')
+            ->followingRedirects()
+            ->post('/b2b/shipments/' . $shipment->id . '/issue')
+            ->assertOk()
+            ->assertSee('تم الإصدار لدى الناقل')
+            ->assertSee('794699999999');
 
         Http::assertSent(function (\Illuminate\Http\Client\Request $request): bool {
             if ($request->url() !== 'https://apis-sandbox.fedex.com/ship/v1/shipments') {

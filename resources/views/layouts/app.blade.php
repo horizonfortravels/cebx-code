@@ -77,6 +77,7 @@
             ['divider' => 'بوابة الأعمال'],
             ['active' => ['b2b.dashboard'], 'route' => 'b2b.dashboard', 'icon' => 'HOME', 'label' => 'الرئيسية'],
             ['active' => ['b2b.shipments.*'], 'route' => 'b2b.shipments.index', 'icon' => 'SH', 'label' => 'الشحنات'],
+            ['active' => ['b2b.addresses.*'], 'route' => 'b2b.addresses.index', 'icon' => 'ADR', 'label' => 'العناوين'],
             ['active' => ['b2b.orders.*'], 'route' => 'b2b.orders.index', 'icon' => 'OR', 'label' => 'الطلبات'],
             ['active' => ['b2b.wallet.*'], 'route' => 'b2b.wallet.index', 'icon' => 'WL', 'label' => 'المحفظة'],
             ['active' => ['b2b.reports.*'], 'route' => 'b2b.reports.index', 'icon' => 'RPT', 'label' => 'التقارير'],

@@ -3,11 +3,18 @@
 
 @section('content')
 @php
+    $addressFormDefaults = $addressFormDefaults ?? [];
     $cloneFormDefaults = $cloneFormDefaults ?? [];
     $cloneSourceShipment = $cloneSourceShipment ?? null;
     $cloneDropsAdditionalParcels = $cloneDropsAdditionalParcels ?? false;
-    $prefill = static function (string $key, mixed $fallback = null) use ($cloneFormDefaults, $draftShipment) {
-        return data_get($cloneFormDefaults, $key, data_get($draftShipment, $key, $fallback));
+    $selectedSenderAddress = $selectedSenderAddress ?? null;
+    $selectedRecipientAddress = $selectedRecipientAddress ?? null;
+    $senderAddresses = $senderAddresses ?? collect();
+    $recipientAddresses = $recipientAddresses ?? collect();
+    $canViewAddressBook = $canViewAddressBook ?? false;
+    $canManageAddressBook = $canManageAddressBook ?? false;
+    $prefill = static function (string $key, mixed $fallback = null) use ($addressFormDefaults, $cloneFormDefaults, $draftShipment) {
+        return data_get($addressFormDefaults, $key, data_get($cloneFormDefaults, $key, data_get($draftShipment, $key, $fallback)));
     };
     $firstParcel = old('parcels.0', [
         'weight' => data_get($cloneFormDefaults, 'parcels.0.weight', data_get($draftShipment, 'parcels.0.weight', '1.0')),
@@ -15,6 +22,10 @@
         'width' => data_get($cloneFormDefaults, 'parcels.0.width', data_get($draftShipment, 'parcels.0.width')),
         'height' => data_get($cloneFormDefaults, 'parcels.0.height', data_get($draftShipment, 'parcels.0.height')),
     ]);
+    $addressSelectionBaseQuery = collect([
+        'draft' => request()->query('draft'),
+        'clone' => request()->query('clone'),
+    ])->filter(fn ($value) => filled($value))->all();
 
     $workflowBadges = [
         'draft' => ['label' => 'مسودة', 'color' => '#475569'],
@@ -30,6 +41,8 @@
 
     $currentBadge = $workflowBadges[$workflowState] ?? ['label' => $workflowState, 'color' => '#334155'];
     $canContinueToOffers = $draftShipment && in_array($draftShipment->status, ['ready_for_rates', 'rated', 'offer_selected', 'declaration_required', 'declaration_complete', 'requires_action'], true);
+    $selectedSenderAddressId = (string) old('sender_address_id', $prefill('sender_address_id'));
+    $selectedRecipientAddressId = (string) old('recipient_address_id', $prefill('recipient_address_id'));
 @endphp
 
 <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:24px">
@@ -126,25 +139,99 @@
     </div>
 @endif
 
+@if($canViewAddressBook)
+    <div style="margin-bottom:20px;padding:18px;border-radius:18px;border:1px solid rgba(15,23,42,.08);background:white" data-testid="saved-address-toolbar">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:14px">
+            <div>
+                <div style="font-size:18px;font-weight:800;color:var(--tx)">{{ __('portal_addresses.common.address_book') }}</div>
+                <div style="color:var(--td);font-size:13px;margin-top:4px;max-width:720px">{{ __('portal_addresses.common.picker_help') }}</div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <a href="{{ route($portalConfig['addresses_index_route']) }}" class="btn btn-s">{{ __('portal_addresses.common.manage_link') }}</a>
+                @if($canManageAddressBook)
+                    <a href="{{ route($portalConfig['addresses_create_route']) }}" class="btn btn-s">{{ __('portal_addresses.common.new_address_cta') }}</a>
+                @endif
+            </div>
+        </div>
+
+        <form method="GET" action="{{ route($portalConfig['create_route']) }}" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;align-items:end">
+            @foreach($addressSelectionBaseQuery as $queryKey => $queryValue)
+                <input type="hidden" name="{{ $queryKey }}" value="{{ $queryValue }}">
+            @endforeach
+
+            <label>
+                <span class="f-label">{{ __('portal_addresses.common.sender_picker') }}</span>
+                <select class="f-input" name="sender_address" data-testid="sender-address-picker">
+                    <option value="">{{ __('portal_addresses.common.picker_placeholder') }}</option>
+                    @foreach($senderAddresses as $address)
+                        <option value="{{ $address->id }}" @selected($selectedSenderAddressId === (string) $address->id)>
+                            {{ $address->label ?: $address->contact_name }}{{ $address->city ? ' - ' . $address->city : '' }}
+                        </option>
+                    @endforeach
+                </select>
+            </label>
+
+            <label>
+                <span class="f-label">{{ __('portal_addresses.common.recipient_picker') }}</span>
+                <select class="f-input" name="recipient_address" data-testid="recipient-address-picker">
+                    <option value="">{{ __('portal_addresses.common.picker_placeholder') }}</option>
+                    @foreach($recipientAddresses as $address)
+                        <option value="{{ $address->id }}" @selected($selectedRecipientAddressId === (string) $address->id)>
+                            {{ $address->label ?: $address->contact_name }}{{ $address->city ? ' - ' . $address->city : '' }}
+                        </option>
+                    @endforeach
+                </select>
+            </label>
+
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <button type="submit" class="btn btn-s" data-testid="saved-address-apply">{{ __('portal_addresses.common.use_saved_cta') }}</button>
+                @if(request()->filled('sender_address') || request()->filled('recipient_address'))
+                    <a href="{{ route($portalConfig['create_route'], $addressSelectionBaseQuery) }}" class="btn btn-s" data-testid="saved-address-clear">{{ __('portal_addresses.common.clear_saved_cta') }}</a>
+                @endif
+            </div>
+        </form>
+    </div>
+@endif
+
 <div class="grid-2">
     <x-card title="بيانات طلب الشحنة">
         <form method="POST" action="{{ route($portalConfig['store_route']) }}" style="display:flex;flex-direction:column;gap:18px">
             @csrf
+            <input type="hidden" name="sender_address_id" value="{{ $selectedSenderAddressId }}">
+            <input type="hidden" name="recipient_address_id" value="{{ $selectedRecipientAddressId }}">
 
             <div>
                 <div style="font-size:13px;font-weight:700;color:var(--tx);margin-bottom:8px">المرسل</div>
+                @if($selectedSenderAddress)
+                    <div style="margin-bottom:12px;padding:12px 14px;border-radius:14px;border:1px solid rgba(37,99,235,.18);background:rgba(37,99,235,.06)" data-testid="selected-sender-address-banner">
+                        <div style="font-weight:700;color:var(--tx)">{{ __('portal_addresses.common.selected_sender') }}</div>
+                        <div style="color:var(--td);font-size:13px;margin-top:4px">{{ $selectedSenderAddress->label ?: $selectedSenderAddress->contact_name }}</div>
+                    </div>
+                @endif
                 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px">
                     <label>
                         <span class="f-label">الاسم</span>
                         <input class="f-input" name="sender_name" value="{{ old('sender_name', $prefill('sender_name')) }}" required>
                     </label>
                     <label>
+                        <span class="f-label">المنشأة</span>
+                        <input class="f-input" name="sender_company" value="{{ old('sender_company', $prefill('sender_company')) }}">
+                    </label>
+                    <label>
                         <span class="f-label">الهاتف</span>
                         <input class="f-input" name="sender_phone" value="{{ old('sender_phone', $prefill('sender_phone')) }}" required>
+                    </label>
+                    <label>
+                        <span class="f-label">البريد الإلكتروني</span>
+                        <input class="f-input" type="email" name="sender_email" value="{{ old('sender_email', $prefill('sender_email')) }}">
                     </label>
                     <label style="grid-column:1/-1">
                         <span class="f-label">العنوان</span>
                         <input class="f-input" name="sender_address_1" value="{{ old('sender_address_1', $prefill('sender_address_1')) }}" required>
+                    </label>
+                    <label style="grid-column:1/-1">
+                        <span class="f-label">العنوان الإضافي</span>
+                        <input class="f-input" name="sender_address_2" value="{{ old('sender_address_2', $prefill('sender_address_2')) }}">
                     </label>
                     <label>
                         <span class="f-label">المدينة</span>
@@ -176,12 +263,24 @@
                         <input class="f-input" name="recipient_name" value="{{ old('recipient_name', $prefill('recipient_name')) }}" required>
                     </label>
                     <label>
+                        <span class="f-label">المنشأة</span>
+                        <input class="f-input" name="recipient_company" value="{{ old('recipient_company', $prefill('recipient_company')) }}">
+                    </label>
+                    <label>
                         <span class="f-label">الهاتف</span>
                         <input class="f-input" name="recipient_phone" value="{{ old('recipient_phone', $prefill('recipient_phone')) }}" required>
+                    </label>
+                    <label>
+                        <span class="f-label">البريد الإلكتروني</span>
+                        <input class="f-input" type="email" name="recipient_email" value="{{ old('recipient_email', $prefill('recipient_email')) }}">
                     </label>
                     <label style="grid-column:1/-1">
                         <span class="f-label">العنوان</span>
                         <input class="f-input" name="recipient_address_1" value="{{ old('recipient_address_1', $prefill('recipient_address_1')) }}" required>
+                    </label>
+                    <label style="grid-column:1/-1">
+                        <span class="f-label">العنوان الإضافي</span>
+                        <input class="f-input" name="recipient_address_2" value="{{ old('recipient_address_2', $prefill('recipient_address_2')) }}">
                     </label>
                     <label>
                         <span class="f-label">المدينة</span>

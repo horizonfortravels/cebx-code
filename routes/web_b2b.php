@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Web\B2BAuthWebController;
+use App\Http\Controllers\Web\PortalAddressBookController;
 use App\Http\Controllers\Web\PortalWorkspaceController;
 use App\Http\Controllers\Web\ShipmentDocumentWebController;
 use Illuminate\Support\Facades\Route;
@@ -60,6 +61,15 @@ Route::prefix('b2b')->name('b2b.')->middleware('portal:b2b')->group(function ():
 
         Route::prefix('wallet')->name('wallet.')->group(function (): void {
             Route::get('/', [PortalWorkspaceController::class, 'b2bWallet'])->name('index');
+        });
+
+        Route::prefix('addresses')->name('addresses.')->group(function (): void {
+            Route::get('/', [PortalAddressBookController::class, 'b2bIndex'])->name('index');
+            Route::get('/create', [PortalAddressBookController::class, 'b2bCreate'])->name('create');
+            Route::post('/', [PortalAddressBookController::class, 'storeB2b'])->name('store');
+            Route::get('/{id}/edit', [PortalAddressBookController::class, 'b2bEdit'])->name('edit');
+            Route::match(['put', 'patch'], '/{id}', [PortalAddressBookController::class, 'updateB2b'])->name('update');
+            Route::delete('/{id}', [PortalAddressBookController::class, 'destroyB2b'])->name('destroy');
         });
 
         Route::prefix('reports')->name('reports.')->group(function (): void {

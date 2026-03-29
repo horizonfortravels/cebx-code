@@ -2,6 +2,7 @@
 namespace App\Providers;
 
 use App\Models\ApiKey;
+use App\Models\Address;
 use App\Models\Analytics;
 use App\Models\Branch;
 use App\Models\Company;
@@ -67,6 +68,7 @@ use App\Policies\CompanyPolicy;
 use App\Policies\ClaimPolicy;
 use App\Policies\ApiKeyPolicy;
 use App\Policies\AnalyticsPolicy;
+use App\Policies\AddressPolicy;
 use App\Policies\CompliancePolicy;
 use App\Policies\ContainerPolicy;
 use App\Policies\ContentDeclarationPolicy;
@@ -102,6 +104,7 @@ use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvid
 class AuthServiceProvider extends ServiceProvider
 {
     protected $policies = [
+        Address::class => AddressPolicy::class,
         Shipment::class => ShipmentPolicy::class,
         Order::class => OrderPolicy::class,
         Wallet::class => WalletPolicy::class,

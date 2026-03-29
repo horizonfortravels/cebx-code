@@ -61,7 +61,11 @@ class ShipmentService
         for ($attempt = 0; $attempt < 3; $attempt++) {
             try {
                 return DB::transaction(function () use ($accountId, $data, $performer) {
-                    $shipment = Shipment::create($this->buildShipmentDraftAttributes($accountId, $data, $performer));
+                    $shipment = Shipment::create(
+                        $this->filterShipmentAttributes(
+                            $this->buildShipmentDraftAttributes($accountId, $data, $performer)
+                        )
+                    );
 
                     // Create parcels (FR-SH-003)
                     $this->createParcels($shipment, $data['parcels'] ?? [['weight' => $data['weight'] ?? 0.5]]);
@@ -777,25 +781,143 @@ class ShipmentService
     public function listAddresses(string $accountId, ?string $type = null): \Illuminate\Database\Eloquent\Collection
     {
         $query = Address::where('account_id', $accountId);
-        if ($type) {
+
+        if ($type && Address::supportsTypedAddressBook()) {
             $query->whereIn('type', [$type, 'both']);
         }
-        return $query->orderByDesc('is_default_sender')->orderBy('label')->get();
+
+        return $query
+            ->orderByDesc(Address::defaultSenderColumn())
+            ->orderBy('label')
+            ->get();
+    }
+
+    public function findAddress(string $accountId, string $addressId, ?string $type = null): Address
+    {
+        $query = Address::where('account_id', $accountId)
+            ->where('id', $addressId);
+
+        if ($type && Address::supportsTypedAddressBook()) {
+            $query->whereIn('type', [$type, 'both']);
+        }
+
+        return $query->firstOrFail();
     }
 
     public function saveAddress(string $accountId, array $data, User $performer): Address
     {
-        // If setting as default sender, unset previous
-        if (!empty($data['is_default_sender'])) {
-            Address::where('account_id', $accountId)->where('is_default_sender', true)->update(['is_default_sender' => false]);
+        $payload = $this->normalizeAddressPayload($data);
+
+        if (! empty($payload[Address::defaultSenderColumn()])) {
+            $this->clearDefaultSenderFlag($accountId);
         }
 
-        return Address::create(array_merge($data, ['account_id' => $accountId]));
+        return Address::create(array_merge($payload, ['account_id' => $accountId]));
+    }
+
+    public function updateAddress(string $accountId, string $addressId, array $data, User $performer): Address
+    {
+        $address = $this->findAddress($accountId, $addressId);
+        $payload = $this->normalizeAddressPayload($data);
+
+        if (! empty($payload[Address::defaultSenderColumn()])) {
+            $this->clearDefaultSenderFlag($accountId, (string) $address->id);
+        }
+
+        $address->update($payload);
+
+        return $address->fresh();
     }
 
     public function deleteAddress(string $accountId, string $addressId): void
     {
-        Address::where('account_id', $accountId)->where('id', $addressId)->firstOrFail()->delete();
+        $this->findAddress($accountId, $addressId)->delete();
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    private function normalizeAddressPayload(array $data): array
+    {
+        $payload = [];
+
+        if (array_key_exists('type', $data) && Address::supportsTypedAddressBook()) {
+            $payload['type'] = $data['type'] ?: 'both';
+        }
+
+        if (array_key_exists('label', $data)) {
+            $payload['label'] = $data['label'];
+        }
+
+        if (array_key_exists('contact_name', $data) || array_key_exists('name', $data)) {
+            $payload['contact_name'] = $data['contact_name'] ?? $data['name'];
+        }
+
+        if (array_key_exists('company_name', $data) && Address::hasSchemaColumn('company_name')) {
+            $payload['company_name'] = $data['company_name'];
+        }
+
+        if (array_key_exists('phone', $data)) {
+            $payload['phone'] = $data['phone'];
+        }
+
+        if (array_key_exists('email', $data) && Address::hasSchemaColumn('email')) {
+            $payload['email'] = $data['email'];
+        }
+
+        if (array_key_exists('address_line_1', $data) || array_key_exists('street', $data)) {
+            $payload['address_line_1'] = $data['address_line_1'] ?? $data['street'];
+        }
+
+        if (array_key_exists('address_line_2', $data) || array_key_exists('district', $data)) {
+            $payload['address_line_2'] = $data['address_line_2'] ?? $data['district'];
+        }
+
+        if (array_key_exists('city', $data)) {
+            $payload['city'] = $data['city'];
+        }
+
+        if (array_key_exists('state', $data) && Address::hasSchemaColumn('state')) {
+            $payload['state'] = $data['state'];
+        }
+
+        if (array_key_exists('postal_code', $data)) {
+            $payload['postal_code'] = $data['postal_code'];
+        }
+
+        if (array_key_exists('country', $data)) {
+            $payload['country'] = $data['country'];
+        }
+
+        $defaultFlag = null;
+        if (array_key_exists('is_default_sender', $data)) {
+            $defaultFlag = (bool) $data['is_default_sender'];
+        } elseif (array_key_exists('is_default', $data)) {
+            $defaultFlag = (bool) $data['is_default'];
+        }
+
+        if ($defaultFlag !== null) {
+            $payload[Address::defaultSenderColumn()] = $defaultFlag;
+        }
+
+        return $payload;
+    }
+
+    private function clearDefaultSenderFlag(string $accountId, ?string $exceptId = null): void
+    {
+        $query = Address::where('account_id', $accountId);
+
+        if ($exceptId !== null) {
+            $query->where('id', '!=', $exceptId);
+        }
+
+        $updates = ['is_default' => false];
+        if (Address::hasSchemaColumn('is_default_sender')) {
+            $updates['is_default_sender'] = false;
+        }
+
+        $query->where(Address::defaultSenderColumn(), true)->update($updates);
     }
 
     // ═══════════════════════════════════════════════════════════════

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Exceptions\BusinessException;
 use App\Http\Controllers\Controller;
 use App\Models\Account;
+use App\Models\Address;
 use App\Models\BillingWallet;
 use App\Models\CarrierError;
 use App\Models\ContentDeclaration;
@@ -865,11 +866,20 @@ class PortalWorkspaceController extends Controller
         $config = $this->shipmentPortalConfig($portal);
         $draftId = trim((string) request()->query('draft', ''));
         $cloneId = trim((string) request()->query('clone', ''));
+        $senderAddressQuery = trim((string) request()->query('sender_address', ''));
+        $recipientAddressQuery = trim((string) request()->query('recipient_address', ''));
 
         $draftShipment = null;
         $cloneSourceShipment = null;
         $cloneFormDefaults = [];
         $cloneDropsAdditionalParcels = false;
+        $addressFormDefaults = [];
+        $selectedSenderAddress = null;
+        $selectedRecipientAddress = null;
+        $canViewAddressBook = auth()->user()?->can('viewAny', Address::class) ?? false;
+        $canManageAddressBook = auth()->user()?->can('create', Address::class) ?? false;
+        $senderAddresses = collect();
+        $recipientAddresses = collect();
 
         if ($draftId !== '') {
             $draftShipment = Shipment::query()
@@ -890,6 +900,32 @@ class PortalWorkspaceController extends Controller
             $cloneDropsAdditionalParcels = $cloneSourceShipment->parcels->count() > 1;
         }
 
+        if (($senderAddressQuery !== '' || $recipientAddressQuery !== '') && ! $canViewAddressBook) {
+            abort(403);
+        }
+
+        if ($canViewAddressBook) {
+            $shipmentService = app(\App\Services\ShipmentService::class);
+            $senderAddresses = $shipmentService->listAddresses($accountId, 'sender');
+            $recipientAddresses = $shipmentService->listAddresses($accountId, 'recipient');
+
+            if ($senderAddressQuery !== '') {
+                $selectedSenderAddress = $shipmentService->findAddress($accountId, $senderAddressQuery, 'sender');
+                $addressFormDefaults = array_merge(
+                    $addressFormDefaults,
+                    $this->buildAddressFormDefaults($selectedSenderAddress, 'sender')
+                );
+            }
+
+            if ($recipientAddressQuery !== '') {
+                $selectedRecipientAddress = $shipmentService->findAddress($accountId, $recipientAddressQuery, 'recipient');
+                $addressFormDefaults = array_merge(
+                    $addressFormDefaults,
+                    $this->buildAddressFormDefaults($selectedRecipientAddress, 'recipient')
+                );
+            }
+        }
+
         $recentDrafts = Shipment::query()
             ->where('account_id', $accountId)
             ->latest()
@@ -902,6 +938,13 @@ class PortalWorkspaceController extends Controller
             'cloneSourceShipment' => $cloneSourceShipment,
             'cloneFormDefaults' => $cloneFormDefaults,
             'cloneDropsAdditionalParcels' => $cloneDropsAdditionalParcels,
+            'addressFormDefaults' => $addressFormDefaults,
+            'selectedSenderAddress' => $selectedSenderAddress,
+            'selectedRecipientAddress' => $selectedRecipientAddress,
+            'senderAddresses' => $senderAddresses,
+            'recipientAddresses' => $recipientAddresses,
+            'canViewAddressBook' => $canViewAddressBook,
+            'canManageAddressBook' => $canManageAddressBook,
             'portal' => $portal,
             'portalConfig' => $config,
             'recentDrafts' => $recentDrafts,
@@ -918,6 +961,7 @@ class PortalWorkspaceController extends Controller
         $accountId = (string) $account->id;
         $config = $this->shipmentPortalConfig($portal);
         $data = $this->validateShipmentDraftPayload($request);
+        $data = $this->safeguardSelectedShipmentAddresses($accountId, $data);
 
         $shipment = app(\App\Services\ShipmentService::class)->createDirect($accountId, $data, $request->user());
 
@@ -1703,15 +1747,21 @@ class PortalWorkspaceController extends Controller
 
         return [
             'sender_name' => (string) ($shipment->sender_name ?? ''),
+            'sender_company' => $this->nullableCloneString($shipment->sender_company ?? null),
             'sender_phone' => (string) ($shipment->sender_phone ?? ''),
+            'sender_email' => $this->nullableCloneString($shipment->sender_email ?? null),
             'sender_address_1' => (string) ($shipment->sender_address_1 ?? $shipment->sender_address ?? ''),
+            'sender_address_2' => $this->nullableCloneString($shipment->sender_address_2 ?? null),
             'sender_city' => (string) ($shipment->sender_city ?? ''),
             'sender_state' => $this->normalizeCloneState($shipment->sender_country ?? null, $shipment->sender_state ?? null),
             'sender_postal_code' => $this->nullableCloneString($shipment->sender_postal_code ?? null),
             'sender_country' => $this->normalizeCloneCountry($shipment->sender_country ?? null) ?? 'SA',
             'recipient_name' => (string) ($shipment->recipient_name ?? ''),
+            'recipient_company' => $this->nullableCloneString($shipment->recipient_company ?? null),
             'recipient_phone' => (string) ($shipment->recipient_phone ?? ''),
+            'recipient_email' => $this->nullableCloneString($shipment->recipient_email ?? null),
             'recipient_address_1' => (string) ($shipment->recipient_address_1 ?? $shipment->recipient_address ?? ''),
+            'recipient_address_2' => $this->nullableCloneString($shipment->recipient_address_2 ?? null),
             'recipient_city' => (string) ($shipment->recipient_city ?? ''),
             'recipient_state' => $this->normalizeCloneState($shipment->recipient_country ?? null, $shipment->recipient_state ?? null),
             'recipient_postal_code' => $this->nullableCloneString($shipment->recipient_postal_code ?? null),
@@ -1722,6 +1772,26 @@ class PortalWorkspaceController extends Controller
                 'width' => $firstParcel?->width !== null ? (string) $firstParcel->width : null,
                 'height' => $firstParcel?->height !== null ? (string) $firstParcel->height : null,
             ]],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildAddressFormDefaults(Address $address, string $prefix): array
+    {
+        return [
+            $prefix . '_name' => (string) ($address->contact_name ?? ''),
+            $prefix . '_company' => $this->nullableCloneString($address->company_name ?? null),
+            $prefix . '_phone' => (string) ($address->phone ?? ''),
+            $prefix . '_email' => $this->nullableCloneString($address->email ?? null),
+            $prefix . '_address_1' => (string) ($address->address_line_1 ?? ''),
+            $prefix . '_address_2' => $this->nullableCloneString($address->address_line_2 ?? null),
+            $prefix . '_city' => (string) ($address->city ?? ''),
+            $prefix . '_state' => $this->normalizeCloneState($address->country ?? null, $address->state ?? null),
+            $prefix . '_postal_code' => $this->nullableCloneString($address->postal_code ?? null),
+            $prefix . '_country' => $this->normalizeCloneCountry($address->country ?? null) ?? 'SA',
+            $prefix . '_address_id' => (string) $address->id,
         ];
     }
 
@@ -1756,6 +1826,80 @@ class PortalWorkspaceController extends Controller
     }
 
     /**
+     * @param array<string, mixed> $data
+     * @return array<string, mixed>
+     */
+    private function safeguardSelectedShipmentAddresses(string $accountId, array $data): array
+    {
+        $shipmentService = app(\App\Services\ShipmentService::class);
+
+        foreach (['sender', 'recipient'] as $prefix) {
+            $addressId = trim((string) ($data[$prefix . '_address_id'] ?? ''));
+
+            if ($addressId === '') {
+                $data[$prefix . '_address_id'] = null;
+                continue;
+            }
+
+            $address = $shipmentService->findAddress($accountId, $addressId, $prefix);
+
+            if (! $this->selectedAddressStillMatchesSubmittedFields($address, $data, $prefix)) {
+                $data[$prefix . '_address_id'] = null;
+            }
+        }
+
+        return $data;
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     */
+    private function selectedAddressStillMatchesSubmittedFields(Address $address, array $data, string $prefix): bool
+    {
+        return $this->submittedShipmentAddressComparable($data, $prefix)
+            === $this->savedShipmentAddressComparable($address);
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     * @return array<string, ?string>
+     */
+    private function submittedShipmentAddressComparable(array $data, string $prefix): array
+    {
+        return [
+            'contact_name' => trim((string) ($data[$prefix . '_name'] ?? '')),
+            'company_name' => $this->nullableCloneString($data[$prefix . '_company'] ?? null),
+            'phone' => trim((string) ($data[$prefix . '_phone'] ?? '')),
+            'email' => $this->nullableCloneString($data[$prefix . '_email'] ?? null),
+            'address_line_1' => trim((string) ($data[$prefix . '_address_1'] ?? '')),
+            'address_line_2' => $this->nullableCloneString($data[$prefix . '_address_2'] ?? null),
+            'city' => trim((string) ($data[$prefix . '_city'] ?? '')),
+            'state' => $this->normalizeCloneState($data[$prefix . '_country'] ?? null, $data[$prefix . '_state'] ?? null),
+            'postal_code' => $this->nullableCloneString($data[$prefix . '_postal_code'] ?? null),
+            'country' => $this->normalizeCloneCountry($data[$prefix . '_country'] ?? null),
+        ];
+    }
+
+    /**
+     * @return array<string, ?string>
+     */
+    private function savedShipmentAddressComparable(Address $address): array
+    {
+        return [
+            'contact_name' => trim((string) ($address->contact_name ?? '')),
+            'company_name' => $this->nullableCloneString($address->company_name ?? null),
+            'phone' => trim((string) ($address->phone ?? '')),
+            'email' => $this->nullableCloneString($address->email ?? null),
+            'address_line_1' => trim((string) ($address->address_line_1 ?? '')),
+            'address_line_2' => $this->nullableCloneString($address->address_line_2 ?? null),
+            'city' => trim((string) ($address->city ?? '')),
+            'state' => $this->normalizeCloneState($address->country ?? null, $address->state ?? null),
+            'postal_code' => $this->nullableCloneString($address->postal_code ?? null),
+            'country' => $this->normalizeCloneCountry($address->country ?? null),
+        ];
+    }
+
+    /**
      * @return array<string, string>
      */
         private function shipmentPortalConfig(string $portal): array
@@ -1777,6 +1921,8 @@ class PortalWorkspaceController extends Controller
                 'show_route' => 'b2c.shipments.show',
                 'preflight_route' => 'b2c.shipments.preflight',
                 'issue_route' => 'b2c.shipments.issue',
+                'addresses_index_route' => 'b2c.addresses.index',
+                'addresses_create_route' => 'b2c.addresses.create',
             ],
             'b2b' => [
                 'label' => __('portal_shipments.workflow.b2b.label'),
@@ -1794,6 +1940,8 @@ class PortalWorkspaceController extends Controller
                 'show_route' => 'b2b.shipments.show',
                 'preflight_route' => 'b2b.shipments.preflight',
                 'issue_route' => 'b2b.shipments.issue',
+                'addresses_index_route' => 'b2b.addresses.index',
+                'addresses_create_route' => 'b2b.addresses.create',
             ],
             default => abort(404),
         };
