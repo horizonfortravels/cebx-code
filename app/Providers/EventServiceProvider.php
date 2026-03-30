@@ -6,6 +6,8 @@ use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvi
 class EventServiceProvider extends ServiceProvider
 {
     protected $listen = [
+        \App\Events\InvitationCreated::class => [\App\Listeners\SendInvitationEmailListener::class],
+        \App\Events\InvitationResent::class => [\App\Listeners\SendInvitationEmailListener::class],
         \App\Events\ShipmentCreated::class => [\App\Listeners\NotifyShipmentCreated::class, \App\Listeners\LogShipmentCreated::class],
         \App\Events\ShipmentStatusChanged::class => [\App\Listeners\NotifyStatusChange::class, \App\Listeners\UpdateTrackingTimeline::class],
         \App\Events\OrderCreated::class => [\App\Listeners\NotifyOrderCreated::class],

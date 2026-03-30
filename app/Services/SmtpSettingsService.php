@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Notification;
 use App\Models\SystemSetting;
+use Illuminate\Contracts\Mail\Mailable as MailableContract;
 use Illuminate\Mail\MailManager;
 use Illuminate\Mail\Mailer;
 use Illuminate\Support\Facades\Log;
@@ -157,6 +158,27 @@ class SmtpSettingsService
                     $message->subject($subject !== '' ? $subject : 'CBEX Notification');
                 }
             );
+        } catch (Throwable $exception) {
+            throw $this->sanitizedTransportException(
+                $exception,
+                'Email transport failed. Verify SMTP settings and connectivity.'
+            );
+        }
+
+        return $sent?->getMessageId();
+    }
+
+    public function sendMailable(string $destination, MailableContract $mailable): ?string
+    {
+        $destination = trim($destination);
+        if ($destination === '') {
+            throw new RuntimeException('Mailable destination is missing.');
+        }
+
+        try {
+            $sent = $this->resolveMailer()
+                ->to($destination)
+                ->send($mailable);
         } catch (Throwable $exception) {
             throw $this->sanitizedTransportException(
                 $exception,

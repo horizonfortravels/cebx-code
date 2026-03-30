@@ -34,15 +34,33 @@ class ShipmentNotificationFanoutService
             return [];
         }
 
-        return $this->notifications->storeInAppProjection(
+        $eventData = $this->buildEventData($shipment, $event, $notificationEvent);
+
+        $inApp = $this->notifications->storeInAppProjection(
             $notificationEvent,
             $shipment->account,
-            $this->buildEventData($shipment, $event, $notificationEvent),
+            $eventData,
             'shipment',
             (string) $shipment->id,
             $recipientIds,
             (string) $event->id
         );
+
+        if (! $this->supportsEmailProjection($notificationEvent)) {
+            return $inApp;
+        }
+
+        $email = $this->notifications->storeShipmentEmailProjection(
+            $notificationEvent,
+            $shipment->account,
+            $eventData,
+            'shipment',
+            (string) $shipment->id,
+            $recipientIds,
+            (string) $event->id
+        );
+
+        return array_merge($inApp, $email);
     }
 
     private function resolveNotificationEvent(ShipmentEvent $event): ?string
@@ -150,5 +168,13 @@ class ShipmentNotificationFanoutService
             Notification::EVENT_SHIPMENT_RETURNED => 'تمت إعادة الشحنة' . $suffix,
             default => (string) ($event->description ?? $event->eventTypeLabel()),
         };
+    }
+
+    private function supportsEmailProjection(string $notificationEvent): bool
+    {
+        return in_array($notificationEvent, [
+            Notification::EVENT_SHIPMENT_PURCHASED,
+            Notification::EVENT_SHIPMENT_DOCUMENTS_AVAILABLE,
+        ], true);
     }
 }

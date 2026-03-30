@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Account;
 use App\Models\Notification;
 use App\Models\Shipment;
+use App\Models\SystemSetting;
 use App\Models\User;
 use App\Services\ShipmentNotificationFanoutService;
 use App\Services\ShipmentTimelineService;
@@ -12,10 +13,13 @@ use Database\Seeders\NotificationTemplateSeeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Tests\Support\LocalSmtpSink;
 use Tests\TestCase;
 
 class ShipmentNotificationFanoutApiTest extends TestCase
 {
+    private ?LocalSmtpSink $smtpSink = null;
+
     protected function setUp(): void
     {
         parent::setUp();
@@ -23,8 +27,18 @@ class ShipmentNotificationFanoutApiTest extends TestCase
         $this->seed(NotificationTemplateSeeder::class);
     }
 
+    protected function tearDown(): void
+    {
+        $this->smtpSink?->close();
+
+        parent::tearDown();
+    }
+
     public function test_purchased_event_creates_in_app_notifications_for_same_tenant_external_users(): void
     {
+        $sink = $this->startSmtpSink();
+        $this->configureStoredSmtp($sink->port());
+
         [$account, $owner, $admin] = $this->createOrganizationAudience();
         $shipment = $this->createShipment($account, $owner);
 
@@ -38,7 +52,9 @@ class ShipmentNotificationFanoutApiTest extends TestCase
             'idempotency_key' => 'purchased:' . $shipment->id,
         ]);
 
-        $this->assertDatabaseCount('notifications', 2);
+        $messages = $sink->waitForMessages(2);
+
+        $this->assertDatabaseCount('notifications', 4);
         $this->assertDatabaseHas('notifications', [
             'account_id' => (string) $account->id,
             'user_id' => (string) $owner->id,
@@ -57,14 +73,28 @@ class ShipmentNotificationFanoutApiTest extends TestCase
             'entity_type' => 'shipment',
             'entity_id' => (string) $shipment->id,
         ]);
-        $this->assertDatabaseMissing('notifications', [
+        $this->assertDatabaseHas('notifications', [
             'shipment_event_id' => (string) $event->id,
             'channel' => Notification::CHANNEL_EMAIL,
+            'user_id' => (string) $owner->id,
+            'status' => Notification::STATUS_SENT,
         ]);
+        $this->assertDatabaseHas('notifications', [
+            'shipment_event_id' => (string) $event->id,
+            'channel' => Notification::CHANNEL_EMAIL,
+            'user_id' => (string) $admin->id,
+            'status' => Notification::STATUS_SENT,
+        ]);
+        $joined = implode("\n", $messages);
+        $this->assertStringContainsString($owner->email, $joined);
+        $this->assertStringContainsString($admin->email, $joined);
     }
 
     public function test_documents_available_event_creates_linked_in_app_notification(): void
     {
+        $sink = $this->startSmtpSink();
+        $this->configureStoredSmtp($sink->port());
+
         [$account, $owner] = $this->createOrganizationAudience();
         $shipment = $this->createShipment($account, $owner);
 
@@ -78,6 +108,8 @@ class ShipmentNotificationFanoutApiTest extends TestCase
             'idempotency_key' => 'documents:' . $shipment->id,
         ]);
 
+        $messages = $sink->waitForMessages(2);
+
         $this->assertDatabaseHas('notifications', [
             'account_id' => (string) $account->id,
             'user_id' => (string) $owner->id,
@@ -85,10 +117,13 @@ class ShipmentNotificationFanoutApiTest extends TestCase
             'event_type' => Notification::EVENT_SHIPMENT_DOCUMENTS_AVAILABLE,
             'channel' => Notification::CHANNEL_IN_APP,
         ]);
-        $this->assertDatabaseMissing('notifications', [
+        $this->assertDatabaseHas('notifications', [
             'shipment_event_id' => (string) $event->id,
             'channel' => Notification::CHANNEL_EMAIL,
+            'user_id' => (string) $owner->id,
+            'status' => Notification::STATUS_SENT,
         ]);
+        $this->assertStringContainsString($owner->email, implode("\n", $messages));
     }
 
     public function test_delivered_event_creates_notification_visible_in_existing_api_surface(): void
@@ -140,20 +175,25 @@ class ShipmentNotificationFanoutApiTest extends TestCase
         ]);
     }
 
-    public function test_replaying_the_same_shipment_event_does_not_create_duplicate_notifications(): void
+    public function test_replaying_the_same_selected_shipment_event_does_not_create_duplicate_emails_or_notifications(): void
     {
+        $sink = $this->startSmtpSink();
+        $this->configureStoredSmtp($sink->port());
+
         [$account, $owner, $admin] = $this->createOrganizationAudience();
         $shipment = $this->createShipment($account, $owner);
 
         $event = app(ShipmentTimelineService::class)->record($shipment, [
-            'event_type' => 'tracking.status_updated',
-            'status' => 'delivered',
-            'normalized_status' => 'delivered',
-            'description' => 'Shipment delivered.',
+            'event_type' => 'shipment.purchased',
+            'status' => 'purchased',
+            'normalized_status' => 'purchased',
+            'description' => 'Shipment purchased.',
             'event_at' => now(),
-            'source' => 'carrier',
-            'idempotency_key' => 'delivered:' . $shipment->id,
+            'source' => 'system',
+            'idempotency_key' => 'purchased-replay:' . $shipment->id,
         ]);
+
+        $sink->waitForMessages(2);
 
         app(ShipmentNotificationFanoutService::class)->fanout(
             $shipment->fresh(['account']),
@@ -167,6 +207,13 @@ class ShipmentNotificationFanoutApiTest extends TestCase
                 ->where('channel', Notification::CHANNEL_IN_APP)
                 ->count()
         );
+        $this->assertSame(
+            2,
+            Notification::query()
+                ->where('shipment_event_id', (string) $event->id)
+                ->where('channel', Notification::CHANNEL_EMAIL)
+                ->count()
+        );
         $this->assertDatabaseHas('notifications', [
             'shipment_event_id' => (string) $event->id,
             'user_id' => (string) $owner->id,
@@ -177,10 +224,14 @@ class ShipmentNotificationFanoutApiTest extends TestCase
             'user_id' => (string) $admin->id,
             'channel' => Notification::CHANNEL_IN_APP,
         ]);
+        $this->assertCount(2, $sink->messages());
     }
 
     public function test_shipment_notification_projection_runs_after_commit(): void
     {
+        $sink = $this->startSmtpSink();
+        $this->configureStoredSmtp($sink->port());
+
         [$account, $owner] = $this->createOrganizationAudience();
         $shipment = $this->createShipment($account, $owner);
         $event = null;
@@ -205,10 +256,18 @@ class ShipmentNotificationFanoutApiTest extends TestCase
             'shipment_event_id' => (string) $event->id,
             'channel' => Notification::CHANNEL_IN_APP,
         ]);
+        $this->assertDatabaseHas('notifications', [
+            'shipment_event_id' => (string) $event->id,
+            'channel' => Notification::CHANNEL_EMAIL,
+        ]);
+        $this->assertCount(2, $sink->waitForMessages(2));
     }
 
     public function test_rolled_back_shipment_event_does_not_persist_notification_projection(): void
     {
+        $sink = $this->startSmtpSink();
+        $this->configureStoredSmtp($sink->port());
+
         [$account, $owner] = $this->createOrganizationAudience();
         $shipment = $this->createShipment($account, $owner);
         $eventId = null;
@@ -252,6 +311,7 @@ class ShipmentNotificationFanoutApiTest extends TestCase
             'entity_id' => (string) $shipment->id,
             'channel' => Notification::CHANNEL_IN_APP,
         ]);
+        $this->assertCount(0, $sink->messages());
     }
 
     public function test_same_account_internal_users_do_not_receive_shipment_notifications(): void
@@ -366,5 +426,23 @@ class ShipmentNotificationFanoutApiTest extends TestCase
         }
 
         return Shipment::factory()->purchased()->create($attributes);
+    }
+
+    private function startSmtpSink(): LocalSmtpSink
+    {
+        $this->smtpSink = LocalSmtpSink::start();
+
+        return $this->smtpSink;
+    }
+
+    private function configureStoredSmtp(int $port): void
+    {
+        SystemSetting::setValue('smtp', 'enabled', 'true', 'boolean');
+        SystemSetting::setValue('smtp', 'host', '127.0.0.1');
+        SystemSetting::setValue('smtp', 'port', $port, 'integer');
+        SystemSetting::setValue('smtp', 'encryption', 'none');
+        SystemSetting::setValue('smtp', 'from_name', 'CBEX Ops');
+        SystemSetting::setValue('smtp', 'from_address', 'ops@example.test');
+        SystemSetting::setValue('smtp', 'timeout', 15, 'integer');
     }
 }

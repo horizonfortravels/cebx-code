@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Exceptions\BusinessException;
+use App\Jobs\SendNotificationEmailJob;
 use App\Models\Account;
 use App\Models\Notification;
 use App\Models\NotificationChannel;
@@ -124,6 +125,70 @@ class NotificationService
     }
 
     /**
+     * Store deterministic email notifications for shipment events and queue delivery.
+     *
+     * @param  array<int, string>  $recipientUserIds
+     * @return array<int, \App\Models\Notification>
+     */
+    public function storeShipmentEmailProjection(
+        string $eventType,
+        Account $account,
+        array $eventData = [],
+        ?string $entityType = null,
+        ?string $entityId = null,
+        array $recipientUserIds = [],
+        ?string $shipmentEventId = null,
+    ): array {
+        $results = [];
+
+        if ($recipientUserIds === [] || $shipmentEventId === null || trim($shipmentEventId) === '') {
+            return $results;
+        }
+
+        $users = User::query()
+            ->whereIn('id', $recipientUserIds)
+            ->where('account_id', $account->id)
+            ->get();
+
+        foreach ($users as $user) {
+            $notification = $this->storeShipmentEmailNotification(
+                $user,
+                $account,
+                $eventType,
+                $eventData,
+                $entityType,
+                $entityId,
+                $shipmentEventId
+            );
+
+            if ($notification instanceof Notification) {
+                $results[] = $notification;
+            }
+        }
+
+        return $results;
+    }
+
+    public function sendQueuedEmailNotification(string $notificationId): void
+    {
+        $notification = Notification::query()->find($notificationId);
+
+        if (! $notification instanceof Notification) {
+            return;
+        }
+
+        if ($notification->channel !== Notification::CHANNEL_EMAIL) {
+            return;
+        }
+
+        if (in_array((string) $notification->status, [Notification::STATUS_SENT, Notification::STATUS_DELIVERED], true)) {
+            return;
+        }
+
+        $this->send($notification);
+    }
+
+    /**
      * Send to a specific channel for a user.
      */
     private function sendToChannel(
@@ -242,6 +307,75 @@ class NotificationService
                 ->where($uniqueAttributes)
                 ->first();
         }
+    }
+
+    private function storeShipmentEmailNotification(
+        User $user,
+        Account $account,
+        string $eventType,
+        array $eventData,
+        ?string $entityType,
+        ?string $entityId,
+        ?string $shipmentEventId
+    ): ?Notification {
+        if ($shipmentEventId === null || trim($shipmentEventId) === '') {
+            return null;
+        }
+
+        $channel = Notification::CHANNEL_EMAIL;
+        $enabled = NotificationPreference::isEnabled((string) $user->id, $eventType, $channel);
+        if ($enabled === false) {
+            return null;
+        }
+
+        $destination = $this->resolveDestination($user, $channel, $eventType);
+        if (! is_string($destination) || trim($destination) === '') {
+            return null;
+        }
+
+        $language = $this->resolveLanguage($user, $account, $eventType, $channel);
+        $template = NotificationTemplate::resolve($eventType, $channel, $language, (string) $account->id);
+        $content = $this->renderContent($template, $eventData, $user, $account, $eventType);
+
+        $uniqueAttributes = [
+            'shipment_event_id' => $shipmentEventId,
+            'user_id' => (string) $user->id,
+            'channel' => $channel,
+        ];
+
+        $values = [
+            'account_id' => (string) $account->id,
+            'event_type' => $eventType,
+            'entity_type' => $entityType,
+            'entity_id' => $entityId,
+            'event_data' => $eventData,
+            'destination' => $destination,
+            'language' => $language,
+            'subject' => $content['subject'],
+            'body' => $content['body'],
+            'template_id' => $template?->id,
+            'status' => Notification::STATUS_QUEUED,
+            'provider' => $this->resolveProvider($account, $channel),
+        ];
+
+        try {
+            $notification = Notification::query()->firstOrCreate($uniqueAttributes, $values);
+        } catch (QueryException $e) {
+            if (! $this->isUniqueConstraintViolation($e)) {
+                throw $e;
+            }
+
+            $notification = Notification::query()
+                ->where($uniqueAttributes)
+                ->first();
+        }
+
+        if ($notification instanceof Notification && $notification->wasRecentlyCreated) {
+            SendNotificationEmailJob::dispatch((string) $notification->id)
+                ->onQueue('notifications-email');
+        }
+
+        return $notification;
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -489,13 +623,13 @@ class NotificationService
     private function renderContent(
         ?NotificationTemplate $template,
         array $eventData,
-        User $user,
+        ?User $user,
         Account $account,
         string $eventType
     ): array {
         if ($template) {
             return $template->render(array_merge($eventData, [
-                'user_name' => $user->name,
+                'user_name' => $user?->name ?? (string) ($eventData['user_name'] ?? $eventData['recipient_name'] ?? ''),
                 'account_name' => $account->name,
             ]));
         }

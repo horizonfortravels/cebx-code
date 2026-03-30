@@ -3,15 +3,46 @@
 namespace App\Listeners;
 
 use App\Events\InvitationCreated;
+use App\Events\InvitationResent;
+use App\Mail\InvitationMail;
 use App\Models\AuditLog;
-use Illuminate\Contracts\Queue\ShouldQueue;
+use App\Models\Invitation;
+use App\Models\User;
+use App\Services\SmtpSettingsService;
+use Illuminate\Contracts\Queue\ShouldQueueAfterCommit;
 use Illuminate\Support\Facades\Schema;
 
-class SendInvitationEmailListener implements ShouldQueue
+class SendInvitationEmailListener implements ShouldQueueAfterCommit
 {
-    public function handle(InvitationCreated $event): void
+    public string $queue = 'notifications-email';
+
+    public function __construct(private SmtpSettingsService $smtpSettings)
     {
-        $invitation = $event->invitation;
+    }
+
+    public function handle(InvitationCreated|InvitationResent $event): void
+    {
+        $invitation = Invitation::withoutGlobalScopes()
+            ->with('account')
+            ->find($event->invitation->id);
+
+        if (! $invitation instanceof Invitation || ! $invitation->isPending()) {
+            return;
+        }
+
+        $actor = $this->resolveActor($event);
+
+        $this->smtpSettings->sendMailable(
+            $invitation->email,
+            new InvitationMail(
+                email: $invitation->email,
+                roleName: $this->resolveRoleName($invitation),
+                inviterName: $actor?->name ?? config('app.name', 'CBEX Shipping Gateway'),
+                organizationName: (string) ($invitation->account?->name ?? config('app.name', 'CBEX Shipping Gateway')),
+                acceptUrl: url('/api/v1/invitations/preview/' . $invitation->token),
+                expiresAt: (string) ($invitation->expires_at?->toIso8601String() ?? now()->addDays(3)->toIso8601String()),
+            )
+        );
 
         // Log the invitation send attempt
         $payload = [];
@@ -21,7 +52,7 @@ class SendInvitationEmailListener implements ShouldQueue
         }
 
         if (Schema::hasColumn('audit_logs', 'user_id')) {
-            $payload['user_id'] = $event->inviter->id;
+            $payload['user_id'] = $actor?->id;
         }
 
         if (Schema::hasColumn('audit_logs', 'action')) {
@@ -65,9 +96,24 @@ class SendInvitationEmailListener implements ShouldQueue
         }
 
         AuditLog::withoutGlobalScopes()->create($payload);
+    }
 
-        // TODO: Send actual email via Mail facade
-        // Mail::to($invitation->email)->queue(new InvitationMail($invitation));
-        // For now, logged for async processing.
+    private function resolveActor(InvitationCreated|InvitationResent $event): ?User
+    {
+        return $event instanceof InvitationCreated
+            ? $event->inviter
+            : $event->resentBy;
+    }
+
+    private function resolveRoleName(Invitation $invitation): string
+    {
+        $role = $invitation->resolvedRole();
+        if ($role !== null) {
+            return (string) ($role->display_name ?: $role->name ?: $role->slug);
+        }
+
+        $roleName = trim((string) ($invitation->getAttribute('role_name') ?? ''));
+
+        return $roleName !== '' ? $roleName : 'عضو';
     }
 }
