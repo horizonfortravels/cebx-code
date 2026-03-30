@@ -13,16 +13,9 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (
-            Schema::hasTable('addresses')
-            && Schema::hasTable('shipments')
-            && Schema::hasTable('parcels')
-            && Schema::hasTable('shipment_status_history')
-        ) {
-            return;
-        }
 
         // ── Address Book (FR-SH-004) ─────────────────────────────
+        if (! Schema::hasTable('addresses')) {
         Schema::create('addresses', function (Blueprint $table) {
             $table->uuid('id')->primary();
             $table->uuid('account_id');
@@ -50,6 +43,7 @@ return new class extends Migration
             $table->index(['account_id', 'type']);
             // FK omitted: accounts.id may be bigint on server
         });
+        }
 
         // ── Shipments (FR-SH-001/002/006) ────────────────────────
         if (! Schema::hasTable('shipments')) {
@@ -241,9 +235,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('shipment_status_history');
-        Schema::dropIfExists('parcels');
-        Schema::dropIfExists('shipments');
-        Schema::dropIfExists('addresses');
+        // Forward-only safety: this historical migration can run against legacy
+        // shared tables that it did not create, so ownership-blind drops are unsafe.
     }
 };
