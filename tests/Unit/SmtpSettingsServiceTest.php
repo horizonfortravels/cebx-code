@@ -110,7 +110,16 @@ class SmtpSettingsServiceTest extends TestCase
     public function stored_connection_failures_are_sanitized_in_user_message_and_logs(): void
     {
         $this->seedStoredSettings();
-        Log::fake();
+        Log::shouldReceive('warning')
+            ->once()
+            ->withArgs(function (string $message, array $context): bool {
+                $encoded = json_encode($context);
+
+                return $message === 'smtp.transport_failed'
+                    && ($context['host'] ?? null) === 'smtp.internal.test'
+                    && ! str_contains((string) $encoded, 'mailer-user')
+                    && ! str_contains((string) $encoded, 'super-secret-pass');
+            });
 
         $transport = Mockery::mock(SmtpTransport::class);
         $transport->shouldReceive('start')
@@ -141,15 +150,6 @@ class SmtpSettingsServiceTest extends TestCase
             $this->assertStringNotContainsString('mailer-user', $exception->getMessage());
             $this->assertStringNotContainsString('super-secret-pass', $exception->getMessage());
         }
-
-        Log::assertLogged('warning', function (string $message, array $context): bool {
-            $encoded = json_encode($context);
-
-            return $message === 'smtp.transport_failed'
-                && ($context['host'] ?? null) === 'smtp.internal.test'
-                && ! str_contains((string) $encoded, 'mailer-user')
-                && ! str_contains((string) $encoded, 'super-secret-pass');
-        });
     }
 
     #[\PHPUnit\Framework\Attributes\Test]
