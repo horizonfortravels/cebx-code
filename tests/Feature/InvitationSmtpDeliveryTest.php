@@ -45,12 +45,13 @@ class InvitationSmtpDeliveryTest extends TestCase
         ], $owner);
 
         $messages = $sink->waitForMessages(1);
+        $body = $this->decodedBody($messages[0]);
 
         $this->assertCount(1, $messages);
-        $this->assertStringContainsString('invitee@example.test', $messages[0]);
-        $this->assertStringContainsString('Acme Logistics', $messages[0]);
-        $this->assertStringContainsString((string) $invitation->token, $messages[0]);
-        $this->assertStringContainsString('/api/v1/invitations/preview/' . $invitation->token, $messages[0]);
+        $this->assertStringContainsString('invitee@example.test', $body);
+        $this->assertStringContainsString('Acme Logistics', $body);
+        $this->assertStringContainsString((string) $invitation->token, $body);
+        $this->assertStringContainsString('/api/v1/invitations/preview/' . $invitation->token, $body);
     }
 
     #[\PHPUnit\Framework\Attributes\Test]
@@ -97,15 +98,18 @@ class InvitationSmtpDeliveryTest extends TestCase
 
         $firstMessages = $sink->waitForMessages(1);
         $firstToken = (string) $invitation->token;
+        $firstBody = $this->decodedBody($firstMessages[0]);
 
         $resent = app(InvitationService::class)->resendInvitation((string) $invitation->id, $owner);
         $messages = $sink->waitForMessages(2);
+        $resentBody = $this->decodedBody($messages[1]);
 
         $this->assertCount(2, $messages);
-        $this->assertStringContainsString($firstToken, $firstMessages[0]);
+        $this->assertStringContainsString($firstToken, $firstBody);
         $this->assertNotSame($firstToken, (string) $resent->token);
-        $this->assertStringContainsString((string) $resent->token, $messages[1]);
-        $this->assertStringNotContainsString($firstToken, $messages[1]);
+        $this->assertStringContainsString((string) $resent->token, $resentBody);
+        $this->assertStringContainsString('/api/v1/invitations/preview/' . $resent->token, $resentBody);
+        $this->assertStringNotContainsString($firstToken, $resentBody);
         $this->assertSame(2, (int) $resent->send_count);
     }
 
@@ -139,5 +143,47 @@ class InvitationSmtpDeliveryTest extends TestCase
         SystemSetting::setValue('smtp', 'from_name', 'CBEX Ops');
         SystemSetting::setValue('smtp', 'from_address', 'ops@example.test');
         SystemSetting::setValue('smtp', 'timeout', 15, 'integer');
+    }
+
+    private function decodedBody(string $rawMessage): string
+    {
+        [$headers, $body] = $this->splitMessage($rawMessage);
+        $encoding = strtolower((string) $this->headerValue($headers, 'Content-Transfer-Encoding'));
+
+        if ($encoding === 'quoted-printable') {
+            $body = quoted_printable_decode($body);
+        } elseif ($encoding === 'base64') {
+            $decoded = base64_decode(trim($body), true);
+            if (is_string($decoded)) {
+                $body = $decoded;
+            }
+        }
+
+        return str_replace(["\r\n", "\r"], "\n", $body);
+    }
+
+    /**
+     * @return array{0: string, 1: string}
+     */
+    private function splitMessage(string $rawMessage): array
+    {
+        $parts = preg_split("/\r\n\r\n|\n\n|\r\r/", $rawMessage, 2);
+        $parts = is_array($parts) ? $parts : [];
+
+        return [
+            (string) ($parts[0] ?? ''),
+            (string) ($parts[1] ?? ''),
+        ];
+    }
+
+    private function headerValue(string $headers, string $name): ?string
+    {
+        $pattern = '/^' . preg_quote($name, '/') . ':\s*(.+)$/im';
+
+        if (preg_match($pattern, $headers, $matches) !== 1) {
+            return null;
+        }
+
+        return trim($matches[1]);
     }
 }
