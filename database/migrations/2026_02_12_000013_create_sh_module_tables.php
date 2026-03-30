@@ -13,7 +13,12 @@ return new class extends Migration
 {
     public function up(): void
     {
-        if (Schema::hasTable('addresses')) {
+        if (
+            Schema::hasTable('addresses')
+            && Schema::hasTable('shipments')
+            && Schema::hasTable('parcels')
+            && Schema::hasTable('shipment_status_history')
+        ) {
             return;
         }
 
