@@ -8,10 +8,16 @@ class EventServiceProvider extends ServiceProvider
     protected $listen = [
         \App\Events\InvitationCreated::class => [\App\Listeners\SendInvitationEmailListener::class],
         \App\Events\InvitationResent::class => [\App\Listeners\SendInvitationEmailListener::class],
+        \App\Events\UserInvited::class => [\App\Listeners\SendUserInvitationListener::class],
         \App\Events\ShipmentCreated::class => [\App\Listeners\NotifyShipmentCreated::class, \App\Listeners\LogShipmentCreated::class],
         \App\Events\ShipmentStatusChanged::class => [\App\Listeners\NotifyStatusChange::class, \App\Listeners\UpdateTrackingTimeline::class],
         \App\Events\OrderCreated::class => [\App\Listeners\NotifyOrderCreated::class],
         \App\Events\WalletTopup::class => [\App\Listeners\LogWalletTopup::class],
         \App\Events\KycSubmitted::class => [\App\Listeners\NotifyKycSubmission::class],
     ];
+
+    public function shouldDiscoverEvents(): bool
+    {
+        return false;
+    }
 }
