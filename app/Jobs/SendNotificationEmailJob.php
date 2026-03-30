@@ -13,8 +13,6 @@ class SendNotificationEmailJob implements ShouldQueueAfterCommit
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public string $queue = 'notifications-email';
-
     public function __construct(public string $notificationId)
     {
     }
