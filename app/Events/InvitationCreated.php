@@ -13,6 +13,9 @@ class InvitationCreated
 
     public function __construct(
         public Invitation $invitation,
-        public User $inviter
+        public User $inviter,
+        public ?int $sendCountSnapshot = null,
+        public ?string $tokenSnapshot = null,
+        public ?string $expiresAtSnapshot = null,
     ) {}
 }

@@ -13,6 +13,9 @@ class InvitationResent
 
     public function __construct(
         public Invitation $invitation,
-        public User $resentBy
+        public User $resentBy,
+        public ?int $sendCountSnapshot = null,
+        public ?string $tokenSnapshot = null,
+        public ?string $expiresAtSnapshot = null,
     ) {}
 }

@@ -30,6 +30,17 @@ class SendInvitationEmailListener implements ShouldQueueAfterCommit
             return;
         }
 
+        $sendCountSnapshot = $this->resolveSendCountSnapshot($event);
+        $tokenSnapshot = $this->resolveTokenSnapshot($event);
+
+        if (! $this->matchesSendSnapshot($invitation, $sendCountSnapshot, $tokenSnapshot)) {
+            return;
+        }
+
+        if ($this->sendAlreadyLogged($invitation, $sendCountSnapshot, $tokenSnapshot)) {
+            return;
+        }
+
         $actor = $this->resolveActor($event);
 
         $this->smtpSettings->sendMailable(
@@ -83,7 +94,8 @@ class SendInvitationEmailListener implements ShouldQueueAfterCommit
             $payload['new_values'] = [
                 'email' => $invitation->email,
                 'role_id' => $invitation->resolvedRole()?->id,
-                'token' => substr($invitation->token, 0, 8) . '...',
+                'send_count' => $sendCountSnapshot,
+                'token_prefix' => $this->tokenPrefix($tokenSnapshot ?? (string) $invitation->token),
             ];
         }
 
@@ -105,6 +117,78 @@ class SendInvitationEmailListener implements ShouldQueueAfterCommit
             : $event->resentBy;
     }
 
+    private function resolveSendCountSnapshot(InvitationCreated|InvitationResent $event): ?int
+    {
+        return $event->sendCountSnapshot;
+    }
+
+    private function resolveTokenSnapshot(InvitationCreated|InvitationResent $event): ?string
+    {
+        $token = trim((string) ($event->tokenSnapshot ?? ''));
+
+        return $token !== '' ? $token : null;
+    }
+
+    private function matchesSendSnapshot(Invitation $invitation, ?int $sendCountSnapshot, ?string $tokenSnapshot): bool
+    {
+        if ($sendCountSnapshot !== null && (int) ($invitation->send_count ?? 0) !== $sendCountSnapshot) {
+            return false;
+        }
+
+        if ($tokenSnapshot !== null && ! hash_equals($tokenSnapshot, (string) $invitation->token)) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private function sendAlreadyLogged(Invitation $invitation, ?int $sendCountSnapshot, ?string $tokenSnapshot): bool
+    {
+        if (! Schema::hasColumn('audit_logs', 'new_values')) {
+            return false;
+        }
+
+        $query = AuditLog::withoutGlobalScopes();
+
+        if (Schema::hasColumn('audit_logs', 'action')) {
+            $query->where('action', 'invitation.email_sent');
+        } elseif (Schema::hasColumn('audit_logs', 'event')) {
+            $query->where('event', 'invitation.email_sent');
+        } else {
+            return false;
+        }
+
+        if (Schema::hasColumn('audit_logs', 'entity_type')) {
+            $query->where('entity_type', 'Invitation');
+        } elseif (Schema::hasColumn('audit_logs', 'auditable_type')) {
+            $query->where('auditable_type', 'Invitation');
+        }
+
+        if (Schema::hasColumn('audit_logs', 'entity_id')) {
+            $query->where('entity_id', (string) $invitation->id);
+        } elseif (Schema::hasColumn('audit_logs', 'auditable_id') && ctype_digit((string) $invitation->id)) {
+            $query->where('auditable_id', (string) $invitation->id);
+        } else {
+            return false;
+        }
+
+        $expectedTokenPrefix = $tokenSnapshot !== null ? $this->tokenPrefix($tokenSnapshot) : null;
+
+        return $query->get(['new_values'])->contains(function (AuditLog $auditLog) use ($sendCountSnapshot, $expectedTokenPrefix): bool {
+            $values = is_array($auditLog->new_values) ? $auditLog->new_values : [];
+
+            if ($sendCountSnapshot !== null && array_key_exists('send_count', $values)) {
+                return (int) $values['send_count'] === $sendCountSnapshot;
+            }
+
+            if ($expectedTokenPrefix !== null && is_string($values['token_prefix'] ?? null)) {
+                return $values['token_prefix'] === $expectedTokenPrefix;
+            }
+
+            return false;
+        });
+    }
+
     private function resolveRoleName(Invitation $invitation): string
     {
         $role = $invitation->resolvedRole();
@@ -115,5 +199,10 @@ class SendInvitationEmailListener implements ShouldQueueAfterCommit
         $roleName = trim((string) ($invitation->getAttribute('role_name') ?? ''));
 
         return $roleName !== '' ? $roleName : 'عضو';
+    }
+
+    private function tokenPrefix(string $token): string
+    {
+        return substr($token, 0, 8) . '...';
     }
 }

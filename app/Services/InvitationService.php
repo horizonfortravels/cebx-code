@@ -116,7 +116,13 @@ class InvitationService
                 ]
             );
 
-            event(new InvitationCreated($invitation, $performer));
+            event(new InvitationCreated(
+                $invitation,
+                $performer,
+                Schema::hasColumn('invitations', 'send_count') ? (int) $invitation->send_count : null,
+                (string) $invitation->token,
+                $invitation->expires_at?->toIso8601String(),
+            ));
 
             return $invitation;
         });
@@ -322,7 +328,13 @@ class InvitationService
                 ]
             );
 
-            event(new InvitationResent($invitation, $performer));
+            event(new InvitationResent(
+                $invitation,
+                $performer,
+                Schema::hasColumn('invitations', 'send_count') ? (int) $invitation->send_count : null,
+                (string) $invitation->token,
+                $invitation->expires_at?->toIso8601String(),
+            ));
 
             return $invitation->fresh();
         });
