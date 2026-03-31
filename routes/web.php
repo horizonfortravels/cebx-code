@@ -12,6 +12,7 @@ use App\Http\Controllers\Web\StoreWebController;
 use App\Http\Controllers\Web\SupportWebController;
 use App\Http\Controllers\Web\UserWebController;
 use App\Http\Controllers\Web\WalletWebController;
+use App\Support\Internal\InternalControlPlane;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/track/{token}', [PublicTrackingPortalController::class, 'show'])
@@ -31,13 +32,19 @@ Route::post('/logout', [AuthWebController::class, 'logout'])->name('logout');
 Route::middleware(['auth:web', 'userType:internal'])->prefix('internal')->name('internal.')->group(function (): void {
     Route::get('/', [InternalAdminWebController::class, 'home'])->name('home');
 
-    Route::middleware('permission:tenancy.context.select')->group(function (): void {
+    Route::middleware([
+        'permission:tenancy.context.select',
+        'internalSurface:' . InternalControlPlane::SURFACE_TENANT_CONTEXT,
+    ])->group(function (): void {
         Route::get('/tenant-context', [InternalAdminWebController::class, 'tenantContext'])->name('tenant-context');
         Route::post('/tenant-context', [InternalAdminWebController::class, 'storeTenantContext'])->name('tenant-context.store');
         Route::post('/tenant-context/clear', [InternalAdminWebController::class, 'clearTenantContext'])->name('tenant-context.clear');
     });
 
-    Route::middleware('permission:notifications.channels.manage')->group(function (): void {
+    Route::middleware([
+        'permission:notifications.channels.manage',
+        'internalSurface:' . InternalControlPlane::SURFACE_SMTP_SETTINGS,
+    ])->group(function (): void {
         Route::get('/smtp-settings', [InternalSmtpSettingsController::class, 'edit'])->name('smtp-settings.edit');
         Route::put('/smtp-settings', [InternalSmtpSettingsController::class, 'update'])->name('smtp-settings.update');
         Route::post('/smtp-settings/test-connection', [InternalSmtpSettingsController::class, 'testConnection'])->name('smtp-settings.test-connection');
@@ -135,11 +142,19 @@ Route::middleware(['auth:web', 'userType:external', 'tenant', 'legacyExternalSur
 
 Route::prefix('admin')
     ->name('admin.')
-    ->middleware(['auth:web', 'userType:internal', 'permission:admin.access'])
+    ->middleware([
+        'auth:web',
+        'userType:internal',
+        'permission:admin.access',
+        'internalSurface:' . InternalControlPlane::SURFACE_ADMIN_DASHBOARD,
+    ])
     ->group(function (): void {
         Route::get('/', [InternalAdminWebController::class, 'index'])->name('index');
 
-        Route::middleware('permission:tenancy.context.select')->group(function (): void {
+        Route::middleware([
+            'permission:tenancy.context.select',
+            'internalSurface:' . InternalControlPlane::SURFACE_TENANT_CONTEXT,
+        ])->group(function (): void {
             Route::get('/tenant-context', [InternalAdminWebController::class, 'tenantContext'])->name('tenant-context');
             Route::post('/tenant-context', [InternalAdminWebController::class, 'storeTenantContext'])->name('tenant-context.store');
             Route::post('/tenant-context/clear', [InternalAdminWebController::class, 'clearTenantContext'])->name('tenant-context.clear');
@@ -147,13 +162,22 @@ Route::prefix('admin')
 
         Route::middleware('tenant')->group(function (): void {
             Route::get('/users', [InternalAdminWebController::class, 'users'])
-                ->middleware('permission:users.read')
+                ->middleware([
+                    'permission:users.read',
+                    'internalSurface:' . InternalControlPlane::SURFACE_ACCOUNT_USERS,
+                ])
                 ->name('users');
             Route::get('/roles', [InternalAdminWebController::class, 'roles'])
-                ->middleware('permission:roles.read')
+                ->middleware([
+                    'permission:roles.read',
+                    'internalSurface:' . InternalControlPlane::SURFACE_ACCOUNT_ROLES,
+                ])
                 ->name('roles');
             Route::get('/reports', [InternalAdminWebController::class, 'reports'])
-                ->middleware('permission:reports.read')
+                ->middleware([
+                    'permission:reports.read',
+                    'internalSurface:' . InternalControlPlane::SURFACE_ACCOUNT_REPORTS,
+                ])
                 ->name('reports');
         });
     });

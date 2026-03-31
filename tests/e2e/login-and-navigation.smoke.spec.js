@@ -53,6 +53,14 @@ function routeLinkSelector(routeName, fallbackPath) {
   return `a[href$="${resolveRoutePath(routeName, fallbackPath)}"]`;
 }
 
+async function expectForbiddenInternalPage(page, path) {
+  const response = await page.goto(path);
+  expect(response).not.toBeNull();
+  expect(response.status()).toBe(403);
+  await expect(page.locator('body')).toContainText('هذه الصفحة ليست ضمن دورك الحالي');
+  await expect(page.locator('body')).not.toContainText('Internal Server Error');
+}
+
 async function openPortalLogin(page, portal) {
   const loginPath = resolveLoginPath(portal);
   const response = await page.goto(loginPath);
@@ -131,6 +139,10 @@ test('internal super_admin can login and open admin UI page', async ({ page }) =
   const adminResponse = await page.goto('/admin');
   expect(adminResponse).not.toBeNull();
   expect(adminResponse.status()).toBe(200);
+
+  const tenantContextResponse = await page.goto(resolveRoutePath('admin.tenant-context', '/admin/tenant-context'));
+  expect(tenantContextResponse).not.toBeNull();
+  expect(tenantContextResponse.status()).toBe(200);
 });
 
 test('internal support can login and see only the support-aligned internal workspace', async ({ page }) => {
@@ -146,6 +158,9 @@ test('internal support can login and see only the support-aligned internal works
   await expect(page.locator(routeLinkSelector('admin.reports', '/admin/reports'))).toHaveCount(0);
   await expect(page.locator(routeLinkSelector('internal.tenant-context', '/internal/tenant-context'))).toHaveCount(0);
   await expect(page.locator(routeLinkSelector('internal.smtp-settings.edit', '/internal/smtp-settings'))).toHaveCount(0);
+
+  await expectForbiddenInternalPage(page, '/admin');
+  await expectForbiddenInternalPage(page, resolveRoutePath('internal.smtp-settings.edit', '/internal/smtp-settings'));
 });
 
 test('internal ops_readonly can login and stay in the readonly internal workspace', async ({ page }) => {
@@ -161,6 +176,9 @@ test('internal ops_readonly can login and stay in the readonly internal workspac
   await expect(page.locator(routeLinkSelector('admin.reports', '/admin/reports'))).toHaveCount(0);
   await expect(page.locator(routeLinkSelector('internal.tenant-context', '/internal/tenant-context'))).toHaveCount(0);
   await expect(page.locator(routeLinkSelector('internal.smtp-settings.edit', '/internal/smtp-settings'))).toHaveCount(0);
+
+  await expectForbiddenInternalPage(page, '/admin');
+  await expectForbiddenInternalPage(page, resolveRoutePath('internal.smtp-settings.edit', '/internal/smtp-settings'));
 });
 
 test('internal carrier_manager can login and reach smtp settings without admin navigation', async ({ page }) => {
@@ -176,6 +194,12 @@ test('internal carrier_manager can login and reach smtp settings without admin n
   await expect(page.locator(routeLinkSelector('admin.roles', '/admin/roles'))).toHaveCount(0);
   await expect(page.locator(routeLinkSelector('admin.reports', '/admin/reports'))).toHaveCount(0);
   await expect(page.locator(routeLinkSelector('internal.tenant-context', '/internal/tenant-context'))).toHaveCount(0);
+
+  const smtpResponse = await page.goto(resolveRoutePath('internal.smtp-settings.edit', '/internal/smtp-settings'));
+  expect(smtpResponse).not.toBeNull();
+  expect(smtpResponse.status()).toBe(200);
+  await expect(page.locator('body')).toContainText('SMTP');
+  await expectForbiddenInternalPage(page, '/admin');
 });
 
 test('suspended external user cannot login', async ({ page }) => {

@@ -2,8 +2,10 @@
 
 namespace Tests\Feature\Web;
 
+use App\Models\Account;
 use App\Models\Permission;
 use App\Models\User;
+use App\Support\Tenancy\WebTenantContext;
 use Database\Seeders\E2EUserMatrixSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Testing\TestResponse;
@@ -118,9 +120,103 @@ class InternalPortalRoleAlignmentWebTest extends TestCase
     }
 
     #[Test]
+    public function direct_url_access_is_enforced_for_canonical_internal_roles(): void
+    {
+        $account = Account::factory()->create(['type' => 'organization']);
+        $tenantSession = $this->tenantContextSession($account);
+
+        $superAdmin = $this->userByEmail('e2e.internal.super_admin@example.test');
+        $this->actingAs($superAdmin, 'web')
+            ->get(route('admin.index'))
+            ->assertOk();
+        $this->actingAs($superAdmin, 'web')
+            ->get(route('admin.tenant-context'))
+            ->assertOk();
+        $this->actingAs($superAdmin, 'web')
+            ->withSession($tenantSession)
+            ->get(route('admin.users'))
+            ->assertOk();
+        $this->actingAs($superAdmin, 'web')
+            ->withSession($tenantSession)
+            ->get(route('admin.roles'))
+            ->assertOk();
+        $this->actingAs($superAdmin, 'web')
+            ->withSession($tenantSession)
+            ->get(route('admin.reports'))
+            ->assertOk();
+        $this->actingAs($superAdmin, 'web')
+            ->get(route('internal.tenant-context'))
+            ->assertOk();
+        $this->actingAs($superAdmin, 'web')
+            ->get(route('internal.smtp-settings.edit'))
+            ->assertOk();
+
+        foreach ([
+            'e2e.internal.support@example.test',
+            'e2e.internal.ops_readonly@example.test',
+        ] as $email) {
+            $user = $this->userByEmail($email);
+
+            $this->assertForbiddenInternalSurface(
+                $this->actingAs($user, 'web')->get(route('admin.index'))
+            );
+            $this->assertForbiddenInternalSurface(
+                $this->actingAs($user, 'web')->get(route('admin.tenant-context'))
+            );
+            $this->assertForbiddenInternalSurface(
+                $this->actingAs($user, 'web')->withSession($tenantSession)->get(route('admin.users'))
+            );
+            $this->assertForbiddenInternalSurface(
+                $this->actingAs($user, 'web')->withSession($tenantSession)->get(route('admin.roles'))
+            );
+            $this->assertForbiddenInternalSurface(
+                $this->actingAs($user, 'web')->withSession($tenantSession)->get(route('admin.reports'))
+            );
+            $this->assertForbiddenInternalSurface(
+                $this->actingAs($user, 'web')->get(route('internal.tenant-context'))
+            );
+            $this->assertForbiddenInternalSurface(
+                $this->actingAs($user, 'web')->get(route('internal.smtp-settings.edit'))
+            );
+        }
+
+        $carrierManager = $this->userByEmail('e2e.internal.carrier_manager@example.test');
+        $this->assertForbiddenInternalSurface(
+            $this->actingAs($carrierManager, 'web')->get(route('admin.index'))
+        );
+        $this->assertForbiddenInternalSurface(
+            $this->actingAs($carrierManager, 'web')->get(route('admin.tenant-context'))
+        );
+        $this->assertForbiddenInternalSurface(
+            $this->actingAs($carrierManager, 'web')->withSession($tenantSession)->get(route('admin.users'))
+        );
+        $this->assertForbiddenInternalSurface(
+            $this->actingAs($carrierManager, 'web')->withSession($tenantSession)->get(route('admin.roles'))
+        );
+        $this->assertForbiddenInternalSurface(
+            $this->actingAs($carrierManager, 'web')->withSession($tenantSession)->get(route('admin.reports'))
+        );
+        $this->assertForbiddenInternalSurface(
+            $this->actingAs($carrierManager, 'web')->get(route('internal.tenant-context'))
+        );
+        $this->actingAs($carrierManager, 'web')
+            ->get(route('internal.smtp-settings.edit'))
+            ->assertOk();
+    }
+
+    #[Test]
     public function legacy_internal_role_names_are_hidden_from_active_internal_portal_flows(): void
     {
-        $legacyUser = $this->createLegacyInternalUser('finance', ['admin.access']);
+        $legacyUser = $this->createLegacyInternalUser('finance', [
+            'admin.access',
+            'tenancy.context.select',
+            'notifications.channels.manage',
+            'users.read',
+            'roles.read',
+            'reports.read',
+        ]);
+        $account = Account::factory()->create(['type' => 'organization']);
+        $tenantSession = $this->tenantContextSession($account);
 
         $response = $this->from('/admin/login')->post('/admin/login', [
             'email' => $legacyUser->email,
@@ -143,6 +239,28 @@ class InternalPortalRoleAlignmentWebTest extends TestCase
         $this->assertMissingNavigationLink($page, 'admin.reports');
         $this->assertMissingNavigationLink($page, 'internal.tenant-context');
         $this->assertMissingNavigationLink($page, 'internal.smtp-settings.edit');
+
+        $this->assertForbiddenInternalSurface(
+            $this->actingAs($legacyUser, 'web')->get(route('admin.index'))
+        );
+        $this->assertForbiddenInternalSurface(
+            $this->actingAs($legacyUser, 'web')->get(route('admin.tenant-context'))
+        );
+        $this->assertForbiddenInternalSurface(
+            $this->actingAs($legacyUser, 'web')->withSession($tenantSession)->get(route('admin.users'))
+        );
+        $this->assertForbiddenInternalSurface(
+            $this->actingAs($legacyUser, 'web')->withSession($tenantSession)->get(route('admin.roles'))
+        );
+        $this->assertForbiddenInternalSurface(
+            $this->actingAs($legacyUser, 'web')->withSession($tenantSession)->get(route('admin.reports'))
+        );
+        $this->assertForbiddenInternalSurface(
+            $this->actingAs($legacyUser, 'web')->get(route('internal.tenant-context'))
+        );
+        $this->assertForbiddenInternalSurface(
+            $this->actingAs($legacyUser, 'web')->get(route('internal.smtp-settings.edit'))
+        );
     }
 
     private function userByEmail(string $email): User
@@ -230,5 +348,21 @@ class InternalPortalRoleAlignmentWebTest extends TestCase
     private function assertMissingNavigationLink(TestResponse $response, string $routeName): void
     {
         $response->assertDontSee('href="' . route($routeName) . '"', false);
+    }
+
+    private function assertForbiddenInternalSurface(TestResponse $response): void
+    {
+        $response->assertForbidden()
+            ->assertSeeText('هذه الصفحة ليست ضمن دورك الحالي');
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function tenantContextSession(Account $account): array
+    {
+        return [
+            WebTenantContext::sessionKey() => (string) $account->id,
+        ];
     }
 }

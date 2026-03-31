@@ -29,6 +29,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'portal'              => \App\Http\Middleware\PortalContextMiddleware::class,
             'ensureAccountType'   => \App\Http\Middleware\EnsureAccountTypeMiddleware::class,
             'userType'            => \App\Http\Middleware\EnsureUserTypeMiddleware::class,
+            'internalSurface'     => \App\Http\Middleware\EnsureInternalSurfaceAccess::class,
             'tenantContext'       => \App\Http\Middleware\ResolveTenantContextMiddleware::class,
             'legacyExternalSurface' => \App\Http\Middleware\LegacyExternalSurfaceLockdown::class,
         ]);

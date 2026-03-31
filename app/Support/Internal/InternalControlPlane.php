@@ -82,6 +82,18 @@ class InternalControlPlane
     ];
 
     /**
+     * @var array<int, string>
+     */
+    private const KNOWN_SURFACES = [
+        self::SURFACE_ADMIN_DASHBOARD,
+        self::SURFACE_TENANT_CONTEXT,
+        self::SURFACE_SMTP_SETTINGS,
+        self::SURFACE_ACCOUNT_USERS,
+        self::SURFACE_ACCOUNT_ROLES,
+        self::SURFACE_ACCOUNT_REPORTS,
+    ];
+
+    /**
      * @return array<int, string>
      */
     public function canonicalRoles(): array
@@ -95,6 +107,19 @@ class InternalControlPlane
     public function legacyRoleAliases(): array
     {
         return self::LEGACY_ROLE_ALIASES;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function knownSurfaces(): array
+    {
+        return self::KNOWN_SURFACES;
+    }
+
+    public function isKnownSurface(string $surface): bool
+    {
+        return in_array($surface, self::KNOWN_SURFACES, true);
     }
 
     /**
