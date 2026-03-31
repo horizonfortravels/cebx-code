@@ -52,8 +52,9 @@ class ShipmentCompletionFlowWebTest extends TestCase
             ->followingRedirects()
             ->post('/b2c/shipments/' . $shipment->id . '/wallet-preflight')
             ->assertOk()
-            ->assertSee('تم حجز مبلغ الشحنة من المحفظة بنجاح.')
-            ->assertSee('data-testid="carrier-issue-button"', false);
+            ->assertSeeText($this->walletPreflightSuccessMessage())
+            ->assertSee('data-testid="carrier-issue-button"', false)
+            ->assertDontSee('ERR_INVALID_STATE_FOR_CARRIER');
 
         $shipment->refresh();
         $this->assertSame(Shipment::STATUS_PAYMENT_PENDING, (string) $shipment->status);
@@ -133,8 +134,9 @@ class ShipmentCompletionFlowWebTest extends TestCase
             ->followingRedirects()
             ->post('/b2b/shipments/' . $shipment->id . '/wallet-preflight')
             ->assertOk()
-            ->assertSee('طھظ… ط­ط¬ط² ظ…ط¨ظ„ط؛ ط§ظ„ط´ط­ظ†ط© ظ…ظ† ط§ظ„ظ…ط­ظپط¸ط© ط¨ظ†ط¬ط§ط­.')
-            ->assertSee('data-testid="carrier-issue-button"', false);
+            ->assertSeeText($this->walletPreflightSuccessMessage())
+            ->assertSee('data-testid="carrier-issue-button"', false)
+            ->assertDontSee('ERR_INVALID_STATE_FOR_CARRIER');
 
         $this->actingAs($user, 'web')
             ->followingRedirects()
@@ -319,8 +321,9 @@ class ShipmentCompletionFlowWebTest extends TestCase
             ->followingRedirects()
             ->post('/b2b/shipments/' . $shipment->id . '/wallet-preflight')
             ->assertOk()
-            ->assertSee('طھظ… ط­ط¬ط² ظ…ط¨ظ„ط؛ ط§ظ„ط´ط­ظ†ط© ظ…ظ† ط§ظ„ظ…ط­ظپط¸ط© ط¨ظ†ط¬ط§ط­.')
-            ->assertSee('data-testid="carrier-issue-button"', false);
+            ->assertSeeText($this->walletPreflightSuccessMessage())
+            ->assertSee('data-testid="carrier-issue-button"', false)
+            ->assertDontSee('ERR_INVALID_STATE_FOR_CARRIER');
 
         $this->actingAs($user, 'web')
             ->followingRedirects()
@@ -363,7 +366,8 @@ class ShipmentCompletionFlowWebTest extends TestCase
             ->followingRedirects()
             ->post($routePrefix . $shipment->id . '/wallet-preflight')
             ->assertOk()
-            ->assertSee('تم حجز مبلغ الشحنة من المحفظة بنجاح.');
+            ->assertSeeText($this->walletPreflightSuccessMessage())
+            ->assertDontSee('ERR_INVALID_STATE_FOR_CARRIER');
 
         $this->actingAs($user, 'web')
             ->get($routePrefix . $shipment->id)
@@ -728,6 +732,11 @@ class ShipmentCompletionFlowWebTest extends TestCase
                 'height' => 10,
             ]],
         ];
+    }
+
+    private function walletPreflightSuccessMessage(): string
+    {
+        return "\u{062A}\u{0645} \u{062D}\u{062C}\u{0632} \u{0645}\u{0628}\u{0644}\u{063A} \u{0627}\u{0644}\u{0634}\u{062D}\u{0646}\u{0629} \u{0645}\u{0646} \u{0627}\u{0644}\u{0645}\u{062D}\u{0641}\u{0638}\u{0629} \u{0628}\u{0646}\u{062C}\u{0627}\u{062D}.";
     }
 
     /**
