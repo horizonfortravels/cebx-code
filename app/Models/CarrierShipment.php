@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Traits\BelongsToAccount;
+use InvalidArgumentException;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -18,6 +19,19 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class CarrierShipment extends Model
 {
     use HasFactory, HasUuids, BelongsToAccount;
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $carrierShipment): void {
+            if (trim((string) $carrierShipment->carrier_code) === '') {
+                throw new InvalidArgumentException('CarrierShipment requires an explicit carrier_code.');
+            }
+
+            if (trim((string) $carrierShipment->carrier_name) === '') {
+                throw new InvalidArgumentException('CarrierShipment requires an explicit carrier_name.');
+            }
+        });
+    }
 
     protected $fillable = [
         'shipment_id', 'account_id', 'carrier_code', 'carrier_name',

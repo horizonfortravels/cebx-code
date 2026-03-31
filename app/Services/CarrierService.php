@@ -268,9 +268,14 @@ class CarrierService
             $document = CarrierDocument::create([
                 'carrier_shipment_id' => $carrierShipment->id,
                 'shipment_id' => $shipment->id,
+                'carrier_code' => (string) $carrierShipment->carrier_code,
                 'type' => CarrierDocument::TYPE_LABEL,
                 'format' => $format,
                 'mime_type' => CarrierDocument::getMimeType($format),
+                'source' => CarrierDocument::SOURCE_CARRIER,
+                'retrieval_mode' => isset($response['content']) ? CarrierDocument::RETRIEVAL_INLINE : CarrierDocument::RETRIEVAL_URL,
+                'storage_disk' => null,
+                'storage_path' => null,
                 'original_filename' => $this->generateDocFilename($shipment, 'label', $format),
                 'content_base64' => $response['content'] ?? null,
                 'file_size' => isset($response['content']) ? strlen(base64_decode((string) $response['content'])) : null,
@@ -405,7 +410,7 @@ class CarrierService
                 'file_format' => (string) $doc->format,
                 'mime_type' => (string) $doc->mime_type,
                 'source' => (string) ($doc->source ?? CarrierDocument::SOURCE_CARRIER),
-                'retrieval_mode' => (string) ($doc->retrieval_mode ?? $this->resolveRetrievalMode($doc->getDecodedContent(), $doc->download_url)),
+                'retrieval_mode' => $doc->resolvedRetrievalMode(),
                 'filename' => $this->buildDocumentDownloadFilename($doc, $shipment),
                 'size' => $doc->file_size,
                 'available' => $doc->hasContent() || $doc->hasValidUrl(),
@@ -465,7 +470,7 @@ class CarrierService
             'download_url' => $document->isDownloadUrlValid() ? $document->download_url : null,
             'storage_disk' => $document->storage_disk,
             'storage_path' => $document->storage_path,
-            'retrieval_mode' => (string) ($document->retrieval_mode ?? $this->resolveRetrievalMode($document->getDecodedContent(), $document->download_url)),
+            'retrieval_mode' => $document->resolvedRetrievalMode(),
         ];
     }
 
@@ -1247,7 +1252,7 @@ class CarrierService
     ): CarrierError {
         if ($e instanceof BusinessException) {
             $context = $e->getContext();
-            $carrierCode = strtolower(trim((string) ($context['carrier_code'] ?? 'dhl')));
+            $carrierCode = $this->resolveCarrierCodeForErrorContext($context, $shipmentId, $carrierShipmentId);
             $httpStatus = (int) ($context['http_status'] ?? $e->getHttpStatus() ?? 500);
             $carrierErrorCode = trim((string) ($context['carrier_error_code'] ?? ''));
             $carrierErrorMessage = trim((string) ($context['carrier_error_message'] ?? $e->getMessage()));
@@ -1326,5 +1331,38 @@ class CarrierService
         }
 
         return CarrierError::mapDhlError($httpStatus, $carrierErrorCode);
+    }
+
+    /**
+     * @param array<string, mixed> $context
+     */
+    private function resolveCarrierCodeForErrorContext(array $context, ?string $shipmentId, ?string $carrierShipmentId): string
+    {
+        $carrierCode = strtolower(trim((string) ($context['carrier_code'] ?? '')));
+        if ($carrierCode !== '') {
+            return $carrierCode;
+        }
+
+        if ($carrierShipmentId) {
+            $carrierCode = strtolower(trim((string) CarrierShipment::query()
+                ->where('id', $carrierShipmentId)
+                ->value('carrier_code')));
+
+            if ($carrierCode !== '') {
+                return $carrierCode;
+            }
+        }
+
+        if ($shipmentId && Schema::hasTable('shipments') && Schema::hasColumn('shipments', 'carrier_code')) {
+            $carrierCode = strtolower(trim((string) Shipment::query()
+                ->where('id', $shipmentId)
+                ->value('carrier_code')));
+
+            if ($carrierCode !== '') {
+                return $carrierCode;
+            }
+        }
+
+        return 'unknown';
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use InvalidArgumentException;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -17,6 +18,14 @@ use Illuminate\Support\Facades\Storage;
 class CarrierDocument extends Model
 {
     use HasFactory, HasUuids;
+
+    protected static function booted(): void
+    {
+        static::saving(function (self $document): void {
+            $document->normalizeStorageContract();
+            $document->assertValidStorageContract();
+        });
+    }
 
     protected $fillable = [
         'carrier_shipment_id', 'shipment_id', 'type', 'format',
@@ -91,6 +100,11 @@ class CarrierDocument extends Model
         return !empty($this->content_base64) || !empty($this->storage_path);
     }
 
+    public function resolvedRetrievalMode(): string
+    {
+        return $this->inferRetrievalMode() ?? self::RETRIEVAL_INLINE;
+    }
+
     public function hasValidUrl(): bool
     {
         return $this->isDownloadUrlValid();
@@ -162,6 +176,9 @@ class CarrierDocument extends Model
     public function setContentFromBinary(string $binary): void
     {
         $this->update([
+            'retrieval_mode' => self::RETRIEVAL_INLINE,
+            'storage_disk' => null,
+            'storage_path' => null,
             'content_base64' => base64_encode($binary),
             'file_size'      => strlen($binary),
             'checksum'       => hash('sha256', $binary),
@@ -192,5 +209,74 @@ class CarrierDocument extends Model
     public function scopeByFormat($query, string $format)
     {
         return $query->where('format', $format);
+    }
+
+    private function normalizeStorageContract(): void
+    {
+        $this->content_base64 = $this->normalizeNullableString($this->content_base64);
+        $this->storage_path = $this->normalizeNullableString($this->storage_path);
+        $this->storage_disk = $this->normalizeNullableString($this->storage_disk);
+        $this->download_url = $this->normalizeNullableString($this->download_url);
+        $this->retrieval_mode = $this->inferRetrievalMode();
+
+        if ($this->storage_path === null) {
+            $this->storage_disk = null;
+        }
+    }
+
+    private function assertValidStorageContract(): void
+    {
+        $hasInlineContent = $this->content_base64 !== null;
+        $hasStoredObject = $this->storage_path !== null;
+        $hasUrl = $this->download_url !== null;
+        $mode = $this->resolvedRetrievalMode();
+
+        if (! $hasInlineContent && ! $hasStoredObject && ! $hasUrl) {
+            throw new InvalidArgumentException('CarrierDocument requires inline content, stored-object coordinates, or a download URL.');
+        }
+
+        if ($mode === self::RETRIEVAL_INLINE) {
+            if (! $hasInlineContent || $hasStoredObject) {
+                throw new InvalidArgumentException('Inline carrier documents cannot also use stored-object fields.');
+            }
+
+            return;
+        }
+
+        if ($mode === self::RETRIEVAL_STORED_OBJECT) {
+            if (! $hasStoredObject || $this->storage_disk === null || $hasInlineContent) {
+                throw new InvalidArgumentException('Stored-object carrier documents require storage_path + storage_disk and cannot also store inline content.');
+            }
+
+            return;
+        }
+
+        if (! $hasUrl || $hasStoredObject || $hasInlineContent) {
+            throw new InvalidArgumentException('URL carrier documents must stay URL-only.');
+        }
+    }
+
+    private function inferRetrievalMode(): ?string
+    {
+        if ($this->storage_path !== null) {
+            return self::RETRIEVAL_STORED_OBJECT;
+        }
+
+        if ($this->content_base64 !== null) {
+            return self::RETRIEVAL_INLINE;
+        }
+
+        if ($this->download_url !== null) {
+            return self::RETRIEVAL_URL;
+        }
+
+        return null;
+    }
+
+    private function normalizeNullableString(mixed $value): ?string
+    {
+        $normalized = trim((string) ($value ?? ''));
+
+        return $normalized === '' ? null : $normalized;
     }
 }

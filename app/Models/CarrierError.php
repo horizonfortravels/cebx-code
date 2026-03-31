@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use InvalidArgumentException;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -16,6 +17,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class CarrierError extends Model
 {
     use HasFactory, HasUuids;
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $carrierError): void {
+            if (trim((string) $carrierError->carrier_code) === '') {
+                throw new InvalidArgumentException('CarrierError requires an explicit carrier_code.');
+            }
+        });
+    }
 
     protected $fillable = [
         'shipment_id', 'carrier_shipment_id', 'carrier_code',
