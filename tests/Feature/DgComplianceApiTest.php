@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\Account;
 use App\Models\ContentDeclaration;
+use App\Models\Shipment;
 use App\Models\User;
 use App\Models\WaiverVersion;
 use App\Services\DgComplianceService;
@@ -70,11 +71,17 @@ class DgComplianceApiTest extends TestCase
     #[\PHPUnit\Framework\Attributes\Test]
     public function test_api_get_shipment_declaration(): void
     {
-        $service = app(DgComplianceService::class);
-        $service->createDeclaration($this->account->id, 'SH-FOR-1', $this->user->id);
+        $shipment = Shipment::factory()->create([
+            'account_id' => $this->account->id,
+            'created_by' => $this->user->id,
+            'user_id' => $this->user->id,
+        ]);
 
-        $r = $this->actingAs($this->user)->getJson('/api/v1/dg/shipments/SH-FOR-1/declaration');
-        $r->assertOk();
+        $service = app(DgComplianceService::class);
+        $service->createDeclaration($this->account->id, (string) $shipment->id, $this->user->id);
+
+        $r = $this->actingAs($this->user)->getJson('/api/v1/dg/shipments/' . $shipment->id . '/declaration');
+        $r->assertOk()->assertJsonPath('data.shipment_id', (string) $shipment->id);
     }
 
     // ── FR-DG-002: Set DG Flag ──────────────────────────────
