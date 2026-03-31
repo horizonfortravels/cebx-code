@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 
 /**
  * Append-only audit trail for dangerous goods declarations.
@@ -18,6 +20,7 @@ class DgAuditLog extends Model
     protected $fillable = [
         'declaration_id',
         'shipment_id',
+        'shipment_uuid',
         'account_id',
         'action',
         'actor_id',
@@ -68,6 +71,7 @@ class DgAuditLog extends Model
             'actor_id' => $actorId,
             'declaration_id' => $declarationId,
             'shipment_id' => $shipmentId,
+            'shipment_uuid' => static::resolveShipmentUuid($shipmentId),
             'actor_role' => $actorRole,
             'ip_address' => $ipAddress,
             'old_values' => $oldValues,
@@ -92,11 +96,40 @@ class DgAuditLog extends Model
 
     public function scopeForShipment($query, string $shipmentId)
     {
-        return $query->where('shipment_id', $shipmentId);
+        if (! Schema::hasColumn($this->getTable(), 'shipment_uuid')) {
+            return $query->where('shipment_id', $shipmentId);
+        }
+
+        return $query->where(function ($nested) use ($shipmentId) {
+            $nested->where('shipment_id', $shipmentId);
+
+            $shipmentUuid = static::resolveShipmentUuid($shipmentId);
+            if ($shipmentUuid !== null) {
+                $nested->orWhere('shipment_uuid', $shipmentUuid);
+            }
+        });
     }
 
     public function scopeByAction($query, string $action)
     {
         return $query->where('action', $action);
+    }
+
+    private static function resolveShipmentUuid(?string $shipmentId): ?string
+    {
+        if (
+            $shipmentId === null
+            || ! Schema::hasTable('shipments')
+            || ! Schema::hasColumn('shipments', 'id')
+        ) {
+            return null;
+        }
+
+        $value = trim($shipmentId);
+        if ($value === '' || ! Str::isUuid($value)) {
+            return null;
+        }
+
+        return Shipment::query()->whereKey($value)->exists() ? $value : null;
     }
 }
