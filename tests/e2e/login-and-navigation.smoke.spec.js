@@ -45,6 +45,14 @@ function resolveLoginPath(portal) {
   return byName[portal] || fallbacks[portal][0];
 }
 
+function resolveRoutePath(routeName, fallbackPath) {
+  return routeMap.get(routeName) || fallbackPath;
+}
+
+function routeLinkSelector(routeName, fallbackPath) {
+  return `a[href$="${resolveRoutePath(routeName, fallbackPath)}"]`;
+}
+
 async function openPortalLogin(page, portal) {
   const loginPath = resolveLoginPath(portal);
   const response = await page.goto(loginPath);
@@ -114,7 +122,11 @@ test('internal super_admin can login and open admin UI page', async ({ page }) =
   await loginWith(page, 'admin', USERS.internalSuperAdmin);
 
   await expect(page).toHaveURL(/\/admin$/);
-  await expect(page.locator('h1')).toContainText('الإدارة');
+  await expect(page.locator(routeLinkSelector('admin.index', '/admin')).first()).toBeVisible();
+  await expect(page.locator(routeLinkSelector('admin.tenant-context', '/admin/tenant-context')).first()).toBeVisible();
+  await expect(page.locator(routeLinkSelector('admin.users', '/admin/users')).first()).toBeVisible();
+  await expect(page.locator(routeLinkSelector('admin.roles', '/admin/roles')).first()).toBeVisible();
+  await expect(page.locator(routeLinkSelector('admin.reports', '/admin/reports')).first()).toBeVisible();
 
   const adminResponse = await page.goto('/admin');
   expect(adminResponse).not.toBeNull();
@@ -126,8 +138,14 @@ test('internal support can login and see only the support-aligned internal works
 
   await expect(page).toHaveURL(/\/internal$/);
   await expect(page.locator('body')).toContainText('الدعم');
-  await expect(page.locator('body')).not.toContainText('لوحة الإدارة');
-  await expect(page.locator('body')).not.toContainText('إعدادات SMTP');
+  await expect(page.locator(routeLinkSelector('internal.home', '/internal')).first()).toBeVisible();
+  await expect(page.locator(routeLinkSelector('admin.index', '/admin'))).toHaveCount(0);
+  await expect(page.locator(routeLinkSelector('admin.tenant-context', '/admin/tenant-context'))).toHaveCount(0);
+  await expect(page.locator(routeLinkSelector('admin.users', '/admin/users'))).toHaveCount(0);
+  await expect(page.locator(routeLinkSelector('admin.roles', '/admin/roles'))).toHaveCount(0);
+  await expect(page.locator(routeLinkSelector('admin.reports', '/admin/reports'))).toHaveCount(0);
+  await expect(page.locator(routeLinkSelector('internal.tenant-context', '/internal/tenant-context'))).toHaveCount(0);
+  await expect(page.locator(routeLinkSelector('internal.smtp-settings.edit', '/internal/smtp-settings'))).toHaveCount(0);
 });
 
 test('internal ops_readonly can login and stay in the readonly internal workspace', async ({ page }) => {
@@ -135,8 +153,14 @@ test('internal ops_readonly can login and stay in the readonly internal workspac
 
   await expect(page).toHaveURL(/\/internal$/);
   await expect(page.locator('body')).toContainText('التشغيل للقراءة فقط');
-  await expect(page.locator('body')).not.toContainText('لوحة الإدارة');
-  await expect(page.locator('body')).not.toContainText('إعدادات SMTP');
+  await expect(page.locator(routeLinkSelector('internal.home', '/internal')).first()).toBeVisible();
+  await expect(page.locator(routeLinkSelector('admin.index', '/admin'))).toHaveCount(0);
+  await expect(page.locator(routeLinkSelector('admin.tenant-context', '/admin/tenant-context'))).toHaveCount(0);
+  await expect(page.locator(routeLinkSelector('admin.users', '/admin/users'))).toHaveCount(0);
+  await expect(page.locator(routeLinkSelector('admin.roles', '/admin/roles'))).toHaveCount(0);
+  await expect(page.locator(routeLinkSelector('admin.reports', '/admin/reports'))).toHaveCount(0);
+  await expect(page.locator(routeLinkSelector('internal.tenant-context', '/internal/tenant-context'))).toHaveCount(0);
+  await expect(page.locator(routeLinkSelector('internal.smtp-settings.edit', '/internal/smtp-settings'))).toHaveCount(0);
 });
 
 test('internal carrier_manager can login and reach smtp settings without admin navigation', async ({ page }) => {
@@ -144,8 +168,14 @@ test('internal carrier_manager can login and reach smtp settings without admin n
 
   await expect(page).toHaveURL(/\/internal$/);
   await expect(page.locator('body')).toContainText('إدارة الناقلين');
-  await expect(page.locator('body')).toContainText('إعدادات SMTP');
-  await expect(page.locator('body')).not.toContainText('لوحة الإدارة');
+  await expect(page.locator(routeLinkSelector('internal.home', '/internal')).first()).toBeVisible();
+  await expect(page.locator(routeLinkSelector('internal.smtp-settings.edit', '/internal/smtp-settings')).first()).toBeVisible();
+  await expect(page.locator(routeLinkSelector('admin.index', '/admin'))).toHaveCount(0);
+  await expect(page.locator(routeLinkSelector('admin.tenant-context', '/admin/tenant-context'))).toHaveCount(0);
+  await expect(page.locator(routeLinkSelector('admin.users', '/admin/users'))).toHaveCount(0);
+  await expect(page.locator(routeLinkSelector('admin.roles', '/admin/roles'))).toHaveCount(0);
+  await expect(page.locator(routeLinkSelector('admin.reports', '/admin/reports'))).toHaveCount(0);
+  await expect(page.locator(routeLinkSelector('internal.tenant-context', '/internal/tenant-context'))).toHaveCount(0);
 });
 
 test('suspended external user cannot login', async ({ page }) => {

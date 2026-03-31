@@ -5,6 +5,7 @@ namespace Tests\Feature\Web;
 use App\Models\User;
 use Database\Seeders\E2EUserMatrixSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Testing\TestResponse;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -53,13 +54,22 @@ class BrowserGuidanceTest extends TestCase
 
         $response->assertRedirect(route('internal.home'));
 
-        $this->actingAs(
+        $page = $this->actingAs(
             User::query()->withoutGlobalScopes()->where('email', 'e2e.internal.support@example.test')->firstOrFail(),
             'web'
         )->get(route('internal.home'))
             ->assertOk()
             ->assertSeeText('المساحة الداخلية')
-            ->assertSeeText('اختيار الحساب');
+            ->assertSeeText('الدعم');
+
+        $this->assertHasNavigationLink($page, 'internal.home');
+        $this->assertMissingNavigationLink($page, 'admin.index');
+        $this->assertMissingNavigationLink($page, 'admin.tenant-context');
+        $this->assertMissingNavigationLink($page, 'admin.users');
+        $this->assertMissingNavigationLink($page, 'admin.roles');
+        $this->assertMissingNavigationLink($page, 'admin.reports');
+        $this->assertMissingNavigationLink($page, 'internal.tenant-context');
+        $this->assertMissingNavigationLink($page, 'internal.smtp-settings.edit');
     }
 
     #[Test]
@@ -74,5 +84,15 @@ class BrowserGuidanceTest extends TestCase
         $response->assertSessionHasErrors([
             'email' => 'تم إيقاف هذا الحساب حاليًا. تواصل مع الدعم أو مدير الحساب لإعادة التفعيل.',
         ]);
+    }
+
+    private function assertHasNavigationLink(TestResponse $response, string $routeName): void
+    {
+        $response->assertSee('href="' . route($routeName) . '"', false);
+    }
+
+    private function assertMissingNavigationLink(TestResponse $response, string $routeName): void
+    {
+        $response->assertDontSee('href="' . route($routeName) . '"', false);
     }
 }

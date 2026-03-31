@@ -6,6 +6,7 @@ use App\Models\Permission;
 use App\Models\User;
 use Database\Seeders\E2EUserMatrixSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Testing\TestResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
@@ -47,12 +48,16 @@ class InternalPortalRoleAlignmentWebTest extends TestCase
 
         $response->assertRedirect(route('admin.index'));
 
-        $this->actingAs($this->userByEmail('e2e.internal.super_admin@example.test'), 'web')
+        $page = $this->actingAs($this->userByEmail('e2e.internal.super_admin@example.test'), 'web')
             ->get(route('admin.index'))
             ->assertOk()
-            ->assertSeeText('لوحة الإدارة')
-            ->assertSeeText('مستخدمو الحساب')
-            ->assertSeeText('اختيار الحساب');
+            ->assertSeeText('لوحة الإدارة');
+
+        $this->assertHasNavigationLink($page, 'admin.index');
+        $this->assertHasNavigationLink($page, 'admin.tenant-context');
+        $this->assertHasNavigationLink($page, 'admin.users');
+        $this->assertHasNavigationLink($page, 'admin.roles');
+        $this->assertHasNavigationLink($page, 'admin.reports');
     }
 
     #[Test]
@@ -69,13 +74,20 @@ class InternalPortalRoleAlignmentWebTest extends TestCase
 
             $response->assertRedirect(route('internal.home'));
 
-            $this->actingAs($this->userByEmail($scenario['email']), 'web')
+            $page = $this->actingAs($this->userByEmail($scenario['email']), 'web')
                 ->get(route('internal.home'))
                 ->assertOk()
                 ->assertSeeText('المساحة الداخلية')
-                ->assertSeeText($scenario['label'])
-                ->assertDontSeeText('لوحة الإدارة')
-                ->assertDontSeeText('إعدادات SMTP');
+                ->assertSeeText($scenario['label']);
+
+            $this->assertHasNavigationLink($page, 'internal.home');
+            $this->assertMissingNavigationLink($page, 'admin.index');
+            $this->assertMissingNavigationLink($page, 'admin.tenant-context');
+            $this->assertMissingNavigationLink($page, 'admin.users');
+            $this->assertMissingNavigationLink($page, 'admin.roles');
+            $this->assertMissingNavigationLink($page, 'admin.reports');
+            $this->assertMissingNavigationLink($page, 'internal.tenant-context');
+            $this->assertMissingNavigationLink($page, 'internal.smtp-settings.edit');
         }
     }
 
@@ -89,12 +101,20 @@ class InternalPortalRoleAlignmentWebTest extends TestCase
 
         $response->assertRedirect(route('internal.home'));
 
-        $this->actingAs($this->userByEmail('e2e.internal.carrier_manager@example.test'), 'web')
+        $page = $this->actingAs($this->userByEmail('e2e.internal.carrier_manager@example.test'), 'web')
             ->get(route('internal.home'))
             ->assertOk()
             ->assertSeeText('إدارة الناقلين')
-            ->assertSeeText('إعدادات SMTP')
-            ->assertDontSeeText('لوحة الإدارة');
+            ->assertSeeText('إعدادات SMTP');
+
+        $this->assertHasNavigationLink($page, 'internal.home');
+        $this->assertHasNavigationLink($page, 'internal.smtp-settings.edit');
+        $this->assertMissingNavigationLink($page, 'admin.index');
+        $this->assertMissingNavigationLink($page, 'admin.tenant-context');
+        $this->assertMissingNavigationLink($page, 'admin.users');
+        $this->assertMissingNavigationLink($page, 'admin.roles');
+        $this->assertMissingNavigationLink($page, 'admin.reports');
+        $this->assertMissingNavigationLink($page, 'internal.tenant-context');
     }
 
     #[Test]
@@ -109,12 +129,20 @@ class InternalPortalRoleAlignmentWebTest extends TestCase
 
         $response->assertRedirect(route('internal.home'));
 
-        $this->actingAs($legacyUser, 'web')
+        $page = $this->actingAs($legacyUser, 'web')
             ->get(route('internal.home'))
             ->assertOk()
             ->assertSeeText('تم إخفاء الدور الداخلي القديم من الواجهة النشطة')
-            ->assertDontSeeText('finance')
-            ->assertDontSeeText('لوحة الإدارة');
+            ->assertDontSeeText('finance');
+
+        $this->assertHasNavigationLink($page, 'internal.home');
+        $this->assertMissingNavigationLink($page, 'admin.index');
+        $this->assertMissingNavigationLink($page, 'admin.tenant-context');
+        $this->assertMissingNavigationLink($page, 'admin.users');
+        $this->assertMissingNavigationLink($page, 'admin.roles');
+        $this->assertMissingNavigationLink($page, 'admin.reports');
+        $this->assertMissingNavigationLink($page, 'internal.tenant-context');
+        $this->assertMissingNavigationLink($page, 'internal.smtp-settings.edit');
     }
 
     private function userByEmail(string $email): User
@@ -192,5 +220,15 @@ class InternalPortalRoleAlignmentWebTest extends TestCase
         }
 
         return $payload;
+    }
+
+    private function assertHasNavigationLink(TestResponse $response, string $routeName): void
+    {
+        $response->assertSee('href="' . route($routeName) . '"', false);
+    }
+
+    private function assertMissingNavigationLink(TestResponse $response, string $routeName): void
+    {
+        $response->assertDontSee('href="' . route($routeName) . '"', false);
     }
 }
