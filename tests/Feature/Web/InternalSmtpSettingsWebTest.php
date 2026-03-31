@@ -65,6 +65,27 @@ class InternalSmtpSettingsWebTest extends TestCase
     }
 
     #[Test]
+    public function internal_ops_readonly_user_without_channel_permission_is_denied(): void
+    {
+        $user = $this->userByEmail('e2e.internal.ops_readonly@example.test');
+
+        $this->actingAs($user, 'web')
+            ->get(route('internal.smtp-settings.edit'))
+            ->assertForbidden();
+    }
+
+    #[Test]
+    public function internal_carrier_manager_can_open_smtp_settings_page(): void
+    {
+        $user = $this->userByEmail('e2e.internal.carrier_manager@example.test');
+
+        $this->actingAs($user, 'web')
+            ->get(route('internal.smtp-settings.edit'))
+            ->assertOk()
+            ->assertSeeText('SMTP');
+    }
+
+    #[Test]
     public function saving_smtp_settings_encrypts_secrets_and_does_not_render_plaintext_back_to_the_ui(): void
     {
         $user = $this->userByEmail('e2e.internal.super_admin@example.test');

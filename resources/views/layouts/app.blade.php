@@ -33,6 +33,9 @@
         default => 'b2b',
     };
 
+    $internalControlPlane = $isInternalUser ? app(\App\Support\Internal\InternalControlPlane::class) : null;
+    $internalRoleProfile = $internalControlPlane ? $internalControlPlane->roleProfile($currentUser) : null;
+    $hasDeprecatedInternalRoles = $internalControlPlane ? $internalControlPlane->hasDeprecatedAssignments($currentUser) : false;
     $canAdminAccess = $currentUser?->hasPermission('admin.access') ?? false;
     $canSelectTenant = $currentUser?->hasPermission('tenancy.context.select') ?? false;
     $canManageNotificationChannels = $currentUser?->hasPermission('notifications.channels.manage') ?? false;
@@ -40,28 +43,41 @@
     $canReadApiKeys = $currentUser?->hasPermission('api_keys.read') ?? false;
     $canReadWebhooks = $currentUser?->hasPermission('webhooks.read') ?? false;
     $showDeveloperWorkspace = ! $isInternalUser && $currentPortal === 'b2b' && ($canReadIntegrations || $canReadApiKeys || $canReadWebhooks);
+    $showAdminDashboard = $isInternalUser
+        && $canAdminAccess
+        && $internalControlPlane?->canSeeSurface($currentUser, \App\Support\Internal\InternalControlPlane::SURFACE_ADMIN_DASHBOARD);
+    $showTenantContext = $isInternalUser
+        && $canSelectTenant
+        && $internalControlPlane?->canSeeSurface($currentUser, \App\Support\Internal\InternalControlPlane::SURFACE_TENANT_CONTEXT);
+    $showSmtpSettings = $isInternalUser
+        && $canManageNotificationChannels
+        && $internalControlPlane?->canSeeSurface($currentUser, \App\Support\Internal\InternalControlPlane::SURFACE_SMTP_SETTINGS)
+        && Route::has('internal.smtp-settings.edit');
+    $internalTopbarRole = $hasDeprecatedInternalRoles
+        ? 'وصول داخلي قديم تم إخفاء مسماه من الواجهة النشطة'
+        : ($internalRoleProfile['label'] ?? 'وصول داخلي مضبوط وفق الدور المعتمد');
 
     $menu = [];
 
     if ($isInternalUser) {
-        $menu[] = ['divider' => $canAdminAccess ? 'لوحة الإدارة' : 'المساحة الداخلية'];
+        $menu[] = ['divider' => $showAdminDashboard ? 'لوحة الإدارة' : 'المساحة الداخلية'];
 
-        if ($canAdminAccess) {
+        if ($showAdminDashboard) {
             $menu[] = ['active' => ['admin.index'], 'route' => 'admin.index', 'icon' => 'ADM', 'label' => 'لوحة الإدارة'];
         } else {
             $menu[] = ['active' => ['internal.home'], 'route' => 'internal.home', 'icon' => 'IN', 'label' => 'الرئيسية الداخلية'];
         }
 
-        if ($canSelectTenant) {
-            $menu[] = ['active' => ['admin.tenant-context', 'internal.tenant-context'], 'route' => $canAdminAccess ? 'admin.tenant-context' : 'internal.tenant-context', 'icon' => 'CTX', 'label' => 'اختيار الحساب'];
+        if ($showTenantContext) {
+            $menu[] = ['active' => ['admin.tenant-context', 'internal.tenant-context'], 'route' => $showAdminDashboard ? 'admin.tenant-context' : 'internal.tenant-context', 'icon' => 'CTX', 'label' => 'اختيار الحساب'];
         }
 
-        if ($canManageNotificationChannels && Route::has('internal.smtp-settings.edit')) {
+        if ($showSmtpSettings) {
             $menu[] = ['divider' => 'البريد والمنصة'];
             $menu[] = ['active' => ['internal.smtp-settings.*'], 'route' => 'internal.smtp-settings.edit', 'icon' => 'SMTP', 'label' => 'إعدادات SMTP'];
         }
 
-        if ($canAdminAccess) {
+        if ($showAdminDashboard) {
             $menu[] = ['divider' => 'الحساب المحدد'];
             $menu[] = ['active' => ['admin.users'], 'route' => 'admin.users', 'icon' => 'USR', 'label' => 'مستخدمو الحساب'];
             $menu[] = ['active' => ['admin.roles'], 'route' => 'admin.roles', 'icon' => 'ROL', 'label' => 'أدوار الحساب'];
@@ -112,8 +128,8 @@
     }
 
     $topbarSubtitle = match (true) {
-        $isInternalUser && $selectedAccount !== null => 'الحساب المحدد: ' . $selectedAccount->name,
-        $isInternalUser => 'تصفح داخلي بصلاحيات ' . ($canAdminAccess ? 'الإدارة' : 'الدعم'),
+        $isInternalUser && $selectedAccount !== null => 'الدور الداخلي: ' . $internalTopbarRole . ' • الحساب المحدد: ' . $selectedAccount->name,
+        $isInternalUser => 'الدور الداخلي: ' . $internalTopbarRole,
         $currentPortal === 'b2c' => 'بوابة الأفراد للحساب الفردي الحالي',
         $currentPortal === 'b2b' && $currentUser?->account?->name => 'حساب المنظمة الحالي: ' . $currentUser->account->name,
         default => 'بوابة الأعمال لحسابات المنظمات',
@@ -175,8 +191,8 @@
                 <div style="font-size:12px;color:var(--td);margin-top:2px">{{ $topbarSubtitle }}</div>
             </div>
             <div class="topbar-user">
-                @if($isInternalUser && $canSelectTenant)
-                    <a class="topbar-bell" href="{{ route($canAdminAccess ? 'admin.tenant-context' : 'internal.tenant-context') }}" title="اختيار الحساب">CTX</a>
+                @if($isInternalUser && $showTenantContext)
+                    <a class="topbar-bell" href="{{ route($showAdminDashboard ? 'admin.tenant-context' : 'internal.tenant-context') }}" title="اختيار الحساب">CTX</a>
                 @endif
                 <div class="topbar-avatar">{{ mb_substr($currentUser->name ?? 'م', 0, 1) }}</div>
             </div>

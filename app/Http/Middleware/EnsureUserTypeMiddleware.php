@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Support\Internal\InternalControlPlane;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -12,8 +13,8 @@ class EnsureUserTypeMiddleware
     {
         $user = $request->user();
 
-        if (! $user) {
-            if (! $this->isBrowserRequest($request)) {
+        if (!$user) {
+            if (!$this->isBrowserRequest($request)) {
                 return response()->json([
                     'success' => false,
                     'error_code' => 'ERR_UNAUTHENTICATED',
@@ -25,7 +26,7 @@ class EnsureUserTypeMiddleware
         }
 
         $expectedType = strtolower(trim($expectedType));
-        if (! in_array($expectedType, ['internal', 'external'], true)) {
+        if (!in_array($expectedType, ['internal', 'external'], true)) {
             if ($this->isBrowserRequest($request)) {
                 abort(500, 'تمت تهيئة نوع مستخدم غير صالح لهذا المسار.');
             }
@@ -106,25 +107,17 @@ class EnsureUserTypeMiddleware
 
     private function internalPortalUrl(object $user): string
     {
-        if (method_exists($user, 'hasPermission') && $user->hasPermission('admin.access')) {
-            return route('admin.index');
-        }
-
-        return route('internal.home');
+        return route(app(InternalControlPlane::class)->landingRouteName($user));
     }
 
     private function internalPortalLabel(object $user): string
     {
-        if (method_exists($user, 'hasPermission') && $user->hasPermission('admin.access')) {
-            return 'العودة إلى لوحة الإدارة';
-        }
-
-        return 'الانتقال إلى المساحة الداخلية';
+        return app(InternalControlPlane::class)->landingActionLabel($user);
     }
 
     private function isBrowserRequest(Request $request): bool
     {
-        return ! $request->expectsJson() && ! $request->is('api/*');
+        return !$request->expectsJson() && !$request->is('api/*');
     }
 
     private function resolveUserType(object $user): string

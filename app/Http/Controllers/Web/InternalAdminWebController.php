@@ -10,6 +10,7 @@ use App\Models\Shipment;
 use App\Models\Store;
 use App\Models\User;
 use App\Models\Wallet;
+use App\Support\Internal\InternalControlPlane;
 use App\Support\Tenancy\WebTenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -21,9 +22,12 @@ class InternalAdminWebController extends Controller
     {
         $user = $request->user();
         $selectedAccount = $this->selectedAccount($request);
+        $controlPlane = app(InternalControlPlane::class);
 
         return view('pages.admin.internal-home', [
             'selectedAccount' => $selectedAccount,
+            'roleProfile' => $controlPlane->roleProfile($user),
+            'hasDeprecatedRoleAssignments' => $controlPlane->hasDeprecatedAssignments($user),
             'capabilities' => [
                 'adminAccess' => $user->hasPermission('admin.access'),
                 'tenantContext' => $user->hasPermission('tenancy.context.select'),
@@ -31,6 +35,14 @@ class InternalAdminWebController extends Controller
                 'ticketsManage' => $user->hasPermission('tickets.manage'),
                 'reportsRead' => $user->hasPermission('reports.read'),
                 'analyticsRead' => $user->hasPermission('analytics.read'),
+            ],
+            'surfaces' => [
+                'adminDashboard' => $controlPlane->canSeeSurface($user, InternalControlPlane::SURFACE_ADMIN_DASHBOARD)
+                    && $user->hasPermission('admin.access'),
+                'tenantContext' => $controlPlane->canSeeSurface($user, InternalControlPlane::SURFACE_TENANT_CONTEXT)
+                    && $user->hasPermission('tenancy.context.select'),
+                'smtpSettings' => $controlPlane->canSeeSurface($user, InternalControlPlane::SURFACE_SMTP_SETTINGS)
+                    && $user->hasPermission('notifications.channels.manage'),
             ],
         ]);
     }
@@ -210,15 +222,18 @@ class InternalAdminWebController extends Controller
 
     private function defaultInternalRouteName(Request $request): string
     {
-        $user = $request->user();
-
-        return $user && $user->hasPermission('admin.access') ? 'admin.index' : 'internal.home';
+        return app(InternalControlPlane::class)->landingRouteName($request->user());
     }
 
     private function tenantContextRouteName(Request $request): string
     {
         $user = $request->user();
+        $controlPlane = app(InternalControlPlane::class);
 
-        return $user && $user->hasPermission('admin.access') ? 'admin.tenant-context' : 'internal.tenant-context';
+        return $user
+            && $controlPlane->canSeeSurface($user, InternalControlPlane::SURFACE_ADMIN_DASHBOARD)
+            && $user->hasPermission('admin.access')
+                ? 'admin.tenant-context'
+                : 'internal.tenant-context';
     }
 }

@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Services\Auth\PermissionResolver;
+use App\Support\Internal\InternalControlPlane;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -17,7 +18,7 @@ class CheckPermission
     {
         $user = $request->user();
 
-        if (! $user) {
+        if (!$user) {
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => false,
@@ -29,7 +30,7 @@ class CheckPermission
             return redirect()->route('login');
         }
 
-        if (! $this->permissionResolver->can($user, $permission)) {
+        if (!$this->permissionResolver->can($user, $permission)) {
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => false,
@@ -49,7 +50,7 @@ class CheckPermission
         $isInternal = strtolower((string) ($user->user_type ?? '')) === 'internal' || empty($user->account_id);
 
         if ($isInternal) {
-            $canAdminAccess = method_exists($user, 'hasPermission') && $user->hasPermission('admin.access');
+            $controlPlane = app(InternalControlPlane::class);
 
             return [
                 'statusCode' => 403,
@@ -57,8 +58,8 @@ class CheckPermission
                 'title' => 'الوصول غير متاح',
                 'heading' => 'هذه الصفحة ليست ضمن دورك الحالي',
                 'message' => 'تم تسجيل دخولك بنجاح، لكن دورك الداخلي لا يتضمن الصلاحية المطلوبة لهذه الصفحة الآن.',
-                'primaryActionLabel' => $canAdminAccess ? 'العودة إلى لوحة الإدارة' : 'الانتقال إلى المساحة الداخلية',
-                'primaryActionUrl' => $canAdminAccess ? route('admin.index') : route('internal.home'),
+                'primaryActionLabel' => $controlPlane->landingActionLabel($user),
+                'primaryActionUrl' => route($controlPlane->landingRouteName($user)),
                 'secondaryActionLabel' => 'العودة إلى الصفحة السابقة',
                 'secondaryActionUrl' => url()->previous(),
             ];

@@ -7,6 +7,9 @@ const USERS = {
   externalIndividualOwner: 'e2e.a.individual@example.test',
   externalOrganizationOwner: 'e2e.c.organization_owner@example.test',
   internalSuperAdmin: 'e2e.internal.super_admin@example.test',
+  internalSupport: 'e2e.internal.support@example.test',
+  internalOpsReadonly: 'e2e.internal.ops_readonly@example.test',
+  internalCarrierManager: 'e2e.internal.carrier_manager@example.test',
   suspendedExternal: 'e2e.c.suspended@example.test',
 };
 
@@ -116,6 +119,33 @@ test('internal super_admin can login and open admin UI page', async ({ page }) =
   const adminResponse = await page.goto('/admin');
   expect(adminResponse).not.toBeNull();
   expect(adminResponse.status()).toBe(200);
+});
+
+test('internal support can login and see only the support-aligned internal workspace', async ({ page }) => {
+  await loginWith(page, 'admin', USERS.internalSupport);
+
+  await expect(page).toHaveURL(/\/internal$/);
+  await expect(page.locator('body')).toContainText('الدعم');
+  await expect(page.locator('body')).not.toContainText('لوحة الإدارة');
+  await expect(page.locator('body')).not.toContainText('إعدادات SMTP');
+});
+
+test('internal ops_readonly can login and stay in the readonly internal workspace', async ({ page }) => {
+  await loginWith(page, 'admin', USERS.internalOpsReadonly);
+
+  await expect(page).toHaveURL(/\/internal$/);
+  await expect(page.locator('body')).toContainText('التشغيل للقراءة فقط');
+  await expect(page.locator('body')).not.toContainText('لوحة الإدارة');
+  await expect(page.locator('body')).not.toContainText('إعدادات SMTP');
+});
+
+test('internal carrier_manager can login and reach smtp settings without admin navigation', async ({ page }) => {
+  await loginWith(page, 'admin', USERS.internalCarrierManager);
+
+  await expect(page).toHaveURL(/\/internal$/);
+  await expect(page.locator('body')).toContainText('إدارة الناقلين');
+  await expect(page.locator('body')).toContainText('إعدادات SMTP');
+  await expect(page.locator('body')).not.toContainText('لوحة الإدارة');
 });
 
 test('suspended external user cannot login', async ({ page }) => {

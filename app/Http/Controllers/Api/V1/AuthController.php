@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\AuditLog;
 use App\Models\User;
+use App\Support\Internal\InternalControlPlane;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -96,7 +97,7 @@ class AuthController extends Controller
                     'status'     => $user->status,
                     'user_type'  => $user->user_type,
                     'locale'     => $user->locale ?? 'ar',
-                    'role'       => $user->roles()->first()?->name ?? 'user',
+                    'role'       => $this->displayRoleName($user),
                     'account'    => [
                         'id'   => $account?->id,
                         'name' => $account?->name,
@@ -169,7 +170,7 @@ class AuthController extends Controller
                 'timezone'            => $user->timezone ?? 'Asia/Riyadh',
                 'two_factor_enabled'  => $user->two_factor_secret !== null,
                 'last_login_at'       => $user->last_login_at,
-                'role'                => $user->roles()->first()?->name ?? 'user',
+                'role'                => $this->displayRoleName($user),
                 'permissions'         => $user->getAllPermissions(),
                 'account' => [
                     'id'     => $account?->id,
@@ -273,5 +274,17 @@ class AuthController extends Controller
             'success' => true,
             'message' => 'تم تغيير كلمة المرور بنجاح.',
         ]);
+    }
+
+    private function displayRoleName(User $user): string
+    {
+        $userType = strtolower(trim((string) ($user->user_type ?? '')));
+        $isInternal = $userType === 'internal' || ($userType === '' && empty($user->account_id));
+
+        if ($isInternal) {
+            return app(InternalControlPlane::class)->displayRoleName($user);
+        }
+
+        return $user->roles()->first()?->name ?? 'user';
     }
 }

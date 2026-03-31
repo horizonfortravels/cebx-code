@@ -22,6 +22,7 @@ class E2EUserMatrixSeeder extends Seeder
     {
         $passwordHash = Hash::make(self::DEFAULT_PASSWORD);
         $this->cleanupLegacyMatrixUsers();
+        $this->cleanupLegacyInternalMatrixRoles();
 
         $accounts = [
             'a' => $this->upsertAccount(
@@ -164,6 +165,12 @@ class E2EUserMatrixSeeder extends Seeder
             passwordHash: $passwordHash
         );
 
+        $internalCarrierManager = $this->upsertInternalUser(
+            name: 'E2E Internal Carrier Manager',
+            email: 'e2e.internal.carrier_manager@example.test',
+            passwordHash: $passwordHash
+        );
+
         $superAdminRoleId = $this->resolveInternalRoleId('super_admin')
             ?? $this->ensureInternalRole(
                 name: 'super_admin',
@@ -198,26 +205,37 @@ class E2EUserMatrixSeeder extends Seeder
                 ]
             );
 
-        $supportRoleId = $this->ensureInternalRole(
-            name: 'e2e_internal_support',
-            displayName: 'E2E Internal Support',
-            description: 'Internal support role for E2E matrix.',
-            permissionKeys: [
-                'tenancy.context.select',
-                'tickets.read',
-                'tickets.manage',
-            ]
-        );
+        $supportRoleId = $this->resolveInternalRoleId('support')
+            ?? $this->ensureInternalRole(
+                name: 'support',
+                displayName: 'Support',
+                description: 'Fallback support role seeded by E2EUserMatrixSeeder.',
+                permissionKeys: [
+                    'tickets.read',
+                    'tickets.manage',
+                ]
+            );
 
-        $opsReadonlyRoleId = $this->ensureInternalRole(
-            name: 'e2e_internal_ops_readonly',
-            displayName: 'E2E Internal Ops Readonly',
-            description: 'Internal read-only ops role for E2E matrix.',
-            permissionKeys: [
-                'analytics.read',
-                'reports.read',
-            ]
-        );
+        $opsReadonlyRoleId = $this->resolveInternalRoleId('ops_readonly')
+            ?? $this->ensureInternalRole(
+                name: 'ops_readonly',
+                displayName: 'OpsReadonly',
+                description: 'Fallback internal read-only ops role seeded by E2EUserMatrixSeeder.',
+                permissionKeys: [
+                    'analytics.read',
+                    'reports.read',
+                ]
+            );
+
+        $carrierManagerRoleId = $this->resolveInternalRoleId('carrier_manager')
+            ?? $this->ensureInternalRole(
+                name: 'carrier_manager',
+                displayName: 'CarrierManager',
+                description: 'Fallback carrier manager role seeded by E2EUserMatrixSeeder.',
+                permissionKeys: [
+                    'notifications.channels.manage',
+                ]
+            );
 
         $this->assignInternalRole(
             userId: (string) $internalSuperAdmin->id,
@@ -232,6 +250,11 @@ class E2EUserMatrixSeeder extends Seeder
         $this->assignInternalRole(
             userId: (string) $internalOpsReadonly->id,
             roleId: $opsReadonlyRoleId,
+            assignedBy: (string) $internalSuperAdmin->id
+        );
+        $this->assignInternalRole(
+            userId: (string) $internalCarrierManager->id,
+            roleId: $carrierManagerRoleId,
             assignedBy: (string) $internalSuperAdmin->id
         );
 
@@ -284,6 +307,34 @@ class E2EUserMatrixSeeder extends Seeder
         }
 
         User::query()->withoutGlobalScopes()->whereIn('id', $userIds)->delete();
+    }
+
+    private function cleanupLegacyInternalMatrixRoles(): void
+    {
+        if (
+            !Schema::hasTable('internal_roles') ||
+            !Schema::hasTable('internal_role_permission') ||
+            !Schema::hasTable('internal_user_role')
+        ) {
+            return;
+        }
+
+        $legacyRoleIds = DB::table('internal_roles')
+            ->whereIn('name', [
+                'e2e_internal_support',
+                'e2e_internal_ops_readonly',
+            ])
+            ->pluck('id')
+            ->map(static fn ($id): string => (string) $id)
+            ->all();
+
+        if ($legacyRoleIds === []) {
+            return;
+        }
+
+        DB::table('internal_user_role')->whereIn('internal_role_id', $legacyRoleIds)->delete();
+        DB::table('internal_role_permission')->whereIn('internal_role_id', $legacyRoleIds)->delete();
+        DB::table('internal_roles')->whereIn('id', $legacyRoleIds)->delete();
     }
 
     /**

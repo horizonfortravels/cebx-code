@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Support\Internal\InternalControlPlane;
 use App\Support\Tenancy\WebTenantContext;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -233,11 +234,7 @@ class AuthWebController extends Controller
     private function postLoginRedirect(User $user): RedirectResponse
     {
         if ($this->isInternal($user)) {
-            if (! $user->hasPermission('admin.access')) {
-                return redirect()->route('internal.home');
-            }
-
-            return redirect()->route('admin.index');
+            return redirect()->route($this->internalHomeRouteName($user));
         }
 
         return redirect()->intended(url('/'));
@@ -245,7 +242,7 @@ class AuthWebController extends Controller
 
     private function internalHomeRouteName(User $user): string
     {
-        return $user->hasPermission('admin.access') ? 'admin.index' : 'internal.home';
+        return app(InternalControlPlane::class)->landingRouteName($user);
     }
 
     private function isInternal(User $user): bool

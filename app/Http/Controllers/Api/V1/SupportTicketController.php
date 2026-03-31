@@ -150,7 +150,8 @@ class SupportTicketController extends Controller
             'is_internal_note' => $data['is_internal'] ?? false,
         ]);
 
-        $isAgent = method_exists($request->user(), 'hasRole') && $request->user()->hasRole(['admin', 'agent', 'support']);
+        $isAgent = method_exists($request->user(), 'hasPermission')
+            && $request->user()->hasPermission('tickets.manage');
         if ($isAgent && $ticket->status === 'open') {
             $ticket->update(['status' => 'in_progress']);
         } elseif (!$isAgent && $ticket->status === 'waiting_customer') {

@@ -15,6 +15,12 @@
 
         <section style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px">
             <article style="padding:20px;border:1px solid var(--bd);border-radius:20px;background:#fff">
+                <div style="font-size:12px;color:var(--td);margin-bottom:8px">الدور الداخلي المعتمد</div>
+                <h2 style="margin:0 0 8px;font-size:22px">{{ $roleProfile['label'] }}</h2>
+                <p style="margin:0;color:var(--td);line-height:1.8">{{ $roleProfile['description'] }}</p>
+            </article>
+
+            <article style="padding:20px;border:1px solid var(--bd);border-radius:20px;background:#fff">
                 <div style="font-size:12px;color:var(--td);margin-bottom:8px">سياق العمل الحالي</div>
                 @if($selectedAccount)
                     <h2 style="margin:0 0 8px;font-size:22px">{{ $selectedAccount->name }}</h2>
@@ -41,8 +47,14 @@
             </article>
         </section>
 
+        @if($hasDeprecatedRoleAssignments)
+            <section style="padding:18px 20px;border:1px solid #f59e0b;border-radius:18px;background:#fffbeb;color:#92400e">
+                تم إخفاء الدور الداخلي القديم من الواجهة النشطة. اطلب من مسؤول المنصة إعادة تعيينه إلى أحد الأدوار الداخلية المعتمدة.
+            </section>
+        @endif
+
         <section style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px">
-            @if($capabilities['tenantContext'])
+            @if($surfaces['tenantContext'])
                 <article style="padding:22px;border:1px solid var(--bd);border-radius:20px;background:#fff">
                     <div style="font-size:12px;color:var(--td);margin-bottom:8px">الخطوة التالية</div>
                     <h2 style="margin:0 0 10px;font-size:22px">اختيار الحساب</h2>
@@ -55,7 +67,20 @@
                 </article>
             @endif
 
-            @if($capabilities['adminAccess'])
+            @if($surfaces['smtpSettings'])
+                <article style="padding:22px;border:1px solid var(--bd);border-radius:20px;background:#fff">
+                    <div style="font-size:12px;color:var(--td);margin-bottom:8px">إدارة الناقلين والمنصة</div>
+                    <h2 style="margin:0 0 10px;font-size:22px">إعدادات SMTP</h2>
+                    <p style="margin:0 0 18px;color:var(--td);line-height:1.8">
+                        هذه الواجهة متاحة ضمن الدور الداخلي المعتمد لإدارة إعدادات البريد الداخلي والاختبارات المرتبطة به.
+                    </p>
+                    <a href="{{ route('internal.smtp-settings.edit') }}" style="display:inline-flex;padding:12px 18px;border-radius:14px;background:#0f766e;color:#fff;text-decoration:none;font-weight:700">
+                        فتح إعدادات SMTP
+                    </a>
+                </article>
+            @endif
+
+            @if($surfaces['adminDashboard'])
                 <article style="padding:22px;border:1px solid var(--bd);border-radius:20px;background:#fff">
                     <div style="font-size:12px;color:var(--td);margin-bottom:8px">إدارة موسعة</div>
                     <h2 style="margin:0 0 10px;font-size:22px">لوحة الإدارة الكاملة</h2>

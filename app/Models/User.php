@@ -39,6 +39,32 @@ class User extends Authenticatable
             ->withPivot(['assigned_by', 'assigned_at']);
     }
 
+    public function internalRoles(): BelongsToMany
+    {
+        return $this->belongsToMany(InternalRole::class, 'internal_user_role')
+            ->withPivot(['assigned_by', 'assigned_at']);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function internalRoleNames(): array
+    {
+        $userType = strtolower(trim((string) ($this->user_type ?? '')));
+
+        if ($userType === 'external' || ($userType === '' && !empty($this->account_id))) {
+            return [];
+        }
+
+        return $this->internalRoles()
+            ->pluck('internal_roles.name')
+            ->map(static fn ($name): string => trim((string) $name))
+            ->filter(static fn (string $name): bool => $name !== '')
+            ->unique()
+            ->values()
+            ->all();
+    }
+
     public function hasPermission(string $permission): bool
     {
         try {
