@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Models\Account;
 use App\Models\ContentDeclaration;
-use App\Models\Role;
 use App\Models\User;
 use App\Models\WaiverVersion;
 use App\Services\DgComplianceService;
@@ -27,8 +26,8 @@ class DgComplianceApiTest extends TestCase
     {
         parent::setUp();
         $this->account = Account::factory()->create();
-        $role = Role::factory()->create(['account_id' => $this->account->id]);
-        $this->user = $this->createUserWithRole((string) $this->account->id, (string) $role->id);
+        $this->user = $this->createUserWithRole((string) $this->account->id);
+        $this->grantTenantPermissions($this->user, ['dg.read', 'dg.manage'], 'test_dg_api');
         $this->waiver = WaiverVersion::factory()->create();
     }
 
