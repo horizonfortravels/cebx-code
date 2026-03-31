@@ -130,8 +130,11 @@ class ShipmentCompletionFlowWebTest extends TestCase
             ->assertRedirect('/b2b/shipments/' . $shipment->id . '/declaration');
 
         $this->actingAs($user, 'web')
+            ->followingRedirects()
             ->post('/b2b/shipments/' . $shipment->id . '/wallet-preflight')
-            ->assertRedirect('/b2b/shipments/' . $shipment->id);
+            ->assertOk()
+            ->assertSee('طھظ… ط­ط¬ط² ظ…ط¨ظ„ط؛ ط§ظ„ط´ط­ظ†ط© ظ…ظ† ط§ظ„ظ…ط­ظپط¸ط© ط¨ظ†ط¬ط§ط­.')
+            ->assertSee('data-testid="carrier-issue-button"', false);
 
         $this->actingAs($user, 'web')
             ->followingRedirects()
@@ -313,8 +316,11 @@ class ShipmentCompletionFlowWebTest extends TestCase
             ->assertRedirect('/b2b/shipments/' . $shipment->id . '/declaration');
 
         $this->actingAs($user, 'web')
+            ->followingRedirects()
             ->post('/b2b/shipments/' . $shipment->id . '/wallet-preflight')
-            ->assertRedirect('/b2b/shipments/' . $shipment->id);
+            ->assertOk()
+            ->assertSee('طھظ… ط­ط¬ط² ظ…ط¨ظ„ط؛ ط§ظ„ط´ط­ظ†ط© ظ…ظ† ط§ظ„ظ…ط­ظپط¸ط© ط¨ظ†ط¬ط§ط­.')
+            ->assertSee('data-testid="carrier-issue-button"', false);
 
         $this->actingAs($user, 'web')
             ->followingRedirects()

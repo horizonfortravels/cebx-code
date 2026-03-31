@@ -5,14 +5,11 @@ namespace Tests\Unit;
 use App\Models\CarrierDocument;
 use App\Models\CarrierShipment;
 use App\Models\Shipment;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use InvalidArgumentException;
 use Tests\TestCase;
 
 class CarrierDocumentStorageContractTest extends TestCase
 {
-    use RefreshDatabase;
-
     public function test_inline_documents_cannot_claim_stored_object_fields(): void
     {
         [$shipment, $carrierShipment] = $this->createIssuedShipment();

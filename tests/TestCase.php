@@ -14,10 +14,11 @@ abstract class TestCase extends BaseTestCase
     use RefreshDatabase;
     use InteractsWithStrictRbac;
 
+    protected string $seeder = \Database\Seeders\RolesAndPermissionsSeeder::class;
+
     protected function setUp(): void
     {
         parent::setUp();
-        $this->seed(\Database\Seeders\RolesAndPermissionsSeeder::class);
     }
 
     protected function createAuthenticatedUser(string $role = 'super-admin')

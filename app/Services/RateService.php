@@ -312,6 +312,7 @@ class RateService
                 'carrier_name' => $option->carrier_name,
                 'service_code' => $option->service_code,
                 'service_name' => $option->service_name,
+                'currency' => $option->currency,
                 'shipping_rate' => $option->total_net_rate,
                 'platform_fee' => $option->service_fee,
                 'profit_margin' => $option->profit_margin,
