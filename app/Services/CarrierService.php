@@ -901,7 +901,7 @@ class CarrierService
             'carrier_name' => (string) ($selectedOption?->carrier_name ?? $shipment->carrier_name ?? 'FedEx'),
             'service_code' => (string) ($selectedOption?->service_code ?? $shipment->service_code ?? ''),
             'service_name' => (string) ($selectedOption?->service_name ?? $shipment->service_name ?? ''),
-            'currency' => (string) ($shipment->currency ?? $selectedOption?->currency ?? 'SAR'),
+            'currency' => (string) ($selectedOption?->currency ?? $shipment->currency ?? 'SAR'),
             'label_format' => $labelFormat,
             'label_size' => $labelSize,
             'correlation_id' => $correlationId,

@@ -307,6 +307,7 @@ class RateService
                 'selected_rate_option_id' => (string) $option->id,
                 'status' => Shipment::STATUS_DECLARATION_REQUIRED,
                 'status_reason' => 'Dangerous goods declaration must be completed before payment or issuance.',
+                'currency' => $option->currency,
                 'carrier_code' => $option->carrier_code,
                 'carrier_name' => $option->carrier_name,
                 'service_code' => $option->service_code,

@@ -1356,9 +1356,9 @@ class ShipmentService
     private function resolvePreflightCurrency(Shipment $shipment): string
     {
         $currency = trim((string) (
-            $shipment->currency
-            ?? $shipment->selectedRateOption?->currency
+            $shipment->selectedRateOption?->currency
             ?? $shipment->rateQuote?->currency
+            ?? $shipment->currency
             ?? 'SAR'
         ));
 
