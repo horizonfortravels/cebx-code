@@ -11,7 +11,6 @@ use App\Services\SmtpSettingsService;
 use App\Support\Kyc\AccountKycStatusMapper;
 use Database\Seeders\E2EUserMatrixSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
 use Mockery;
 use PHPUnit\Framework\Attributes\Test;
@@ -83,8 +82,6 @@ class InternalAccountsSupportActionsWebTest extends TestCase
     #[Test]
     public function super_admin_and_support_can_trigger_password_reset_for_external_accounts(): void
     {
-        Mail::fake();
-
         $cases = [
             [
                 'actor' => 'e2e.internal.super_admin@example.test',
@@ -101,17 +98,25 @@ class InternalAccountsSupportActionsWebTest extends TestCase
         foreach ($cases as $case) {
             $actor = $this->userByEmail($case['actor']);
             $target = $this->userByEmail($case['target']);
+            $smtpSettings = Mockery::mock(SmtpSettingsService::class);
+
+            $smtpSettings->shouldReceive('sendMailable')
+                ->once()
+                ->withArgs(function (string $destination, PasswordResetMail $mail) use ($target): bool {
+                    return $destination === $target->email
+                        && $mail->email === $target->email
+                        && str_contains($mail->resetUrl, '/reset-password/')
+                        && str_contains($mail->resetUrl, urlencode($target->email))
+                        && trim($mail->expiresAt) !== '';
+                })
+                ->andReturn('test-message-id');
+
+            $this->app->instance(SmtpSettingsService::class, $smtpSettings);
 
             $this->actingAs($actor, 'web')
                 ->post(route('internal.accounts.password-reset', $case['account']))
                 ->assertRedirect(route('internal.accounts.show', $case['account']))
                 ->assertSessionHasNoErrors();
-
-            Mail::assertSent(PasswordResetMail::class, function (PasswordResetMail $mail) use ($target): bool {
-                return $mail->email === $target->email
-                    && str_contains($mail->resetUrl, '/reset-password/')
-                    && str_contains($mail->resetUrl, urlencode($target->email));
-            });
 
             $this->assertDatabaseHas('password_reset_tokens', [
                 'email' => $target->email,
