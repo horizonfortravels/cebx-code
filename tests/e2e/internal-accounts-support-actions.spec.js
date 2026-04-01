@@ -152,11 +152,27 @@ async function openAccountDetail(page, accountName) {
   await page.waitForLoadState('networkidle');
 }
 
-async function expectSuccessToast(page) {
+async function expectSuccessToast(page, expectedText) {
   const toast = page.locator('.toast-container .toast.toast-success');
   await expect(toast).toBeVisible();
 
+  if (expectedText) {
+    await expect(toast).toContainText(expectedText);
+  }
+
   return toast;
+}
+
+async function clickAndExpectSuccessToast(page, trigger, expectedText) {
+  const toast = page.locator('.toast-container .toast.toast-success');
+
+  await Promise.all([
+    toast.waitFor({ state: 'visible' }),
+    trigger.click(),
+    page.waitForLoadState('networkidle'),
+  ]);
+
+  return expectSuccessToast(page, expectedText);
 }
 
 async function configureStoredSmtp(page, port) {
@@ -173,9 +189,10 @@ async function configureStoredSmtp(page, port) {
   await page.fill('input[name="reply_to_name"]', SMTP_SETTINGS.replyToName);
   await page.fill('input[name="reply_to_address"]', SMTP_SETTINGS.replyToAddress);
   await page.fill('input[name="timeout"]', SMTP_SETTINGS.timeout);
-  await page.locator('form[action$="/internal/smtp-settings"] button[type="submit"]').click();
-  await page.waitForLoadState('networkidle');
-  await expectSuccessToast(page);
+  await clickAndExpectSuccessToast(
+    page,
+    page.locator('form[action$="/internal/smtp-settings"] button[type="submit"]'),
+  );
 }
 
 async function expectSmtpDelivery(smtpSink, baselineCount, expectedRecipient) {
@@ -221,23 +238,26 @@ test('internal super_admin can trigger password reset and resend a safe organiza
 
   const baselineMessages = smtpSink.messages.length;
 
-  await page.locator('[data-testid="account-password-reset-button"]').click();
-  await page.waitForLoadState('networkidle');
-  await expectSuccessToast(page);
-  await expect(page.locator('body')).not.toContainText('500 خطأ غير متوقع');
+  await clickAndExpectSuccessToast(
+    page,
+    page.locator('[data-testid="account-password-reset-button"]'),
+    USERS.externalOrganizationOwner,
+  );
+  await expect(page.locator('body')).not.toContainText('500 ط®ط·ط£ ط؛ظٹط± ظ…طھظˆظ‚ط¹');
   await expectSmtpDelivery(smtpSink, baselineMessages, USERS.externalOrganizationOwner);
 
   await expect(page.locator('[data-testid="organization-pending-invitations-card"]')).toBeVisible();
   await expect(page.locator('[data-testid="pending-invitation-resend-button"]').first()).toBeVisible();
-  await page.locator('[data-testid="pending-invitation-resend-button"]').first().click();
-  await page.waitForLoadState('networkidle');
-  await expectSuccessToast(page);
-  await expect(page.getByRole('button', { name: 'إعادة إرسال التحقق' })).toHaveCount(0);
+  await clickAndExpectSuccessToast(
+    page,
+    page.locator('[data-testid="pending-invitation-resend-button"]').first(),
+  );
+  await expect(page.getByRole('button', { name: 'ط¥ط¹ط§ط¯ط© ط¥ط±ط³ط§ظ„ ط§ظ„طھط­ظ‚ظ‚' })).toHaveCount(0);
 });
 
 test('internal support can trigger password reset but cannot see lifecycle controls', async ({ page }) => {
   await loginWith(page, 'admin', USERS.internalSupport);
-  await openAccountDetail(page, 'E2E Account C');
+  await openAccountDetail(page, 'E2E Account A');
 
   await expect(page.locator('[data-testid="account-verification-status-card"]')).toBeVisible();
   await expect(page.locator('[data-testid="account-password-reset-button"]')).toBeVisible();
@@ -249,17 +269,25 @@ test('internal support can trigger password reset but cannot see lifecycle contr
 
   const baselineMessages = smtpSink.messages.length;
 
-  await page.locator('[data-testid="account-password-reset-button"]').click();
-  await page.waitForLoadState('networkidle');
-  await expectSuccessToast(page);
-  await expect(page.locator('body')).not.toContainText('500 خطأ غير متوقع');
-  await expectSmtpDelivery(smtpSink, baselineMessages, USERS.externalOrganizationOwner);
-  await expect(page.locator('[data-testid="pending-invitation-resend-button"]').first()).toBeVisible();
+  await clickAndExpectSuccessToast(
+    page,
+    page.locator('[data-testid="account-password-reset-button"]'),
+    'e2e.a.individual@example.test',
+  );
+  await expect(page.locator('body')).not.toContainText('500 ط®ط·ط£ ط؛ظٹط± ظ…طھظˆظ‚ط¹');
+  await expectSmtpDelivery(smtpSink, baselineMessages, 'e2e.a.individual@example.test');
+  await expect(page.locator('[data-testid="organization-pending-invitations-card"]')).toHaveCount(0);
 
   await page.goto(resolveRoutePath('internal.accounts.index', '/internal/accounts'));
-  await page.getByRole('link', { name: 'E2E Account A' }).click();
+  await page.getByRole('link', { name: 'E2E Account C' }).click();
   await page.waitForLoadState('networkidle');
-  await expect(page.locator('[data-testid="organization-pending-invitations-card"]')).toHaveCount(0);
+  await expect(page.locator('a[href$="/edit"]')).toHaveCount(0);
+  await expect(page.locator('form[action$="/activate"]')).toHaveCount(0);
+  await expect(page.locator('form[action$="/deactivate"]')).toHaveCount(0);
+  await expect(page.locator('form[action$="/suspend"]')).toHaveCount(0);
+  await expect(page.locator('form[action$="/unsuspend"]')).toHaveCount(0);
+  await expect(page.locator('[data-testid="organization-pending-invitations-card"]')).toBeVisible();
+  await expect(page.locator('[data-testid="pending-invitation-resend-button"]').first()).toBeVisible();
 });
 
 test('external organization user is denied from the internal external accounts center', async ({ page }) => {
@@ -271,6 +299,11 @@ test('external organization user is denied from the internal external accounts c
   await expect(page.locator('.panel')).toBeVisible();
   await expect(page.getByRole('heading', { level: 1, name: 'هذه الصفحة مخصصة لفريق التشغيل الداخلي في المنصة' })).toBeVisible();
   await expect(page.locator('.panel .meta')).toContainText('الحالة الحالية: 403');
+  await expect(page.getByRole('link', { name: 'العودة إلى بوابة الأعمال' })).toHaveAttribute(
+    'href',
+    new RegExp(`${resolveRoutePath('b2b.dashboard', '/b2b/dashboard').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`)
+  );
   await expect(page.locator('[data-testid="account-password-reset-button"]')).toHaveCount(0);
+  await expect(page.locator('[data-testid="pending-invitation-resend-button"]')).toHaveCount(0);
   await expect(page.locator('body')).not.toContainText('Internal Server Error');
 });
