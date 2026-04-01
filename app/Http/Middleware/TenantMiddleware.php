@@ -36,7 +36,7 @@ class TenantMiddleware
             return $this->denyAccess($request, 'الحساب غير موجود.', 403);
         }
 
-        if (($account->status ?? 'active') === 'suspended') {
+        if (($account->status ?? 'active') !== 'active') {
             return $this->denyAccess($request, 'الحساب موقوف. تواصل مع الإدارة.', 403);
         }
 

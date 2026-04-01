@@ -8,6 +8,7 @@ use App\Models\AuditLog;
 use App\Models\KycVerification;
 use App\Models\OrganizationProfile;
 use App\Models\User;
+use App\Support\Kyc\AccountKycStatusMapper;
 use Illuminate\Support\Facades\DB;
 
 class AccountTypeService
@@ -213,7 +214,7 @@ class AccountTypeService
                 'submitted_at'        => now(),
             ]);
 
-            $account->update(['kyc_status' => KycVerification::STATUS_PENDING]);
+            $account->update(['kyc_status' => AccountKycStatusMapper::fromVerificationStatus(KycVerification::STATUS_PENDING)]);
 
             $this->logAction(
                 $account->id,
@@ -267,7 +268,7 @@ class AccountTypeService
             'required_documents' => $requiredDocs,
         ]);
 
-        $account->update(['kyc_status' => KycVerification::STATUS_UNVERIFIED]);
+        $account->update(['kyc_status' => AccountKycStatusMapper::fromVerificationStatus(KycVerification::STATUS_UNVERIFIED)]);
 
         return $kyc;
     }

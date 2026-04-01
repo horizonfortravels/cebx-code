@@ -17,6 +17,13 @@ class InternalControlPlane
     public const SURFACE_ACCOUNT_USERS = 'account_users';
     public const SURFACE_ACCOUNT_ROLES = 'account_roles';
     public const SURFACE_ACCOUNT_REPORTS = 'account_reports';
+    public const SURFACE_EXTERNAL_ACCOUNTS_INDEX = 'external_accounts_index';
+    public const SURFACE_EXTERNAL_ACCOUNTS_DETAIL = 'external_accounts_detail';
+    public const SURFACE_EXTERNAL_ACCOUNTS_CREATE = 'external_accounts_create';
+    public const SURFACE_EXTERNAL_ACCOUNTS_UPDATE = 'external_accounts_update';
+    public const SURFACE_EXTERNAL_ACCOUNTS_LIFECYCLE = 'external_accounts_lifecycle';
+    public const SURFACE_EXTERNAL_ACCOUNTS_SUPPORT_ACTIONS = 'external_accounts_support_actions';
+    public const SURFACE_EXTERNAL_ACCOUNTS_MEMBER_ADMIN = 'external_accounts_member_admin';
 
     /**
      * @var array<int, string>
@@ -73,8 +80,19 @@ class InternalControlPlane
             self::SURFACE_ACCOUNT_USERS,
             self::SURFACE_ACCOUNT_ROLES,
             self::SURFACE_ACCOUNT_REPORTS,
+            self::SURFACE_EXTERNAL_ACCOUNTS_INDEX,
+            self::SURFACE_EXTERNAL_ACCOUNTS_DETAIL,
+            self::SURFACE_EXTERNAL_ACCOUNTS_CREATE,
+            self::SURFACE_EXTERNAL_ACCOUNTS_UPDATE,
+            self::SURFACE_EXTERNAL_ACCOUNTS_LIFECYCLE,
+            self::SURFACE_EXTERNAL_ACCOUNTS_SUPPORT_ACTIONS,
+            self::SURFACE_EXTERNAL_ACCOUNTS_MEMBER_ADMIN,
         ],
-        self::ROLE_SUPPORT => [],
+        self::ROLE_SUPPORT => [
+            self::SURFACE_EXTERNAL_ACCOUNTS_INDEX,
+            self::SURFACE_EXTERNAL_ACCOUNTS_DETAIL,
+            self::SURFACE_EXTERNAL_ACCOUNTS_SUPPORT_ACTIONS,
+        ],
         self::ROLE_OPS_READONLY => [],
         self::ROLE_CARRIER_MANAGER => [
             self::SURFACE_SMTP_SETTINGS,
@@ -91,6 +109,13 @@ class InternalControlPlane
         self::SURFACE_ACCOUNT_USERS,
         self::SURFACE_ACCOUNT_ROLES,
         self::SURFACE_ACCOUNT_REPORTS,
+        self::SURFACE_EXTERNAL_ACCOUNTS_INDEX,
+        self::SURFACE_EXTERNAL_ACCOUNTS_DETAIL,
+        self::SURFACE_EXTERNAL_ACCOUNTS_CREATE,
+        self::SURFACE_EXTERNAL_ACCOUNTS_UPDATE,
+        self::SURFACE_EXTERNAL_ACCOUNTS_LIFECYCLE,
+        self::SURFACE_EXTERNAL_ACCOUNTS_SUPPORT_ACTIONS,
+        self::SURFACE_EXTERNAL_ACCOUNTS_MEMBER_ADMIN,
     ];
 
     /**

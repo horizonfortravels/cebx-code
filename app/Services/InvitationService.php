@@ -39,93 +39,19 @@ class InvitationService
     {
         $this->assertCanInvite($performer);
 
-        $accountId = $performer->account_id;
-        $email = strtolower(trim($data['email']));
+        return $this->createInvitationForAccount($data, (string) $performer->account_id, $performer);
+    }
 
-        // 1. Check if email already belongs to a user in this account
-        $existsInAccount = User::withoutGlobalScopes()
-            ->where('account_id', $accountId)
-            ->where('email', $email)
-            ->exists();
+    /**
+     * Create a new invitation from an internal operational surface.
+     *
+     * @throws BusinessException
+     */
+    public function createInvitationForInternalActor(array $data, string $accountId, User $performer): Invitation
+    {
+        $this->assertAccountAllowsTeamManagement($accountId);
 
-        if ($existsInAccount) {
-            throw BusinessException::emailAlreadyInAccount();
-        }
-
-        // 2. Check if there's already a pending invitation for this email in this account
-        $existingPending = Invitation::withoutGlobalScopes()
-            ->where('account_id', $accountId)
-            ->where('email', $email)
-            ->where('status', Invitation::STATUS_PENDING)
-            ->where('expires_at', '>', now())
-            ->first();
-
-        if ($existingPending) {
-            throw BusinessException::invitationAlreadyExists();
-        }
-
-        // 3. Validate role belongs to this account (if specified)
-        if (!empty($data['role_id'])) {
-            $this->assertRoleBelongsToAccount($data['role_id'], $accountId);
-        }
-
-        // 4. Create the invitation
-        return DB::transaction(function () use ($data, $performer, $accountId, $email) {
-            $ttlHours = $data['ttl_hours'] ?? self::DEFAULT_TTL_HOURS;
-            $invitationPayload = [
-                'account_id' => $accountId,
-                'email' => $email,
-                'name' => $data['name'] ?? null,
-                'token' => $this->generateSecureToken(),
-                'status' => Invitation::STATUS_PENDING,
-                'expires_at' => now()->addHours($ttlHours),
-            ];
-
-            if (Schema::hasColumn('invitations', 'role_id')) {
-                $invitationPayload['role_id'] = $data['role_id'] ?? null;
-            } elseif (Schema::hasColumn('invitations', 'role_name') && !empty($data['role_id'])) {
-                $role = Role::withoutGlobalScopes()->find($data['role_id']);
-                $invitationPayload['role_name'] = $role?->name ?? $role?->slug ?? $role?->display_name ?? null;
-            }
-
-            if (Schema::hasColumn('invitations', 'invited_by')) {
-                $invitationPayload['invited_by'] = $performer->id;
-            }
-
-            if (Schema::hasColumn('invitations', 'last_sent_at')) {
-                $invitationPayload['last_sent_at'] = now();
-            }
-
-            if (Schema::hasColumn('invitations', 'send_count')) {
-                $invitationPayload['send_count'] = 1;
-            }
-
-            $invitation = Invitation::withoutGlobalScopes()->create($invitationPayload);
-
-            $this->logAction(
-                $accountId,
-                $performer->id,
-                'invitation.created',
-                'Invitation',
-                $invitation->id,
-                null,
-                [
-                    'email'      => $email,
-                    'role_id'    => $data['role_id'] ?? null,
-                    'expires_at' => $invitation->expires_at->toISOString(),
-                ]
-            );
-
-            event(new InvitationCreated(
-                $invitation,
-                $performer,
-                Schema::hasColumn('invitations', 'send_count') ? (int) $invitation->send_count : null,
-                (string) $invitation->token,
-                $invitation->expires_at?->toIso8601String(),
-            ));
-
-            return $invitation;
-        });
+        return $this->createInvitationForAccount($data, $accountId, $performer);
     }
 
     // ─── Accept Invitation ───────────────────────────────────────
@@ -289,6 +215,29 @@ class InvitationService
 
         $invitation = $this->findInvitationOrFail($invitationId, $performer->account_id);
 
+        return $this->resendEligibleInvitation($invitation, $performer, (string) $performer->account_id);
+    }
+
+    /**
+     * Resend a pending invitation from an internal operational surface.
+     *
+     * @throws BusinessException
+     */
+    public function resendInvitationForInternalActor(string $invitationId, string $accountId, User $performer): Invitation
+    {
+        $this->assertAccountAllowsTeamManagement($accountId);
+
+        $invitation = $this->findInvitationOrFail($invitationId, $accountId);
+
+        return $this->resendEligibleInvitation($invitation, $performer, $accountId);
+    }
+
+    /**
+     * @throws BusinessException
+     */
+    private function resendEligibleInvitation(Invitation $invitation, User $performer, string $auditAccountId): Invitation
+    {
+
         if (!$invitation->canResend()) {
             throw BusinessException::invitationCannotResend();
         }
@@ -301,7 +250,7 @@ class InvitationService
             );
         }
 
-        return DB::transaction(function () use ($invitation, $performer) {
+        return DB::transaction(function () use ($invitation, $performer, $auditAccountId) {
             // Generate new token and reset TTL
             $resendPayload = [
                 'token' => $this->generateSecureToken(),
@@ -316,7 +265,7 @@ class InvitationService
             $invitation->update($resendPayload);
 
             $this->logAction(
-                $performer->account_id,
+                $auditAccountId,
                 $performer->id,
                 'invitation.resent',
                 'Invitation',
@@ -507,6 +456,95 @@ class InvitationService
     private function generateSecureToken(): string
     {
         return bin2hex(random_bytes(32));
+    }
+
+    /**
+     * @throws BusinessException
+     */
+    private function createInvitationForAccount(array $data, string $accountId, User $performer): Invitation
+    {
+        $email = strtolower(trim((string) ($data['email'] ?? '')));
+
+        $existsInAccount = User::withoutGlobalScopes()
+            ->where('account_id', $accountId)
+            ->where('email', $email)
+            ->exists();
+
+        if ($existsInAccount) {
+            throw BusinessException::emailAlreadyInAccount();
+        }
+
+        $existingPending = Invitation::withoutGlobalScopes()
+            ->where('account_id', $accountId)
+            ->where('email', $email)
+            ->where('status', Invitation::STATUS_PENDING)
+            ->where('expires_at', '>', now())
+            ->first();
+
+        if ($existingPending) {
+            throw BusinessException::invitationAlreadyExists();
+        }
+
+        if (!empty($data['role_id'])) {
+            $this->assertRoleBelongsToAccount((string) $data['role_id'], $accountId);
+        }
+
+        return DB::transaction(function () use ($data, $performer, $accountId, $email) {
+            $ttlHours = $data['ttl_hours'] ?? self::DEFAULT_TTL_HOURS;
+            $invitationPayload = [
+                'account_id' => $accountId,
+                'email' => $email,
+                'name' => $data['name'] ?? null,
+                'token' => $this->generateSecureToken(),
+                'status' => Invitation::STATUS_PENDING,
+                'expires_at' => now()->addHours($ttlHours),
+            ];
+
+            if (Schema::hasColumn('invitations', 'role_id')) {
+                $invitationPayload['role_id'] = $data['role_id'] ?? null;
+            } elseif (Schema::hasColumn('invitations', 'role_name') && !empty($data['role_id'])) {
+                $role = Role::withoutGlobalScopes()->find($data['role_id']);
+                $invitationPayload['role_name'] = $role?->name ?? $role?->slug ?? $role?->display_name ?? null;
+            }
+
+            if (Schema::hasColumn('invitations', 'invited_by')) {
+                $invitationPayload['invited_by'] = $performer->id;
+            }
+
+            if (Schema::hasColumn('invitations', 'last_sent_at')) {
+                $invitationPayload['last_sent_at'] = now();
+            }
+
+            if (Schema::hasColumn('invitations', 'send_count')) {
+                $invitationPayload['send_count'] = 1;
+            }
+
+            $invitation = Invitation::withoutGlobalScopes()->create($invitationPayload);
+
+            $this->logAction(
+                $accountId,
+                (string) $performer->id,
+                'invitation.created',
+                'Invitation',
+                (string) $invitation->id,
+                null,
+                [
+                    'email' => $email,
+                    'role_id' => $data['role_id'] ?? null,
+                    'expires_at' => $invitation->expires_at?->toISOString(),
+                ]
+            );
+
+            event(new InvitationCreated(
+                $invitation,
+                $performer,
+                Schema::hasColumn('invitations', 'send_count') ? (int) $invitation->send_count : null,
+                (string) $invitation->token,
+                $invitation->expires_at?->toIso8601String(),
+            ));
+
+            return $invitation;
+        });
     }
 
     /**

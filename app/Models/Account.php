@@ -18,10 +18,15 @@ class Account extends Model
 
     protected $guarded = [];
 
+    protected $casts = [
+        'settings' => 'array',
+    ];
+
     public function users(): HasMany { return $this->hasMany(User::class); }
     public function shipments(): HasMany { return $this->hasMany(Shipment::class); }
     public function orders(): HasMany { return $this->hasMany(Order::class); }
     public function stores(): HasMany { return $this->hasMany(Store::class); }
+    public function billingWallet(): HasOne { return $this->hasOne(BillingWallet::class); }
     public function wallet(): HasOne { return $this->hasOne(Wallet::class); }
     public function addresses(): HasMany { return $this->hasMany(Address::class); }
     public function tickets(): HasMany { return $this->hasMany(SupportTicket::class); }

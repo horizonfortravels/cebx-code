@@ -191,11 +191,7 @@ return new class extends Migration
 
     private function cutoverPrimaryKeyToUuid(string $table): void
     {
-        if (
-            !Schema::hasTable($table) ||
-            !Schema::hasColumn($table, 'id') ||
-            !Schema::hasColumn($table, 'id_uuid')
-        ) {
+        if (!$this->canStartPrimaryKeyCutover($table)) {
             return;
         }
 
@@ -205,13 +201,17 @@ return new class extends Migration
             });
         }
 
-        if (!Schema::hasColumn($table, 'id') && Schema::hasColumn($table, 'id_uuid')) {
+        if (
+            Schema::hasTable($table) &&
+            !Schema::hasColumn($table, 'id') &&
+            Schema::hasColumn($table, 'id_uuid')
+        ) {
             Schema::table($table, function ($blueprint): void {
                 $blueprint->renameColumn('id_uuid', 'id');
             });
         }
 
-        if (!Schema::hasColumn($table, 'id') || !Schema::hasColumn($table, 'id_legacy')) {
+        if (!$this->canFinalizePrimaryKeyCutover($table)) {
             return;
         }
 
@@ -227,6 +227,20 @@ return new class extends Migration
         DB::statement(sprintf('ALTER TABLE `%s` MODIFY `id_legacy` %s NULL', $table, $legacyType));
         DB::statement(sprintf('ALTER TABLE `%s` MODIFY `id` CHAR(36) NOT NULL', $table));
         DB::statement(sprintf('ALTER TABLE `%s` ADD PRIMARY KEY (`id`)', $table));
+    }
+
+    private function canStartPrimaryKeyCutover(string $table): bool
+    {
+        return Schema::hasTable($table)
+            && Schema::hasColumn($table, 'id')
+            && Schema::hasColumn($table, 'id_uuid');
+    }
+
+    private function canFinalizePrimaryKeyCutover(string $table): bool
+    {
+        return Schema::hasTable($table)
+            && Schema::hasColumn($table, 'id')
+            && Schema::hasColumn($table, 'id_legacy');
     }
 
     private function promoteShadowForeignKey(string $table, string $column, ?bool $nullableFromLegacy): void

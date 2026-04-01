@@ -39,6 +39,7 @@
     $canAdminAccess = $currentUser?->hasPermission('admin.access') ?? false;
     $canSelectTenant = $currentUser?->hasPermission('tenancy.context.select') ?? false;
     $canManageNotificationChannels = $currentUser?->hasPermission('notifications.channels.manage') ?? false;
+    $canReadAccounts = $currentUser?->hasPermission('accounts.read') ?? false;
     $canReadIntegrations = $currentUser?->hasPermission('integrations.read') ?? false;
     $canReadApiKeys = $currentUser?->hasPermission('api_keys.read') ?? false;
     $canReadWebhooks = $currentUser?->hasPermission('webhooks.read') ?? false;
@@ -53,6 +54,10 @@
         && $canManageNotificationChannels
         && $internalControlPlane?->canSeeSurface($currentUser, \App\Support\Internal\InternalControlPlane::SURFACE_SMTP_SETTINGS)
         && Route::has('internal.smtp-settings.edit');
+    $showExternalAccountsReadCenter = $isInternalUser
+        && $canReadAccounts
+        && $internalControlPlane?->canSeeSurface($currentUser, \App\Support\Internal\InternalControlPlane::SURFACE_EXTERNAL_ACCOUNTS_INDEX)
+        && Route::has('internal.accounts.index');
     $internalTopbarRole = $hasDeprecatedInternalRoles
         ? 'وصول داخلي قديم تم إخفاء مسماه من الواجهة النشطة'
         : ($internalRoleProfile['label'] ?? 'وصول داخلي مضبوط وفق الدور المعتمد');
@@ -70,6 +75,11 @@
 
         if ($showTenantContext) {
             $menu[] = ['active' => ['admin.tenant-context', 'internal.tenant-context'], 'route' => $showAdminDashboard ? 'admin.tenant-context' : 'internal.tenant-context', 'icon' => 'CTX', 'label' => 'اختيار الحساب'];
+        }
+
+        if ($showExternalAccountsReadCenter) {
+            $menu[] = ['divider' => 'عمليات العملاء'];
+            $menu[] = ['active' => ['internal.accounts.*'], 'route' => 'internal.accounts.index', 'icon' => 'ACC', 'label' => 'حسابات العملاء'];
         }
 
         if ($showSmtpSettings) {

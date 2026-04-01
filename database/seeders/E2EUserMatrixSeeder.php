@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Account;
 use App\Models\BillingWallet;
+use App\Models\Invitation;
 use App\Models\User;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -177,10 +178,17 @@ class E2EUserMatrixSeeder extends Seeder
                 displayName: 'SuperAdmin',
                 description: 'Fallback super admin role seeded by E2EUserMatrixSeeder.',
                 permissionKeys: [
+                    'accounts.read',
+                    'accounts.create',
+                    'accounts.update',
+                    'accounts.lifecycle.manage',
+                    'accounts.support.manage',
+                    'accounts.members.manage',
                     'admin.access',
                     'tenancy.context.select',
                     'users.read',
                     'users.manage',
+                    'users.invite',
                     'roles.read',
                     'roles.manage',
                     'roles.assign',
@@ -211,6 +219,8 @@ class E2EUserMatrixSeeder extends Seeder
                 displayName: 'Support',
                 description: 'Fallback support role seeded by E2EUserMatrixSeeder.',
                 permissionKeys: [
+                    'accounts.read',
+                    'accounts.support.manage',
                     'tickets.read',
                     'tickets.manage',
                 ]
@@ -258,6 +268,7 @@ class E2EUserMatrixSeeder extends Seeder
             assignedBy: (string) $internalSuperAdmin->id
         );
 
+        $this->seedDeterministicPendingInvitations($accounts, $externalUsers);
         $this->seedDeterministicWallets($accounts);
 
         $this->command?->info('E2E user matrix seeded successfully.');
@@ -359,6 +370,52 @@ class E2EUserMatrixSeeder extends Seeder
                 ]
             );
         }
+    }
+
+    /**
+     * @param array<string, Account> $accounts
+     * @param array<string, array<string, User>> $externalUsers
+     */
+    private function seedDeterministicPendingInvitations(array $accounts, array $externalUsers): void
+    {
+        $account = $accounts['c'];
+        $inviter = $externalUsers['c']['organization_owner'];
+
+        $payload = [
+            'name' => 'E2E Pending Invite',
+            'token' => hash('sha256', 'e2e-account-c-pending-invite'),
+            'status' => Invitation::STATUS_PENDING,
+            'expires_at' => now()->addDays(3),
+        ];
+
+        if (Schema::hasColumn('invitations', 'role_id')) {
+            $payload['role_id'] = DB::table('roles')
+                ->where('account_id', (string) $account->id)
+                ->where('name', 'staff')
+                ->value('id');
+        } elseif (Schema::hasColumn('invitations', 'role_name')) {
+            $payload['role_name'] = 'staff';
+        }
+
+        if (Schema::hasColumn('invitations', 'invited_by')) {
+            $payload['invited_by'] = (string) $inviter->id;
+        }
+
+        if (Schema::hasColumn('invitations', 'last_sent_at')) {
+            $payload['last_sent_at'] = now();
+        }
+
+        if (Schema::hasColumn('invitations', 'send_count')) {
+            $payload['send_count'] = 1;
+        }
+
+        Invitation::query()->withoutGlobalScopes()->updateOrCreate(
+            [
+                'account_id' => (string) $account->id,
+                'email' => 'e2e.c.pending.invite@example.test',
+            ],
+            $payload
+        );
     }
 
     private function upsertAccount(string $slug, string $name, string $requestedType): Account

@@ -351,6 +351,10 @@ class WalletBillingService
      */
     public function maskPaymentDataForDisabledAccount(string $accountId): int
     {
+        if (!Schema::hasTable('payment_methods')) {
+            return 0;
+        }
+
         $count = PaymentMethod::withoutGlobalScopes()
             ->where('account_id', $accountId)
             ->where('is_masked_override', false)
@@ -378,6 +382,10 @@ class WalletBillingService
      */
     public function restorePaymentDataForReactivatedAccount(string $accountId): int
     {
+        if (!Schema::hasTable('payment_methods')) {
+            return 0;
+        }
+
         $count = PaymentMethod::withoutGlobalScopes()
             ->where('account_id', $accountId)
             ->where('is_masked_override', true)

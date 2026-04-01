@@ -1,5 +1,5 @@
 @props(['title' => null])
-<div class="card">
+<div {{ $attributes->class('card') }}>
     @if($title)
         <div class="card-title">
             <span>{{ $title }}</span>

@@ -2,6 +2,10 @@
 
 use App\Http\Controllers\Web\AuthWebController;
 use App\Http\Controllers\Web\DashboardController;
+use App\Http\Controllers\Web\InternalAccountManagementController;
+use App\Http\Controllers\Web\InternalAccountMembersController;
+use App\Http\Controllers\Web\InternalAccountReadCenterController;
+use App\Http\Controllers\Web\InternalAccountSupportActionsController;
 use App\Http\Controllers\Web\InternalAdminWebController;
 use App\Http\Controllers\Web\InternalSmtpSettingsController;
 use App\Http\Controllers\Web\OrderWebController;
@@ -31,6 +35,68 @@ Route::post('/logout', [AuthWebController::class, 'logout'])->name('logout');
 
 Route::middleware(['auth:web', 'userType:internal'])->prefix('internal')->name('internal.')->group(function (): void {
     Route::get('/', [InternalAdminWebController::class, 'home'])->name('home');
+
+    Route::middleware([
+        'permission:accounts.read',
+        'internalSurface:' . InternalControlPlane::SURFACE_EXTERNAL_ACCOUNTS_INDEX,
+    ])->group(function (): void {
+        Route::get('/accounts', [InternalAccountReadCenterController::class, 'index'])->name('accounts.index');
+    });
+
+    Route::middleware([
+        'permission:accounts.create',
+        'internalSurface:' . InternalControlPlane::SURFACE_EXTERNAL_ACCOUNTS_CREATE,
+    ])->group(function (): void {
+        Route::get('/accounts/create', [InternalAccountManagementController::class, 'create'])->name('accounts.create');
+        Route::post('/accounts', [InternalAccountManagementController::class, 'store'])->name('accounts.store');
+    });
+
+    Route::middleware([
+        'permission:accounts.read',
+        'internalSurface:' . InternalControlPlane::SURFACE_EXTERNAL_ACCOUNTS_DETAIL,
+    ])->group(function (): void {
+        Route::get('/accounts/{account}', [InternalAccountReadCenterController::class, 'show'])->name('accounts.show');
+    });
+
+    Route::middleware([
+        'permission:accounts.support.manage',
+        'internalSurface:' . InternalControlPlane::SURFACE_EXTERNAL_ACCOUNTS_SUPPORT_ACTIONS,
+    ])->group(function (): void {
+        Route::post('/accounts/{account}/password-reset', [InternalAccountSupportActionsController::class, 'passwordReset'])
+            ->name('accounts.password-reset');
+        Route::post('/accounts/{account}/invitations/{invitation}/resend', [InternalAccountSupportActionsController::class, 'resendInvitation'])
+            ->name('accounts.invitations.resend');
+    });
+
+    Route::middleware([
+        'permission:accounts.members.manage',
+        'internalSurface:' . InternalControlPlane::SURFACE_EXTERNAL_ACCOUNTS_MEMBER_ADMIN,
+    ])->group(function (): void {
+        Route::post('/accounts/{account}/members/invite', [InternalAccountMembersController::class, 'invite'])
+            ->name('accounts.members.invite');
+        Route::post('/accounts/{account}/members/{member}/deactivate', [InternalAccountMembersController::class, 'deactivate'])
+            ->name('accounts.members.deactivate');
+        Route::post('/accounts/{account}/members/{member}/reactivate', [InternalAccountMembersController::class, 'reactivate'])
+            ->name('accounts.members.reactivate');
+    });
+
+    Route::middleware([
+        'permission:accounts.update',
+        'internalSurface:' . InternalControlPlane::SURFACE_EXTERNAL_ACCOUNTS_UPDATE,
+    ])->group(function (): void {
+        Route::get('/accounts/{account}/edit', [InternalAccountManagementController::class, 'edit'])->name('accounts.edit');
+        Route::put('/accounts/{account}', [InternalAccountManagementController::class, 'update'])->name('accounts.update');
+    });
+
+    Route::middleware([
+        'permission:accounts.lifecycle.manage',
+        'internalSurface:' . InternalControlPlane::SURFACE_EXTERNAL_ACCOUNTS_LIFECYCLE,
+    ])->group(function (): void {
+        Route::post('/accounts/{account}/activate', [InternalAccountManagementController::class, 'activate'])->name('accounts.activate');
+        Route::post('/accounts/{account}/deactivate', [InternalAccountManagementController::class, 'deactivate'])->name('accounts.deactivate');
+        Route::post('/accounts/{account}/suspend', [InternalAccountManagementController::class, 'suspend'])->name('accounts.suspend');
+        Route::post('/accounts/{account}/unsuspend', [InternalAccountManagementController::class, 'unsuspend'])->name('accounts.unsuspend');
+    });
 
     Route::middleware([
         'permission:tenancy.context.select',
