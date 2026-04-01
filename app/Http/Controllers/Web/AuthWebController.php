@@ -6,9 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Support\Internal\InternalControlPlane;
 use App\Support\Tenancy\WebTenantContext;
+use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Password;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\Password as PasswordRule;
 use Illuminate\View\View;
 
 class AuthWebController extends Controller
@@ -231,6 +236,52 @@ class AuthWebController extends Controller
         return redirect()->to($loginUrl);
     }
 
+    public function showResetPassword(Request $request, string $token): View
+    {
+        return view('pages.auth.reset-password', [
+            'token' => $token,
+            'email' => (string) $request->query('email', ''),
+        ]);
+    }
+
+    public function resetPassword(Request $request): RedirectResponse
+    {
+        $credentials = $request->validate([
+            'token' => ['required', 'string'],
+            'email' => ['required', 'email'],
+            'password' => ['required', 'confirmed', PasswordRule::min(8)->mixedCase()->numbers()->symbols()],
+        ]);
+
+        $status = Password::reset(
+            $credentials,
+            function (User $user, string $password): void {
+                $user->forceFill([
+                    'password' => Hash::make($password),
+                    'remember_token' => Str::random(60),
+                ])->save();
+
+                $user->tokens()->delete();
+
+                event(new PasswordReset($user));
+            }
+        );
+
+        if ($status !== Password::PASSWORD_RESET) {
+            return back()
+                ->withErrors(['email' => __($status)])
+                ->withInput($request->except(['password', 'password_confirmation']));
+        }
+
+        $user = User::query()
+            ->withoutGlobalScopes()
+            ->where('email', $credentials['email'])
+            ->first();
+
+        return redirect()
+            ->route($this->passwordResetLoginRouteName($user))
+            ->with('success', 'تمت إعادة تعيين كلمة المرور بنجاح. يمكنك تسجيل الدخول الآن.');
+    }
+
     private function postLoginRedirect(User $user): RedirectResponse
     {
         if ($this->isInternal($user)) {
@@ -238,6 +289,23 @@ class AuthWebController extends Controller
         }
 
         return redirect()->intended(url('/'));
+    }
+
+    private function passwordResetLoginRouteName(?User $user): string
+    {
+        if (! $user instanceof User) {
+            return 'login';
+        }
+
+        if ($this->isInternal($user)) {
+            return 'admin.login';
+        }
+
+        return match ((string) optional($user->account)->type) {
+            'organization' => 'b2b.login',
+            'individual' => 'b2c.login',
+            default => 'login',
+        };
     }
 
     private function internalHomeRouteName(User $user): string

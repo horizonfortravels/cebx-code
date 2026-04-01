@@ -97,7 +97,11 @@ class InternalAccountsSupportActionsWebTest extends TestCase
                 ->assertRedirect(route('internal.accounts.show', $case['account']))
                 ->assertSessionHasNoErrors();
 
-            Notification::assertSentTo($target, ResetPassword::class);
+            Notification::assertSentTo($target, ResetPassword::class, function (ResetPassword $notification) use ($target): bool {
+                $notification->toMail($target);
+
+                return true;
+            });
 
             $this->assertDatabaseHas('password_reset_tokens', [
                 'email' => $target->email,

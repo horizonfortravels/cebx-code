@@ -31,6 +31,8 @@ Route::get('/b2b/login', [AuthWebController::class, 'showB2bLogin'])->name('b2b.
 Route::post('/b2b/login', [AuthWebController::class, 'loginB2b'])->name('b2b.login.submit');
 Route::get('/admin/login', [AuthWebController::class, 'showAdminLogin'])->name('admin.login');
 Route::post('/admin/login', [AuthWebController::class, 'loginAdmin'])->name('admin.login.submit');
+Route::get('/reset-password/{token}', [AuthWebController::class, 'showResetPassword'])->name('password.reset');
+Route::post('/reset-password', [AuthWebController::class, 'resetPassword'])->name('password.update');
 Route::post('/logout', [AuthWebController::class, 'logout'])->name('logout');
 
 Route::middleware(['auth:web', 'userType:internal'])->prefix('internal')->name('internal.')->group(function (): void {
