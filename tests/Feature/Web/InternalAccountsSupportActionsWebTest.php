@@ -98,18 +98,22 @@ class InternalAccountsSupportActionsWebTest extends TestCase
         foreach ($cases as $case) {
             $actor = $this->userByEmail($case['actor']);
             $target = $this->userByEmail($case['target']);
+            $sentDestination = null;
+            $sentMail = null;
             $smtpSettings = Mockery::mock(SmtpSettingsService::class);
 
             $smtpSettings->shouldReceive('sendMailable')
                 ->once()
-                ->withArgs(function (string $destination, PasswordResetMail $mail) use ($target): bool {
-                    return $destination === $target->email
-                        && $mail->email === $target->email
-                        && str_contains($mail->resetUrl, '/reset-password/')
-                        && str_contains($mail->resetUrl, urlencode($target->email))
-                        && trim($mail->expiresAt) !== '';
-                })
-                ->andReturn('test-message-id');
+                ->with(Mockery::type('string'), Mockery::type(PasswordResetMail::class))
+                ->andReturnUsing(function (string $destination, PasswordResetMail $mail) use (&$sentDestination, &$sentMail): string {
+                    $sentDestination = $destination;
+                    $sentMail = $mail;
+
+                    return 'test-message-id';
+                });
+            $smtpSettings->shouldReceive('providerName')
+                ->zeroOrMoreTimes()
+                ->andReturn('smtp');
 
             $this->app->instance(SmtpSettingsService::class, $smtpSettings);
 
@@ -117,6 +121,13 @@ class InternalAccountsSupportActionsWebTest extends TestCase
                 ->post(route('internal.accounts.password-reset', $case['account']))
                 ->assertRedirect(route('internal.accounts.show', $case['account']))
                 ->assertSessionHasNoErrors();
+
+            $this->assertSame($target->email, $sentDestination);
+            $this->assertInstanceOf(PasswordResetMail::class, $sentMail);
+            $this->assertSame($target->email, $sentMail->email);
+            $this->assertStringContainsString('/reset-password/', $sentMail->resetUrl);
+            $this->assertStringContainsString(urlencode($target->email), $sentMail->resetUrl);
+            $this->assertNotSame('', trim($sentMail->expiresAt));
 
             $this->assertDatabaseHas('password_reset_tokens', [
                 'email' => $target->email,
