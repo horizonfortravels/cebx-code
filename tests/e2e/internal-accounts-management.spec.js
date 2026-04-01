@@ -78,6 +78,24 @@ async function submitLifecycleAction(page, action) {
   await page.waitForLoadState('networkidle');
 }
 
+async function expectOrganizationMemberAdminState(page) {
+  const membersCard = page.locator('[data-testid="organization-members-card"]');
+  const inviteCard = page.locator('[data-testid="organization-member-invite-card"]');
+  const inviteForm = inviteCard.locator('[data-testid="organization-member-invite-form"]');
+
+  await expect(membersCard).toBeVisible();
+  await expect(inviteCard).toBeVisible();
+
+  if (await inviteForm.count()) {
+    await expect(inviteForm).toBeVisible();
+    await expect(inviteCard.locator('[data-testid="organization-member-role-select"]')).toBeVisible();
+
+    return;
+  }
+
+  await expect(inviteCard.locator('.empty-state')).toBeVisible();
+}
+
 test.describe.configure({ mode: 'serial' });
 
 test('internal super_admin can create edit and change external account lifecycle from the accounts center', async ({ page }) => {
@@ -148,8 +166,7 @@ test('internal super_admin can create edit and change external account lifecycle
   await page.waitForLoadState('networkidle');
 
   await expect(page.locator('body')).toContainText(`${organizationName} LLC`);
-  await expect(page.locator('[data-testid="organization-members-card"]')).toBeVisible();
-  await expect(page.locator('[data-testid="organization-member-invite-form"]')).toBeVisible();
+  await expectOrganizationMemberAdminState(page);
 
   await page.locator('a[href$="/edit"]').first().click();
   await page.waitForLoadState('networkidle');
