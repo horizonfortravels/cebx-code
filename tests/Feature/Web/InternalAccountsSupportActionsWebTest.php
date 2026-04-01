@@ -40,9 +40,11 @@ class InternalAccountsSupportActionsWebTest extends TestCase
 
     protected function tearDown(): void
     {
-        Mockery::close();
-
-        parent::tearDown();
+        try {
+            Mockery::close();
+        } finally {
+            parent::tearDown();
+        }
     }
 
     #[Test]
@@ -80,67 +82,23 @@ class InternalAccountsSupportActionsWebTest extends TestCase
     }
 
     #[Test]
-    public function super_admin_and_support_can_trigger_password_reset_for_external_accounts(): void
+    public function super_admin_can_trigger_password_reset_for_external_accounts(): void
     {
-        $cases = [
-            [
-                'actor' => 'e2e.internal.super_admin@example.test',
-                'account' => $this->individualAccount,
-                'target' => 'e2e.a.individual@example.test',
-            ],
-            [
-                'actor' => 'e2e.internal.support@example.test',
-                'account' => $this->organizationAccount,
-                'target' => 'e2e.c.organization_owner@example.test',
-            ],
-        ];
+        $this->assertPasswordResetCanBeTriggered(
+            actorEmail: 'e2e.internal.super_admin@example.test',
+            account: $this->individualAccount,
+            targetEmail: 'e2e.a.individual@example.test',
+        );
+    }
 
-        foreach ($cases as $case) {
-            $actor = $this->userByEmail($case['actor']);
-            $target = $this->userByEmail($case['target']);
-            $sentDestination = null;
-            $sentMail = null;
-            $smtpSettings = Mockery::mock(SmtpSettingsService::class);
-
-            $smtpSettings->shouldReceive('sendMailable')
-                ->once()
-                ->with(Mockery::type('string'), Mockery::type(PasswordResetMail::class))
-                ->andReturnUsing(function (string $destination, PasswordResetMail $mail) use (&$sentDestination, &$sentMail): string {
-                    $sentDestination = $destination;
-                    $sentMail = $mail;
-
-                    return 'test-message-id';
-                });
-            $smtpSettings->shouldReceive('providerName')
-                ->zeroOrMoreTimes()
-                ->andReturn('smtp');
-
-            $this->app->instance(SmtpSettingsService::class, $smtpSettings);
-
-            $this->actingAs($actor, 'web')
-                ->post(route('internal.accounts.password-reset', $case['account']))
-                ->assertRedirect(route('internal.accounts.show', $case['account']))
-                ->assertSessionHasNoErrors();
-
-            $this->assertSame($target->email, $sentDestination);
-            $this->assertInstanceOf(PasswordResetMail::class, $sentMail);
-            $this->assertSame($target->email, $sentMail->email);
-            $this->assertStringContainsString('/reset-password/', $sentMail->resetUrl);
-            $this->assertStringContainsString(urlencode($target->email), $sentMail->resetUrl);
-            $this->assertNotSame('', trim($sentMail->expiresAt));
-
-            $this->assertDatabaseHas('password_reset_tokens', [
-                'email' => $target->email,
-            ]);
-
-            $this->assertAuditLogRecorded(
-                'account.password_reset_link_sent',
-                (string) $actor->id,
-                (string) $case['account']->id,
-                'User',
-                (string) $target->id,
-            );
-        }
+    #[Test]
+    public function support_can_trigger_password_reset_for_external_accounts(): void
+    {
+        $this->assertPasswordResetCanBeTriggered(
+            actorEmail: 'e2e.internal.support@example.test',
+            account: $this->organizationAccount,
+            targetEmail: 'e2e.c.organization_owner@example.test',
+        );
     }
 
     #[Test]
@@ -332,5 +290,53 @@ class InternalAccountsSupportActionsWebTest extends TestCase
             ->where('account_id', (string) $this->organizationAccount->id)
             ->where('email', 'e2e.c.pending.invite@example.test')
             ->firstOrFail();
+    }
+
+    private function assertPasswordResetCanBeTriggered(string $actorEmail, Account $account, string $targetEmail): void
+    {
+        $actor = $this->userByEmail($actorEmail);
+        $target = $this->userByEmail($targetEmail);
+        $sentDestination = null;
+        $sentMail = null;
+
+        $smtpSettings = Mockery::mock(SmtpSettingsService::class);
+        $smtpSettings->shouldReceive('sendMailable')
+            ->once()
+            ->with(Mockery::type('string'), Mockery::type(PasswordResetMail::class))
+            ->andReturnUsing(function (string $destination, PasswordResetMail $mail) use (&$sentDestination, &$sentMail): string {
+                $sentDestination = $destination;
+                $sentMail = $mail;
+
+                return 'test-message-id';
+            });
+        $smtpSettings->shouldReceive('providerName')
+            ->zeroOrMoreTimes()
+            ->andReturn('smtp');
+
+        $this->app->instance(SmtpSettingsService::class, $smtpSettings);
+
+        $this->actingAs($actor, 'web')
+            ->post(route('internal.accounts.password-reset', $account))
+            ->assertRedirect(route('internal.accounts.show', $account))
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame($target->email, $sentDestination);
+        $this->assertInstanceOf(PasswordResetMail::class, $sentMail);
+        $this->assertSame($target->email, $sentMail->email);
+        $this->assertStringContainsString('/reset-password/', $sentMail->resetUrl);
+        $this->assertStringContainsString(urlencode($target->email), $sentMail->resetUrl);
+        $this->assertNotSame('', trim($sentMail->expiresAt));
+
+        $this->assertDatabaseHas('password_reset_tokens', [
+            'email' => $target->email,
+        ]);
+
+        $this->assertAuditLogRecorded(
+            'account.password_reset_link_sent',
+            (string) $actor->id,
+            (string) $account->id,
+            'User',
+            (string) $target->id,
+        );
     }
 }
