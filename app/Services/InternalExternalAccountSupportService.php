@@ -3,20 +3,24 @@
 namespace App\Services;
 
 use App\Exceptions\BusinessException;
+use App\Mail\PasswordResetMail;
 use App\Models\Account;
 use App\Models\AuditLog;
 use App\Models\Invitation;
 use App\Models\User;
+use Illuminate\Auth\Events\PasswordResetLinkSent;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Schema;
+use Throwable;
 
 class InternalExternalAccountSupportService
 {
     public function __construct(
         private readonly AuditService $auditService,
         private readonly InvitationService $invitationService,
+        private readonly SmtpSettingsService $smtpSettings,
     ) {}
 
     public function resolveResetTarget(Account $account): ?User
@@ -77,7 +81,56 @@ class InternalExternalAccountSupportService
             );
         }
 
-        $status = Password::sendResetLink(['email' => $target->email]);
+        try {
+            $status = Password::broker($this->passwordBrokerName())->sendResetLink(
+                ['email' => $target->email],
+                function (User $user, string $token): void {
+                    $this->smtpSettings->sendMailable(
+                        (string) $user->email,
+                        new PasswordResetMail(
+                            email: (string) $user->email,
+                            resetUrl: route('password.reset', [
+                                'token' => $token,
+                                'email' => $user->email,
+                            ]),
+                            expiresAt: now()
+                                ->addMinutes($this->passwordResetExpiryMinutes())
+                                ->format('Y-m-d H:i'),
+                        )
+                    );
+
+                    event(new PasswordResetLinkSent($user));
+                }
+            );
+        } catch (Throwable $exception) {
+            report($exception);
+
+            $this->auditService->warning(
+                (string) $account->id,
+                (string) $actor->id,
+                'account.password_reset_link_failed',
+                AuditLog::CATEGORY_AUTH,
+                'User',
+                (string) $target->id,
+                null,
+                [
+                    'email' => $target->email,
+                    'is_owner' => (bool) ($target->is_owner ?? false),
+                ],
+                [
+                    'source' => 'internal_accounts_center',
+                    'transport_provider' => $this->smtpSettings->providerName(),
+                    'exception_class' => $exception::class,
+                ],
+            );
+
+            throw BusinessException::make(
+                'ERR_PASSWORD_RESET_LINK_SEND_FAILED',
+                'تعذر إرسال رابط إعادة تعيين كلمة المرور الآن. تحقق من جاهزية البريد الداخلي ثم أعد المحاولة.',
+                ['source' => 'internal_accounts_center'],
+                422,
+            );
+        }
 
         if ($status !== Password::RESET_LINK_SENT) {
             throw BusinessException::make(
@@ -137,5 +190,15 @@ class InternalExternalAccountSupportService
         $string = trim((string) $value);
 
         return $string === '' ? null : $string;
+    }
+
+    private function passwordBrokerName(): string
+    {
+        return (string) config('auth.defaults.passwords', 'users');
+    }
+
+    private function passwordResetExpiryMinutes(): int
+    {
+        return (int) config('auth.passwords.' . $this->passwordBrokerName() . '.expire', 60);
     }
 }

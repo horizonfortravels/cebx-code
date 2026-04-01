@@ -6,13 +6,16 @@ use App\Models\Account;
 use App\Models\Invitation;
 use App\Models\KycVerification;
 use App\Models\User;
+use App\Mail\PasswordResetMail;
+use App\Services\SmtpSettingsService;
 use App\Support\Kyc\AccountKycStatusMapper;
 use Database\Seeders\E2EUserMatrixSeeder;
-use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Queue;
+use Mockery;
 use PHPUnit\Framework\Attributes\Test;
+use RuntimeException;
 use Tests\Concerns\AssertsSchemaAwareAuditLogs;
 use Tests\TestCase;
 
@@ -34,6 +37,13 @@ class InternalAccountsSupportActionsWebTest extends TestCase
         $this->organizationAccount = $this->accountBySlug('e2e-account-c');
 
         $this->seedSupportFixtures();
+    }
+
+    protected function tearDown(): void
+    {
+        Mockery::close();
+
+        parent::tearDown();
     }
 
     #[Test]
@@ -73,7 +83,7 @@ class InternalAccountsSupportActionsWebTest extends TestCase
     #[Test]
     public function super_admin_and_support_can_trigger_password_reset_for_external_accounts(): void
     {
-        Notification::fake();
+        Mail::fake();
 
         $cases = [
             [
@@ -97,10 +107,10 @@ class InternalAccountsSupportActionsWebTest extends TestCase
                 ->assertRedirect(route('internal.accounts.show', $case['account']))
                 ->assertSessionHasNoErrors();
 
-            Notification::assertSentTo($target, ResetPassword::class, function (ResetPassword $notification) use ($target): bool {
-                $notification->toMail($target);
-
-                return true;
+            Mail::assertSent(PasswordResetMail::class, function (PasswordResetMail $mail) use ($target): bool {
+                return $mail->email === $target->email
+                    && str_contains($mail->resetUrl, '/reset-password/')
+                    && str_contains($mail->resetUrl, urlencode($target->email));
             });
 
             $this->assertDatabaseHas('password_reset_tokens', [
@@ -115,6 +125,42 @@ class InternalAccountsSupportActionsWebTest extends TestCase
                 (string) $target->id,
             );
         }
+    }
+
+    #[Test]
+    public function password_reset_transport_failures_are_returned_as_safe_account_errors(): void
+    {
+        $actor = $this->userByEmail('e2e.internal.super_admin@example.test');
+        $target = $this->userByEmail('e2e.c.organization_owner@example.test');
+
+        $smtpSettings = Mockery::mock(SmtpSettingsService::class);
+        $smtpSettings->shouldReceive('sendMailable')
+            ->once()
+            ->with($target->email, Mockery::type(PasswordResetMail::class))
+            ->andThrow(new RuntimeException('Relay denied for smtp-user / secret-pass'));
+        $smtpSettings->shouldReceive('providerName')
+            ->once()
+            ->andReturn('smtp');
+
+        $this->app->instance(SmtpSettingsService::class, $smtpSettings);
+
+        $response = $this->actingAs($actor, 'web')
+            ->from(route('internal.accounts.show', $this->organizationAccount))
+            ->post(route('internal.accounts.password-reset', $this->organizationAccount));
+
+        $response
+            ->assertRedirect(route('internal.accounts.show', $this->organizationAccount))
+            ->assertSessionHasErrors([
+                'account' => 'تعذر إرسال رابط إعادة تعيين كلمة المرور الآن. تحقق من جاهزية البريد الداخلي ثم أعد المحاولة.',
+            ]);
+
+        $this->assertAuditLogRecorded(
+            'account.password_reset_link_failed',
+            (string) $actor->id,
+            (string) $this->organizationAccount->id,
+            'User',
+            (string) $target->id,
+        );
     }
 
     #[Test]
