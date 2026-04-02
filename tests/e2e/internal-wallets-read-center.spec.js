@@ -7,6 +7,7 @@ const USERS = {
   externalOrganizationOwner: 'e2e.c.organization_owner@example.test',
   internalCarrierManager: 'e2e.internal.carrier_manager@example.test',
   internalOpsReadonly: 'e2e.internal.ops_readonly@example.test',
+  internalSuperAdmin: 'e2e.internal.super_admin@example.test',
   internalSupport: 'e2e.internal.support@example.test',
 };
 
@@ -73,6 +74,16 @@ async function openWalletDetail(page, accountName) {
   await expect(page.locator('[data-testid="internal-billing-summary-card"]')).toBeVisible();
 }
 
+async function openPreflightDetail(page, shipmentReference) {
+  await page
+    .locator('[data-testid="internal-billing-hold-entry"]')
+    .filter({ hasText: shipmentReference })
+    .locator('[data-testid="internal-billing-hold-detail-link"]')
+    .click();
+  await page.waitForLoadState('networkidle');
+  await expect(page.locator('[data-testid="internal-billing-preflight-summary-card"]')).toBeVisible();
+}
+
 test.describe.configure({ mode: 'serial' });
 
 test('internal support can inspect wallet preflight and ledger detail', async ({ page }) => {
@@ -82,18 +93,17 @@ test('internal support can inspect wallet preflight and ledger detail', async ({
 
   await expect(page.locator('[data-testid="internal-billing-holds-card"]')).toBeVisible();
   await expect(page.locator('[data-testid="internal-billing-ledger-card"]')).toBeVisible();
+  await openPreflightDetail(page, 'SHP-I5A-A-001');
+  await expect(page.locator('[data-testid="internal-billing-hold-actions-card"]')).toHaveCount(0);
+  await expect(page.locator('[data-testid="internal-billing-release-hold-form"]')).toHaveCount(0);
+  await page.getByRole('link', { name: 'Back to wallet detail' }).click();
+  await page.waitForLoadState('networkidle');
   await expect(page.locator('body')).toContainText('Reserved');
   await expect(page.locator('body')).toContainText('Captured');
   await expect(page.locator('body')).toContainText('Released');
   await expect(page.locator('body')).toContainText('SHP-I6B-A-002');
 
-  await page
-    .locator('[data-testid="internal-billing-hold-entry"]')
-    .filter({ hasText: 'SHP-I6B-A-002' })
-    .locator('[data-testid="internal-billing-hold-detail-link"]')
-    .click();
-  await page.waitForLoadState('networkidle');
-  await expect(page.locator('[data-testid="internal-billing-preflight-summary-card"]')).toBeVisible();
+  await openPreflightDetail(page, 'SHP-I6B-A-002');
   await expect(page.locator('[data-testid="internal-billing-preflight-ledger-card"]')).toBeVisible();
   await expect(page.locator('body')).toContainText('Captured');
   await expect(page.locator('body')).toContainText('USD 52.00');
@@ -106,6 +116,25 @@ test('internal support can inspect wallet preflight and ledger detail', async ({
   await expect(page.locator('body')).not.toContainText('checkout_url');
   await expect(page.locator('body')).not.toContainText('payment_reference');
   await expect(page.locator('body')).not.toContainText('gateway_metadata');
+  await expect(page.locator('body')).not.toContainText('Internal Server Error');
+});
+
+test('internal super_admin can release a stale billing reservation with reason', async ({ page }) => {
+  await loginWith(page, 'admin', USERS.internalSuperAdmin);
+  await openBillingCenter(page);
+  await openWalletDetail(page, 'E2E Account A');
+
+  await openPreflightDetail(page, 'SHP-I5A-A-001');
+  await expect(page.locator('[data-testid="internal-billing-hold-actions-card"]')).toBeVisible();
+  await expect(page.locator('[data-testid="internal-billing-release-hold-form"]')).toBeVisible();
+  await page.fill('[data-testid="internal-billing-release-hold-form"] textarea[name="reason"]', 'Expired reservation cleared after internal billing review.');
+  await page.locator('[data-testid="internal-billing-release-hold-button"]').click();
+  await page.waitForLoadState('networkidle');
+
+  await expect(page.locator('.toast-container .toast.toast-success')).toBeVisible();
+  await expect(page.locator('[data-testid="internal-billing-preflight-summary-card"]')).toContainText('Released');
+  await expect(page.locator('[data-testid="internal-billing-release-hold-form"]')).toHaveCount(0);
+  await expect(page.locator('[data-testid="internal-billing-preflight-ledger-card"]')).toContainText('Reservation release');
   await expect(page.locator('body')).not.toContainText('Internal Server Error');
 });
 

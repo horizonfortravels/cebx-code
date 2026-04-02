@@ -7,6 +7,7 @@ use App\Http\Controllers\Web\InternalAccountMembersController;
 use App\Http\Controllers\Web\InternalAccountReadCenterController;
 use App\Http\Controllers\Web\InternalAccountSupportActionsController;
 use App\Http\Controllers\Web\InternalAdminWebController;
+use App\Http\Controllers\Web\InternalBillingActionsController;
 use App\Http\Controllers\Web\InternalBillingReadCenterController;
 use App\Http\Controllers\Web\InternalKycDecisionController;
 use App\Http\Controllers\Web\InternalKycReadCenterController;
@@ -128,6 +129,14 @@ Route::middleware(['auth:web', 'userType:internal'])->prefix('internal')->name('
         Route::get('/billing/{account}', [InternalBillingReadCenterController::class, 'show'])->name('billing.show');
         Route::get('/billing/{account}/preflights/{hold}', [InternalBillingReadCenterController::class, 'showPreflight'])->name('billing.preflights.show');
         Route::get('/billing/{account}/ledger/{entry}', [InternalBillingReadCenterController::class, 'showLedger'])->name('billing.ledger.show');
+    });
+
+    Route::middleware([
+        'permission:wallet.configure',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_BILLING_ACTIONS,
+    ])->group(function (): void {
+        Route::post('/billing/{account}/preflights/{hold}/release', [InternalBillingActionsController::class, 'releaseStaleHold'])
+            ->name('billing.preflights.release');
     });
 
     Route::middleware([

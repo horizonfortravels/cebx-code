@@ -30,6 +30,7 @@ class InternalControlPlane
     public const SURFACE_INTERNAL_KYC_RESTRICTIONS = 'internal_kyc_restrictions';
     public const SURFACE_INTERNAL_BILLING_INDEX = 'internal_billing_index';
     public const SURFACE_INTERNAL_BILLING_DETAIL = 'internal_billing_detail';
+    public const SURFACE_INTERNAL_BILLING_ACTIONS = 'internal_billing_actions';
     public const SURFACE_INTERNAL_SHIPMENTS_INDEX = 'internal_shipments_index';
     public const SURFACE_INTERNAL_SHIPMENTS_DETAIL = 'internal_shipments_detail';
     public const SURFACE_INTERNAL_SHIPMENTS_DOCUMENTS = 'internal_shipments_documents';
@@ -108,6 +109,7 @@ class InternalControlPlane
             self::SURFACE_INTERNAL_KYC_RESTRICTIONS,
             self::SURFACE_INTERNAL_BILLING_INDEX,
             self::SURFACE_INTERNAL_BILLING_DETAIL,
+            self::SURFACE_INTERNAL_BILLING_ACTIONS,
             self::SURFACE_INTERNAL_SHIPMENTS_INDEX,
             self::SURFACE_INTERNAL_SHIPMENTS_DETAIL,
             self::SURFACE_INTERNAL_SHIPMENTS_DOCUMENTS,
@@ -170,6 +172,7 @@ class InternalControlPlane
         self::SURFACE_INTERNAL_KYC_RESTRICTIONS,
         self::SURFACE_INTERNAL_BILLING_INDEX,
         self::SURFACE_INTERNAL_BILLING_DETAIL,
+        self::SURFACE_INTERNAL_BILLING_ACTIONS,
         self::SURFACE_INTERNAL_SHIPMENTS_INDEX,
         self::SURFACE_INTERNAL_SHIPMENTS_DETAIL,
         self::SURFACE_INTERNAL_SHIPMENTS_DOCUMENTS,

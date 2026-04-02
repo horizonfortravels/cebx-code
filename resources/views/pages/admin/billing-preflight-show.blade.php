@@ -77,6 +77,29 @@
     </section>
 </div>
 
+@if($canManageBillingActions && $staleReleaseAction['is_releasable'])
+    <section class="card" data-testid="internal-billing-hold-actions-card" style="margin-bottom:24px">
+        <div class="card-title">Stale reservation recovery</div>
+        <p style="margin:0 0 14px;color:var(--td);font-size:14px">
+            {{ $staleReleaseAction['detail'] }} This action is internal-only, requires a human reason, clears the linked shipment reservation reference when present, and records a billing audit entry.
+        </p>
+        <form method="POST"
+              action="{{ route('internal.billing.preflights.release', ['account' => $account, 'hold' => $preflightSummary['id']]) }}"
+              data-testid="internal-billing-release-hold-form"
+              style="display:flex;flex-direction:column;gap:12px">
+            @csrf
+            <label style="display:flex;flex-direction:column;gap:6px">
+                <span style="font-size:12px;color:var(--tm)">Operator reason</span>
+                <textarea name="reason" rows="3" class="input" style="min-height:88px" required>{{ old('reason') }}</textarea>
+            </label>
+            <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center">
+                <div style="font-size:12px;color:var(--tm)">{{ $staleReleaseAction['headline'] }}</div>
+                <button type="submit" class="btn btn-pr" data-testid="internal-billing-release-hold-button">Release stale reservation</button>
+            </div>
+        </form>
+    </section>
+@endif
+
 <div class="grid-2">
     <section class="card" data-testid="internal-billing-preflight-shipment-card">
         <div class="card-title">Linked shipment context</div>

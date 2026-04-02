@@ -532,7 +532,7 @@ class E2EUserMatrixSeeder extends Seeder
                 'source' => 'shipment_preflight',
                 'status' => WalletHold::STATUS_ACTIVE,
                 'idempotency_key' => 'e2e:i6b:hold:active:a',
-                'expires_at' => now()->addHours(12),
+                'expires_at' => now()->subHours(2),
                 'created_at' => now()->subHours(6),
             ])
         );

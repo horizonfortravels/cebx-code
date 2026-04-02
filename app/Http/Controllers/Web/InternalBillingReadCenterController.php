@@ -12,6 +12,7 @@ use App\Models\WalletHold;
 use App\Models\WalletLedgerEntry;
 use App\Models\WalletRefund;
 use App\Models\WalletTopup;
+use App\Services\InternalBillingActionService;
 use App\Services\InternalKycOperationalEffectService;
 use App\Support\Internal\InternalControlPlane;
 use App\Support\Kyc\AccountKycStatusMapper;
@@ -26,6 +27,7 @@ class InternalBillingReadCenterController extends Controller
 {
     public function __construct(
         private readonly InternalKycOperationalEffectService $operationalEffectService,
+        private readonly InternalBillingActionService $billingActionService,
     ) {}
 
     public function index(Request $request): View
@@ -105,6 +107,8 @@ class InternalBillingReadCenterController extends Controller
             'relatedLedgerEntries' => $this->relatedLedgerEntriesForHold($wallet, $holdModel),
             'canViewAccount' => $this->canViewAccount($request->user(), $controlPlane),
             'canViewShipment' => $this->canViewShipment($request->user(), $controlPlane),
+            'canManageBillingActions' => $this->canManageBillingActions($request->user(), $controlPlane),
+            'staleReleaseAction' => $this->billingActionService->staleReleaseSummary($holdModel, $shipment),
         ]);
     }
 
@@ -533,6 +537,13 @@ class InternalBillingReadCenterController extends Controller
         return $user instanceof User
             && $user->hasPermission('shipments.read')
             && $controlPlane->canSeeSurface($user, InternalControlPlane::SURFACE_INTERNAL_SHIPMENTS_DETAIL);
+    }
+
+    private function canManageBillingActions(?User $user, InternalControlPlane $controlPlane): bool
+    {
+        return $user instanceof User
+            && $user->hasPermission('wallet.configure')
+            && $controlPlane->canSeeSurface($user, InternalControlPlane::SURFACE_INTERNAL_BILLING_ACTIONS);
     }
 
     /**
