@@ -337,6 +337,74 @@ class DgComplianceService
     // FR-DG-003: Get blocked declaration info
     // ═══════════════════════════════════════════════════════════
 
+    public function requestCorrection(
+        string $declarationId,
+        string $actorId,
+        string $reason,
+        ?string $actorRole = null,
+        ?string $ipAddress = null,
+    ): ContentDeclaration {
+        $declaration = ContentDeclaration::findOrFail($declarationId);
+        $reason = trim(preg_replace('/\s+/u', ' ', $reason) ?? '');
+
+        if ($reason === '') {
+            throw new BusinessException(
+                'A clear internal review reason is required before requesting a correction.',
+                'ERR_DG_REASON_REQUIRED',
+                422
+            );
+        }
+
+        if ((bool) $declaration->contains_dangerous_goods || $declaration->status === ContentDeclaration::STATUS_HOLD_DG) {
+            throw new BusinessException(
+                'Dangerous-goods holds already require manual handling and cannot be converted into a correction request from this internal surface.',
+                'ERR_DG_REVIEW_UNAVAILABLE',
+                422
+            );
+        }
+
+        if ($declaration->status === ContentDeclaration::STATUS_REQUIRES_ACTION) {
+            throw new BusinessException(
+                'This declaration is already waiting for customer correction.',
+                'ERR_DG_ALREADY_REQUIRES_ACTION',
+                422
+            );
+        }
+
+        return DB::transaction(function () use ($declaration, $actorId, $actorRole, $ipAddress, $reason) {
+            $oldValues = [
+                'status' => (string) $declaration->status,
+                'hold_reason' => (string) ($declaration->hold_reason ?? ''),
+            ];
+
+            $declaration->update([
+                'status' => ContentDeclaration::STATUS_REQUIRES_ACTION,
+                'hold_reason' => $reason,
+            ]);
+
+            DgAuditLog::log(
+                DgAuditLog::ACTION_STATUS_CHANGED,
+                (string) $declaration->account_id,
+                $actorId,
+                (string) $declaration->id,
+                (string) $declaration->shipment_id,
+                $actorRole,
+                $ipAddress,
+                $oldValues,
+                [
+                    'status' => ContentDeclaration::STATUS_REQUIRES_ACTION,
+                    'hold_reason' => $reason,
+                ],
+                $reason,
+            );
+
+            $declaration = $declaration->fresh();
+            $this->syncShipmentWorkflowFromDeclaration($declaration);
+
+            return $declaration->fresh();
+        });
+    }
+
     public function getHoldInfo(string $declarationId): array
     {
         $declaration = ContentDeclaration::findOrFail($declarationId);

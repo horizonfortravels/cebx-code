@@ -7,6 +7,9 @@ use App\Models\AuditLog;
 use App\Models\BillingWallet;
 use App\Models\CarrierDocument;
 use App\Models\CarrierShipment;
+use App\Models\ContentDeclaration;
+use App\Models\DgAuditLog;
+use App\Models\DgMetadata;
 use App\Models\Invitation;
 use App\Models\KycDocument;
 use App\Models\KycVerification;
@@ -20,6 +23,7 @@ use App\Models\VerificationRestriction;
 use App\Models\WalletHold;
 use App\Models\WalletLedgerEntry;
 use App\Models\WalletTopup;
+use App\Models\WaiverVersion;
 use App\Services\AuditService;
 use App\Support\CanonicalShipmentStatus;
 use App\Support\Kyc\AccountKycStatusMapper;
@@ -230,6 +234,8 @@ class E2EUserMatrixSeeder extends Seeder
                     'reports.export',
                     'reports.manage',
                     'analytics.read',
+                    'compliance.read',
+                    'dg.read',
                 ]
             );
 
@@ -243,9 +249,12 @@ class E2EUserMatrixSeeder extends Seeder
                     'accounts.support.manage',
                     'wallet.balance',
                     'wallet.ledger',
+                    'shipments.read',
                     'shipments.documents.read',
                     'tickets.read',
                     'tickets.manage',
+                    'compliance.read',
+                    'dg.read',
                 ]
             );
 
@@ -259,7 +268,10 @@ class E2EUserMatrixSeeder extends Seeder
                     'reports.read',
                     'wallet.balance',
                     'wallet.ledger',
+                    'shipments.read',
                     'shipments.documents.read',
+                    'compliance.read',
+                    'dg.read',
                 ]
             );
 
@@ -299,6 +311,7 @@ class E2EUserMatrixSeeder extends Seeder
         $this->seedDeterministicWallets($accounts);
         $this->seedDeterministicKycFixtures($accounts, $externalUsers);
         $this->seedDeterministicShipmentReadFixtures($accounts, $externalUsers);
+        $this->seedDeterministicComplianceFixtures($accounts, $externalUsers);
         $this->seedDeterministicWalletReadFixtures($accounts, $externalUsers);
 
         $this->command?->info('E2E user matrix seeded successfully.');
@@ -1381,6 +1394,371 @@ class E2EUserMatrixSeeder extends Seeder
                         ],
                     ])
                 );
+            }
+        }
+    }
+
+    /**
+     * @param array<string, Account> $accounts
+     * @param array<string, array<string, User>> $externalUsers
+     */
+    private function seedDeterministicComplianceFixtures(array $accounts, array $externalUsers): void
+    {
+        if (!Schema::hasTable('shipments') || !Schema::hasTable('content_declarations')) {
+            return;
+        }
+
+        if (Schema::hasTable('organization_profiles')) {
+            OrganizationProfile::query()->updateOrCreate(
+                ['account_id' => (string) $accounts['d']->id],
+                [
+                    'legal_name' => 'E2E Account D Trading Co.',
+                    'trade_name' => 'E2E D Trade',
+                    'registration_number' => 'CR-400400400',
+                    'industry' => 'retail',
+                    'company_size' => 'medium',
+                    'country' => 'SA',
+                    'city' => 'Dammam',
+                    'email' => 'ops@e2e-account-d.example.test',
+                ]
+            );
+        }
+
+        $waiverVersion = null;
+        if (Schema::hasTable('waiver_versions')) {
+            $waiverText = 'I7A hidden waiver text snapshot A';
+            $waiverVersion = WaiverVersion::query()->withoutGlobalScopes()->updateOrCreate(
+                [
+                    'version' => 'I7A-EN-1',
+                    'locale' => 'en',
+                ],
+                $this->filterExistingColumns('waiver_versions', [
+                    'version' => 'I7A-EN-1',
+                    'locale' => 'en',
+                    'waiver_text' => $waiverText,
+                    'waiver_hash' => hash('sha256', $waiverText),
+                    'is_active' => true,
+                    'created_by' => (string) $externalUsers['a']['primary']->id,
+                ])
+            );
+        }
+
+        $shipmentA = Shipment::query()->withoutGlobalScopes()->updateOrCreate(
+            ['reference_number' => 'SHP-I7A-A-001'],
+            $this->filterExistingColumns('shipments', [
+                'account_id' => (string) $accounts['a']->id,
+                'user_id' => (string) $externalUsers['a']['primary']->id,
+                'created_by' => (string) $externalUsers['a']['primary']->id,
+                'reference_number' => 'SHP-I7A-A-001',
+                'source' => Shipment::SOURCE_DIRECT,
+                'status' => Shipment::STATUS_DECLARATION_COMPLETE,
+                'tracking_number' => 'I7A-A-001',
+                'sender_name' => 'E2E A Compliance Sender',
+                'sender_phone' => '+966500110101',
+                'sender_address_1' => 'Riyadh Compliance Dock 1',
+                'sender_city' => 'Riyadh',
+                'sender_country' => 'SA',
+                'recipient_name' => 'I7A A Recipient',
+                'recipient_phone' => '+971500110101',
+                'recipient_address_1' => 'Dubai Compliance Park 4',
+                'recipient_city' => 'Dubai',
+                'recipient_country' => 'AE',
+                'is_international' => true,
+                'is_cod' => false,
+                'is_insured' => false,
+                'has_dangerous_goods' => false,
+                'currency' => 'USD',
+                'weight' => 1.1,
+                'total_weight' => 1.1,
+                'parcels_count' => 1,
+                'pieces' => 1,
+                'status_reason' => 'Declaration completed after standard non-DG acknowledgement.',
+                'created_at' => now()->subHours(20),
+                'updated_at' => now()->subHours(8),
+            ])
+        );
+
+        $shipmentC = Shipment::query()->withoutGlobalScopes()->updateOrCreate(
+            ['reference_number' => 'SHP-I7A-C-001'],
+            $this->filterExistingColumns('shipments', [
+                'account_id' => (string) $accounts['c']->id,
+                'user_id' => (string) $externalUsers['c']['organization_owner']->id,
+                'created_by' => (string) $externalUsers['c']['organization_owner']->id,
+                'reference_number' => 'SHP-I7A-C-001',
+                'source' => Shipment::SOURCE_ORDER,
+                'status' => Shipment::STATUS_REQUIRES_ACTION,
+                'tracking_number' => 'I7A-C-001',
+                'sender_name' => 'E2E C Compliance Sender',
+                'sender_phone' => '+966500110201',
+                'sender_address_1' => 'Riyadh DG Bay 3',
+                'sender_city' => 'Riyadh',
+                'sender_country' => 'SA',
+                'recipient_name' => 'I7A C Recipient',
+                'recipient_phone' => '+966500110202',
+                'recipient_address_1' => 'Jeddah Port District 2',
+                'recipient_city' => 'Jeddah',
+                'recipient_country' => 'SA',
+                'is_international' => false,
+                'is_cod' => false,
+                'is_insured' => false,
+                'has_dangerous_goods' => true,
+                'currency' => 'SAR',
+                'weight' => 3.4,
+                'total_weight' => 3.4,
+                'parcels_count' => 1,
+                'pieces' => 1,
+                'status_reason' => 'Dangerous-goods declaration is blocked pending internal review.',
+                'created_at' => now()->subHours(14),
+                'updated_at' => now()->subHours(5),
+            ])
+        );
+
+        $shipmentD = Shipment::query()->withoutGlobalScopes()->updateOrCreate(
+            ['reference_number' => 'SHP-I7A-D-001'],
+            $this->filterExistingColumns('shipments', [
+                'account_id' => (string) $accounts['d']->id,
+                'user_id' => (string) $externalUsers['d']['organization_owner']->id,
+                'created_by' => (string) $externalUsers['d']['organization_owner']->id,
+                'reference_number' => 'SHP-I7A-D-001',
+                'source' => Shipment::SOURCE_ORDER,
+                'status' => Shipment::STATUS_DECLARATION_REQUIRED,
+                'tracking_number' => 'I7A-D-001',
+                'sender_name' => 'E2E D Compliance Sender',
+                'sender_phone' => '+966500110301',
+                'sender_address_1' => 'Dammam Compliance Wing 5',
+                'sender_city' => 'Dammam',
+                'sender_country' => 'SA',
+                'recipient_name' => 'I7A D Recipient',
+                'recipient_phone' => '+973500110301',
+                'recipient_address_1' => 'Manama Free Zone 9',
+                'recipient_city' => 'Manama',
+                'recipient_country' => 'BH',
+                'is_international' => true,
+                'is_cod' => false,
+                'is_insured' => true,
+                'has_dangerous_goods' => false,
+                'currency' => 'USD',
+                'weight' => 2.7,
+                'total_weight' => 2.7,
+                'parcels_count' => 1,
+                'pieces' => 1,
+                'status_reason' => 'Waiting for legal acknowledgement before declaration completion.',
+                'created_at' => now()->subHours(7),
+                'updated_at' => now()->subHours(2),
+            ])
+        );
+
+        $declarationA = ContentDeclaration::query()->withoutGlobalScopes()->updateOrCreate(
+            ['shipment_id' => (string) $shipmentA->id],
+            $this->filterExistingColumns('content_declarations', [
+                'account_id' => (string) $accounts['a']->id,
+                'shipment_id' => (string) $shipmentA->id,
+                'contains_dangerous_goods' => false,
+                'dg_flag_declared' => true,
+                'status' => ContentDeclaration::STATUS_COMPLETED,
+                'hold_reason' => null,
+                'waiver_accepted' => true,
+                'waiver_version_id' => $waiverVersion?->id,
+                'waiver_hash_snapshot' => 'i7a-hidden-waiver-hash-a',
+                'waiver_text_snapshot' => 'I7A hidden waiver text snapshot A',
+                'waiver_accepted_at' => now()->subHours(10),
+                'declared_by' => (string) $externalUsers['a']['primary']->id,
+                'ip_address' => '203.0.113.41',
+                'user_agent' => 'I7A hidden user agent A',
+                'locale' => 'en',
+                'declared_at' => now()->subHours(11),
+            ])
+        );
+
+        $declarationC = ContentDeclaration::query()->withoutGlobalScopes()->updateOrCreate(
+            ['shipment_id' => (string) $shipmentC->id],
+            $this->filterExistingColumns('content_declarations', [
+                'account_id' => (string) $accounts['c']->id,
+                'shipment_id' => (string) $shipmentC->id,
+                'contains_dangerous_goods' => true,
+                'dg_flag_declared' => true,
+                'status' => ContentDeclaration::STATUS_HOLD_DG,
+                'hold_reason' => 'Manual DG review required for the declared flammable liquid shipment.',
+                'waiver_accepted' => false,
+                'waiver_version_id' => null,
+                'waiver_hash_snapshot' => null,
+                'waiver_text_snapshot' => null,
+                'waiver_accepted_at' => null,
+                'declared_by' => (string) $externalUsers['c']['organization_owner']->id,
+                'ip_address' => '203.0.113.42',
+                'user_agent' => 'I7A hidden user agent C',
+                'locale' => 'en',
+                'declared_at' => now()->subHours(12),
+            ])
+        );
+
+        $declarationD = ContentDeclaration::query()->withoutGlobalScopes()->updateOrCreate(
+            ['shipment_id' => (string) $shipmentD->id],
+            $this->filterExistingColumns('content_declarations', [
+                'account_id' => (string) $accounts['d']->id,
+                'shipment_id' => (string) $shipmentD->id,
+                'contains_dangerous_goods' => false,
+                'dg_flag_declared' => true,
+                'status' => ContentDeclaration::STATUS_PENDING,
+                'hold_reason' => null,
+                'waiver_accepted' => false,
+                'waiver_version_id' => $waiverVersion?->id,
+                'waiver_hash_snapshot' => null,
+                'waiver_text_snapshot' => null,
+                'waiver_accepted_at' => null,
+                'declared_by' => (string) $externalUsers['d']['organization_owner']->id,
+                'ip_address' => '203.0.113.43',
+                'user_agent' => 'I7A hidden user agent D',
+                'locale' => 'en',
+                'declared_at' => now()->subHours(4),
+            ])
+        );
+
+        if (Schema::hasTable('dg_metadata')) {
+            DgMetadata::query()->withoutGlobalScopes()
+                ->whereIn('declaration_id', [(string) $declarationA->id, (string) $declarationD->id])
+                ->delete();
+
+            DgMetadata::query()->withoutGlobalScopes()->updateOrCreate(
+                ['declaration_id' => (string) $declarationC->id],
+                $this->filterExistingColumns('dg_metadata', [
+                    'declaration_id' => (string) $declarationC->id,
+                    'un_number' => 'UN1993',
+                    'dg_class' => '3',
+                    'packing_group' => 'II',
+                    'proper_shipping_name' => 'Flammable liquid, n.o.s.',
+                    'quantity' => 1.500,
+                    'quantity_unit' => 'L',
+                    'description' => 'Seeded dangerous-goods metadata fixture for internal compliance visibility.',
+                    'additional_info' => ['internal_secret' => 'I7A hidden dg additional info C'],
+                ])
+            );
+        }
+
+        if (Schema::hasTable('dg_audit_logs')) {
+            DB::table('dg_audit_logs')
+                ->whereIn('declaration_id', [
+                    (string) $declarationA->id,
+                    (string) $declarationC->id,
+                    (string) $declarationD->id,
+                ])
+                ->delete();
+
+            $auditRows = [
+                [
+                    'declaration_id' => (string) $declarationA->id,
+                    'shipment_id' => (string) $shipmentA->id,
+                    'account_id' => (string) $accounts['a']->id,
+                    'action' => DgAuditLog::ACTION_CREATED,
+                    'actor_id' => (string) $externalUsers['a']['primary']->id,
+                    'actor_role' => 'individual_account_holder',
+                    'ip_address' => '203.0.113.41',
+                    'notes' => 'Customer opened the compliance declaration flow.',
+                    'payload' => ['secret' => 'I7A hidden audit payload A'],
+                    'created_at' => now()->subHours(11),
+                ],
+                [
+                    'declaration_id' => (string) $declarationA->id,
+                    'shipment_id' => (string) $shipmentA->id,
+                    'account_id' => (string) $accounts['a']->id,
+                    'action' => DgAuditLog::ACTION_WAIVER_ACCEPTED,
+                    'actor_id' => (string) $externalUsers['a']['primary']->id,
+                    'actor_role' => 'individual_account_holder',
+                    'ip_address' => '203.0.113.41',
+                    'notes' => 'Legal acknowledgement captured for the non-DG shipment.',
+                    'payload' => ['secret' => 'I7A hidden audit payload A-2'],
+                    'created_at' => now()->subHours(10),
+                ],
+                [
+                    'declaration_id' => (string) $declarationA->id,
+                    'shipment_id' => (string) $shipmentA->id,
+                    'account_id' => (string) $accounts['a']->id,
+                    'action' => DgAuditLog::ACTION_COMPLETED,
+                    'actor_id' => (string) $externalUsers['a']['primary']->id,
+                    'actor_role' => 'individual_account_holder',
+                    'ip_address' => '203.0.113.41',
+                    'notes' => 'Declaration completed and cleared for the next shipment phase.',
+                    'payload' => ['secret' => 'I7A hidden audit payload A-3'],
+                    'created_at' => now()->subHours(9),
+                ],
+                [
+                    'declaration_id' => (string) $declarationC->id,
+                    'shipment_id' => (string) $shipmentC->id,
+                    'account_id' => (string) $accounts['c']->id,
+                    'action' => DgAuditLog::ACTION_CREATED,
+                    'actor_id' => (string) $externalUsers['c']['organization_owner']->id,
+                    'actor_role' => 'organization_owner',
+                    'ip_address' => '203.0.113.42',
+                    'notes' => 'Organization owner started the DG declaration flow.',
+                    'payload' => ['secret' => 'I7A hidden audit payload C'],
+                    'created_at' => now()->subHours(12),
+                ],
+                [
+                    'declaration_id' => (string) $declarationC->id,
+                    'shipment_id' => (string) $shipmentC->id,
+                    'account_id' => (string) $accounts['c']->id,
+                    'action' => DgAuditLog::ACTION_DG_METADATA_SAVED,
+                    'actor_id' => (string) $externalUsers['c']['organization_owner']->id,
+                    'actor_role' => 'organization_owner',
+                    'ip_address' => '203.0.113.42',
+                    'notes' => 'Dangerous-goods metadata was captured for internal review.',
+                    'payload' => ['secret' => 'I7A hidden audit payload C-2'],
+                    'created_at' => now()->subHours(11),
+                ],
+                [
+                    'declaration_id' => (string) $declarationC->id,
+                    'shipment_id' => (string) $shipmentC->id,
+                    'account_id' => (string) $accounts['c']->id,
+                    'action' => DgAuditLog::ACTION_HOLD_APPLIED,
+                    'actor_id' => (string) $externalUsers['c']['organization_owner']->id,
+                    'actor_role' => 'organization_owner',
+                    'ip_address' => '203.0.113.42',
+                    'notes' => 'DG declaration moved into manual compliance review.',
+                    'payload' => ['secret' => 'I7A hidden audit payload C-3'],
+                    'created_at' => now()->subHours(10),
+                ],
+                [
+                    'declaration_id' => (string) $declarationD->id,
+                    'shipment_id' => (string) $shipmentD->id,
+                    'account_id' => (string) $accounts['d']->id,
+                    'action' => DgAuditLog::ACTION_CREATED,
+                    'actor_id' => (string) $externalUsers['d']['organization_owner']->id,
+                    'actor_role' => 'organization_owner',
+                    'ip_address' => '203.0.113.43',
+                    'notes' => 'Organization owner opened the declaration flow.',
+                    'payload' => ['secret' => 'I7A hidden audit payload D'],
+                    'created_at' => now()->subHours(4),
+                ],
+                [
+                    'declaration_id' => (string) $declarationD->id,
+                    'shipment_id' => (string) $shipmentD->id,
+                    'account_id' => (string) $accounts['d']->id,
+                    'action' => DgAuditLog::ACTION_DG_FLAG_SET,
+                    'actor_id' => (string) $externalUsers['d']['organization_owner']->id,
+                    'actor_role' => 'organization_owner',
+                    'ip_address' => '203.0.113.43',
+                    'notes' => 'Shipment was marked as non-DG but still needs legal acknowledgement.',
+                    'payload' => ['secret' => 'I7A hidden audit payload D-2'],
+                    'created_at' => now()->subHours(3),
+                ],
+            ];
+
+            foreach ($auditRows as $auditRow) {
+                if (Schema::hasColumn('dg_audit_logs', 'id')) {
+                    $auditRow['id'] = (string) Str::uuid();
+                }
+
+                if (Schema::hasColumn('dg_audit_logs', 'shipment_uuid')) {
+                    $auditRow['shipment_uuid'] = $auditRow['shipment_id'];
+                }
+
+                foreach (['old_values', 'new_values', 'payload'] as $jsonColumn) {
+                    if (array_key_exists($jsonColumn, $auditRow) && is_array($auditRow[$jsonColumn])) {
+                        $auditRow[$jsonColumn] = json_encode($auditRow[$jsonColumn], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                    }
+                }
+
+                DB::table('dg_audit_logs')->insert($this->filterExistingColumns('dg_audit_logs', $auditRow));
             }
         }
     }

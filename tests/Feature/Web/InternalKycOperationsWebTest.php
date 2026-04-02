@@ -75,6 +75,12 @@ class InternalKycOperationsWebTest extends TestCase
                 ->assertSeeText('e2e-account-a-id.pdf')
                 ->assertDontSeeText('kyc/e2e-account-a-id.pdf');
 
+            if ($email === 'e2e.internal.ops_readonly@example.test') {
+                $individualDetail->assertDontSee('data-testid="kyc-account-summary-link"', false);
+            } else {
+                $individualDetail->assertSee('data-testid="kyc-account-summary-link"', false);
+            }
+
             if ($email === 'e2e.internal.super_admin@example.test') {
                 $individualDetail
                     ->assertSee('data-testid="kyc-review-card"', false)

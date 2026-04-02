@@ -28,6 +28,9 @@ class InternalControlPlane
     public const SURFACE_INTERNAL_KYC_DETAIL = 'internal_kyc_detail';
     public const SURFACE_INTERNAL_KYC_REVIEW = 'internal_kyc_review';
     public const SURFACE_INTERNAL_KYC_RESTRICTIONS = 'internal_kyc_restrictions';
+    public const SURFACE_INTERNAL_COMPLIANCE_INDEX = 'internal_compliance_index';
+    public const SURFACE_INTERNAL_COMPLIANCE_DETAIL = 'internal_compliance_detail';
+    public const SURFACE_INTERNAL_COMPLIANCE_ACTIONS = 'internal_compliance_actions';
     public const SURFACE_INTERNAL_BILLING_INDEX = 'internal_billing_index';
     public const SURFACE_INTERNAL_BILLING_DETAIL = 'internal_billing_detail';
     public const SURFACE_INTERNAL_BILLING_ACTIONS = 'internal_billing_actions';
@@ -107,6 +110,9 @@ class InternalControlPlane
             self::SURFACE_INTERNAL_KYC_DETAIL,
             self::SURFACE_INTERNAL_KYC_REVIEW,
             self::SURFACE_INTERNAL_KYC_RESTRICTIONS,
+            self::SURFACE_INTERNAL_COMPLIANCE_INDEX,
+            self::SURFACE_INTERNAL_COMPLIANCE_DETAIL,
+            self::SURFACE_INTERNAL_COMPLIANCE_ACTIONS,
             self::SURFACE_INTERNAL_BILLING_INDEX,
             self::SURFACE_INTERNAL_BILLING_DETAIL,
             self::SURFACE_INTERNAL_BILLING_ACTIONS,
@@ -126,6 +132,8 @@ class InternalControlPlane
             self::SURFACE_EXTERNAL_ACCOUNTS_SUPPORT_ACTIONS,
             self::SURFACE_INTERNAL_KYC_INDEX,
             self::SURFACE_INTERNAL_KYC_DETAIL,
+            self::SURFACE_INTERNAL_COMPLIANCE_INDEX,
+            self::SURFACE_INTERNAL_COMPLIANCE_DETAIL,
             self::SURFACE_INTERNAL_BILLING_INDEX,
             self::SURFACE_INTERNAL_BILLING_DETAIL,
             self::SURFACE_INTERNAL_SHIPMENTS_INDEX,
@@ -137,6 +145,8 @@ class InternalControlPlane
         self::ROLE_OPS_READONLY => [
             self::SURFACE_INTERNAL_KYC_INDEX,
             self::SURFACE_INTERNAL_KYC_DETAIL,
+            self::SURFACE_INTERNAL_COMPLIANCE_INDEX,
+            self::SURFACE_INTERNAL_COMPLIANCE_DETAIL,
             self::SURFACE_INTERNAL_BILLING_INDEX,
             self::SURFACE_INTERNAL_BILLING_DETAIL,
             self::SURFACE_INTERNAL_SHIPMENTS_INDEX,
@@ -170,6 +180,9 @@ class InternalControlPlane
         self::SURFACE_INTERNAL_KYC_DETAIL,
         self::SURFACE_INTERNAL_KYC_REVIEW,
         self::SURFACE_INTERNAL_KYC_RESTRICTIONS,
+        self::SURFACE_INTERNAL_COMPLIANCE_INDEX,
+        self::SURFACE_INTERNAL_COMPLIANCE_DETAIL,
+        self::SURFACE_INTERNAL_COMPLIANCE_ACTIONS,
         self::SURFACE_INTERNAL_BILLING_INDEX,
         self::SURFACE_INTERNAL_BILLING_DETAIL,
         self::SURFACE_INTERNAL_BILLING_ACTIONS,

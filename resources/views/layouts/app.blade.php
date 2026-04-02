@@ -45,6 +45,8 @@
     $canReadShipments = $currentUser?->hasPermission('shipments.read') ?? false;
     $canReadUsers = $currentUser?->hasPermission('users.read') ?? false;
     $canReadKyc = $currentUser?->hasPermission('kyc.read') ?? false;
+    $canReadCompliance = $currentUser?->hasPermission('compliance.read') ?? false;
+    $canReadDangerousGoods = $currentUser?->hasPermission('dg.read') ?? false;
     $canReadIntegrations = $currentUser?->hasPermission('integrations.read') ?? false;
     $canReadApiKeys = $currentUser?->hasPermission('api_keys.read') ?? false;
     $canReadWebhooks = $currentUser?->hasPermission('webhooks.read') ?? false;
@@ -71,6 +73,11 @@
         && $canReadKyc
         && $internalControlPlane?->canSeeSurface($currentUser, \App\Support\Internal\InternalControlPlane::SURFACE_INTERNAL_KYC_INDEX)
         && Route::has('internal.kyc.index');
+    $showInternalComplianceReadCenter = $isInternalUser
+        && $canReadCompliance
+        && $canReadDangerousGoods
+        && $internalControlPlane?->canSeeSurface($currentUser, \App\Support\Internal\InternalControlPlane::SURFACE_INTERNAL_COMPLIANCE_INDEX)
+        && Route::has('internal.compliance.index');
     $showInternalBillingReadCenter = $isInternalUser
         && $canViewWalletBalance
         && $canViewWalletLedger
@@ -126,6 +133,14 @@
             }
 
             $menu[] = ['active' => ['internal.kyc.*'], 'route' => 'internal.kyc.index', 'icon' => 'KYC', 'label' => 'حالات التحقق'];
+        }
+
+        if ($showInternalComplianceReadCenter) {
+            if (! $showExternalAccountsReadCenter && ! $showInternalShipmentReadCenter && ! $showInternalKycReadCenter) {
+                $menu[] = ['divider' => 'عمليات العملاء'];
+            }
+
+            $menu[] = ['active' => ['internal.compliance.*'], 'route' => 'internal.compliance.index', 'icon' => 'CMP', 'label' => 'Compliance & DG'];
         }
 
         if ($showInternalStaffReadCenter) {

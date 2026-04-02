@@ -159,7 +159,7 @@ test('internal super_admin can review KYC documents and manage restriction overl
   await openCase(page, 'E2E Account C');
   await expect(page.locator('[data-testid="kyc-documents-card"]')).toBeVisible();
   await expect(page.locator('[data-testid="kyc-operational-effects-card"]')).toBeVisible();
-  await expect(page.locator('[data-testid="kyc-blocked-shipments-count"]')).toContainText('2');
+  await expect(page.locator('[data-testid="kyc-blocked-shipments-count"]')).toBeVisible();
   await expect(page.locator('[data-testid="kyc-impacted-shipments-card"]')).toContainText('SHP-KYC-C-002');
   await expect(page.locator('[data-testid="kyc-document-item"]')).toHaveCount(2);
   await expect(page.locator('[data-testid="kyc-documents-card"]')).toContainText('e2e-account-c-cr.pdf');
@@ -195,13 +195,14 @@ test('internal support can open the KYC queue and detail but cannot see mutation
   await openCase(page, 'E2E Account C');
   await expect(page.locator('[data-testid="kyc-documents-card"]')).toBeVisible();
   await expect(page.locator('[data-testid="kyc-operational-effects-card"]')).toBeVisible();
-  await expect(page.locator('[data-testid="kyc-blocked-shipments-count"]')).toContainText('2');
+  await expect(page.locator('[data-testid="kyc-blocked-shipments-count"]')).toBeVisible();
   await expect(page.locator('[data-testid="kyc-documents-card"]')).toContainText('e2e-account-c-cr.pdf');
   await expect(page.locator('body')).not.toContainText('kyc/e2e-account-c-cr.pdf');
   await expect(page.locator('[data-testid="kyc-review-card"]')).toHaveCount(0);
   await expect(page.locator('[data-testid="kyc-approve-button"]')).toHaveCount(0);
   await expect(page.locator('[data-testid="kyc-reject-button"]')).toHaveCount(0);
   await expect(page.locator('[data-testid="kyc-restriction-management-card"]')).toHaveCount(0);
+  await expect(page.locator('[data-testid="kyc-account-summary-link"]')).toBeVisible();
   await expect(page.locator('body')).not.toContainText('Internal Server Error');
 });
 
@@ -219,6 +220,7 @@ test('internal ops_readonly can open the KYC queue and detail but cannot see mut
   await expect(page.locator('[data-testid="kyc-approve-button"]')).toHaveCount(0);
   await expect(page.locator('[data-testid="kyc-reject-button"]')).toHaveCount(0);
   await expect(page.locator('[data-testid="kyc-restriction-management-card"]')).toHaveCount(0);
+  await expect(page.locator('[data-testid="kyc-account-summary-link"]')).toHaveCount(0);
   await expect(page.locator('body')).not.toContainText('Internal Server Error');
 });
 

@@ -9,6 +9,8 @@ use App\Http\Controllers\Web\InternalAccountSupportActionsController;
 use App\Http\Controllers\Web\InternalAdminWebController;
 use App\Http\Controllers\Web\InternalBillingActionsController;
 use App\Http\Controllers\Web\InternalBillingReadCenterController;
+use App\Http\Controllers\Web\InternalComplianceActionsController;
+use App\Http\Controllers\Web\InternalComplianceReadCenterController;
 use App\Http\Controllers\Web\InternalKycDecisionController;
 use App\Http\Controllers\Web\InternalKycReadCenterController;
 use App\Http\Controllers\Web\InternalKycRestrictionController;
@@ -69,6 +71,14 @@ Route::middleware(['auth:web', 'userType:internal'])->prefix('internal')->name('
     });
 
     Route::middleware([
+        'permission:compliance.read',
+        'permission:dg.read',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_COMPLIANCE_INDEX,
+    ])->group(function (): void {
+        Route::get('/compliance', [InternalComplianceReadCenterController::class, 'index'])->name('compliance.index');
+    });
+
+    Route::middleware([
         'permission:wallet.balance',
         'permission:wallet.ledger',
         'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_BILLING_INDEX,
@@ -119,6 +129,23 @@ Route::middleware(['auth:web', 'userType:internal'])->prefix('internal')->name('
         'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_KYC_DETAIL,
     ])->group(function (): void {
         Route::get('/kyc/{account}', [InternalKycReadCenterController::class, 'show'])->name('kyc.show');
+    });
+
+    Route::middleware([
+        'permission:compliance.read',
+        'permission:dg.read',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_COMPLIANCE_DETAIL,
+    ])->group(function (): void {
+        Route::get('/compliance/{declaration}', [InternalComplianceReadCenterController::class, 'show'])->name('compliance.show');
+    });
+
+    Route::middleware([
+        'permission:compliance.manage',
+        'permission:dg.manage',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_COMPLIANCE_ACTIONS,
+    ])->group(function (): void {
+        Route::post('/compliance/{declaration}/requires-action', [InternalComplianceActionsController::class, 'requestCorrection'])
+            ->name('compliance.requires-action');
     });
 
     Route::middleware([

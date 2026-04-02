@@ -94,6 +94,7 @@ class InternalKycReadCenterController extends Controller
         $canReviewKyc = $this->canReviewKyc($request, $controlPlane);
         $canTakeDecision = $canReviewKyc && $kyc['status'] === KycVerification::STATUS_PENDING;
         $canManageRestrictions = $this->canManageRestrictions($request, $controlPlane, $kyc['status']);
+        $canViewAccount = $this->canViewAccount($request, $controlPlane);
 
         return view('pages.admin.kyc-show', [
             'account' => $accountModel,
@@ -108,6 +109,7 @@ class InternalKycReadCenterController extends Controller
             'recentImpactedShipments' => $this->operationalEffectService->recentImpactedShipments($accountModel),
             'auditEntries' => $auditEntries,
             'hasDocumentVisibility' => $this->canViewDocumentSummaries($request),
+            'canViewAccount' => $canViewAccount,
             'canReviewKyc' => $canReviewKyc,
             'canTakeDecision' => $canTakeDecision,
             'canManageRestrictions' => $canManageRestrictions,
@@ -495,6 +497,16 @@ class InternalKycReadCenterController extends Controller
         $user = $request->user();
 
         return $user?->hasPermission('kyc.documents') ?? false;
+    }
+
+    private function canViewAccount(Request $request, InternalControlPlane $controlPlane): bool
+    {
+        /** @var User|null $user */
+        $user = $request->user();
+
+        return $user instanceof User
+            && $user->hasPermission('accounts.read')
+            && $controlPlane->canSeeSurface($user, InternalControlPlane::SURFACE_EXTERNAL_ACCOUNTS_DETAIL);
     }
 
     private function canManageRestrictions(Request $request, InternalControlPlane $controlPlane, string $status): bool

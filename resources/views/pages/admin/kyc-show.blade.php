@@ -18,7 +18,9 @@
         </p>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <a href="{{ route('internal.accounts.show', $account) }}" class="btn btn-s">Account Summary</a>
+        @if($canViewAccount)
+            <a href="{{ route('internal.accounts.show', $account) }}" class="btn btn-s" data-testid="kyc-account-summary-link">Account Summary</a>
+        @endif
         <a href="{{ route('internal.kyc.index') }}" class="btn btn-s">العودة إلى الطابور</a>
         <a href="{{ route('internal.kyc.show', $account) }}" class="btn btn-pr">تحديث الملف</a>
     </div>
