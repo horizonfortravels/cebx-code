@@ -474,11 +474,27 @@ class InternalBillingReadCenterController extends Controller
 
         return WalletLedgerEntry::query()
             ->where('wallet_id', (string) $wallet->id)
-            ->where('reference_type', 'hold')
-            ->where('reference_id', (string) $hold->id)
+            ->where(static function (Builder $query) use ($hold): void {
+                $query->where(static function (Builder $query) use ($hold): void {
+                    $query->where('reference_type', 'hold')
+                        ->where('reference_id', (string) $hold->id);
+                });
+
+                $shipmentId = trim((string) ($hold->shipment_id ?? ''));
+
+                if ($shipmentId !== '') {
+                    $query->orWhere(static function (Builder $query) use ($hold, $shipmentId): void {
+                        $query->where('transaction_type', 'hold_capture')
+                            ->where('reference_type', 'shipment')
+                            ->where('reference_id', $shipmentId)
+                            ->where('amount', (float) $hold->amount);
+                    });
+                }
+            })
             ->orderByDesc('sequence')
             ->limit(10)
             ->get()
+            ->filter(fn (WalletLedgerEntry $entry): bool => (string) ($this->resolvePreflightHoldForEntry($wallet, $entry)?->id ?? '') === (string) $hold->id)
             ->map(fn (WalletLedgerEntry $entry): array => $this->ledgerEntryRow($wallet, $entry))
             ->values();
     }
@@ -631,6 +647,7 @@ class InternalBillingReadCenterController extends Controller
     {
         $referenceType = trim((string) ($entry->reference_type ?? ''));
         $referenceId = trim((string) ($entry->reference_id ?? ''));
+        $transactionType = strtolower(trim((string) ($entry->transaction_type ?: $entry->type)));
 
         if ($referenceType === '' && $referenceId === '') {
             return 'No linked reference';
@@ -643,6 +660,10 @@ class InternalBillingReadCenterController extends Controller
                 ->value('reference_number');
 
             if (is_string($shipmentReference) && trim($shipmentReference) !== '') {
+                if ($transactionType === 'hold_capture') {
+                    return 'Reservation capture for shipment ' . trim($shipmentReference);
+                }
+
                 return 'Shipment ' . trim($shipmentReference);
             }
         }
@@ -784,13 +805,29 @@ class InternalBillingReadCenterController extends Controller
 
     private function resolvePreflightHoldForEntry(BillingWallet $wallet, WalletLedgerEntry $entry): ?WalletHold
     {
-        if (trim((string) ($entry->reference_type ?? '')) !== 'hold') {
-            return null;
+        $referenceType = trim((string) ($entry->reference_type ?? ''));
+        $referenceId = trim((string) ($entry->reference_id ?? ''));
+        $transactionType = strtolower(trim((string) ($entry->transaction_type ?: $entry->type)));
+
+        if ($referenceType === 'hold' && $referenceId !== '') {
+            return WalletHold::query()
+                ->where('wallet_id', (string) $wallet->id)
+                ->find($referenceId);
         }
 
-        return WalletHold::query()
-            ->where('wallet_id', (string) $wallet->id)
-            ->find((string) $entry->reference_id);
+        if ($referenceType === 'shipment' && $referenceId !== '' && $transactionType === 'hold_capture') {
+            return WalletHold::query()
+                ->where('wallet_id', (string) $wallet->id)
+                ->where('shipment_id', $referenceId)
+                ->where('status', WalletHold::STATUS_CAPTURED)
+                ->where('amount', (float) $entry->amount)
+                ->orderByDesc('captured_at')
+                ->orderByDesc('updated_at')
+                ->orderByDesc('created_at')
+                ->first();
+        }
+
+        return null;
     }
 
     private function resolveTopupForEntry(BillingWallet $wallet, WalletLedgerEntry $entry): ?WalletTopup

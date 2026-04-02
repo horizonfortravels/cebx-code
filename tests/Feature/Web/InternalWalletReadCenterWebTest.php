@@ -186,6 +186,7 @@ class InternalWalletReadCenterWebTest extends TestCase
                 ->assertSee('data-testid="internal-billing-preflight-balance-card"', false)
                 ->assertSee('data-testid="internal-billing-preflight-ledger-card"', false)
                 ->assertSeeText('Captured')
+                ->assertSeeText('Reservation capture')
                 ->assertSeeText('SHP-I6B-A-002')
                 ->assertSeeText('USD 52.00')
                 ->assertDontSeeText('idempotency_key')
@@ -434,8 +435,8 @@ class InternalWalletReadCenterWebTest extends TestCase
             'direction' => 'debit',
             'amount' => 52.00,
             'running_balance' => 1051.00,
-            'reference_type' => 'hold',
-            'reference_id' => (string) $this->capturedHold->id,
+            'reference_type' => 'shipment',
+            'reference_id' => (string) $this->shipmentCaptured->id,
             'notes' => 'Reservation captured when the shipment moved forward.',
             'created_at' => now()->subHours(4),
         ]);

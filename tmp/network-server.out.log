@@ -885,3 +885,402 @@
   2026-04-02 20:41:39 /js/pwa.js ........................................................................... ~ 0.35ms
   2026-04-02 20:41:39 /images/logo-sidebar.png ............................................................. ~ 0.34ms
   2026-04-02 20:41:39 /manifest.json ....................................................................... ~ 0.19ms
+  2026-04-02 20:57:20 / .................................................................................. ~ 504.95ms
+  2026-04-02 20:57:21 /login ............................................................................... ~ 0.31ms
+  2026-04-02 20:57:21 /css/app.css ......................................................................... ~ 0.35ms
+  2026-04-02 20:57:21 /images/logo-auth.png ............................................................... ~ 29.85ms
+  2026-04-02 20:57:21 /js/pwa.js ........................................................................... ~ 0.19ms
+  2026-04-02 20:57:21 /manifest.json ....................................................................... ~ 0.19ms
+  2026-04-02 20:57:22 /favicon.ico ......................................................................... ~ 8.41ms
+  2026-04-02 20:57:22 /icons/icon-96x96.png ................................................................ ~ 0.35ms
+  2026-04-02 20:57:59 /admin ............................................................................. ~ 509.82ms
+  2026-04-02 20:57:59 /login ............................................................................... ~ 1.80ms
+  2026-04-02 20:57:59 /css/app.css ......................................................................... ~ 2.25ms
+  2026-04-02 20:57:59 /images/logo-auth.png ................................................................ ~ 0.34ms
+  2026-04-02 20:57:59 /js/pwa.js .......................................................................... ~ 22.23ms
+  2026-04-02 20:57:59 /manifest.json ...................................................................... ~ 50.74ms
+  2026-04-02 20:58:00 /favicon.ico ......................................................................... ~ 0.41ms
+  2026-04-02 20:58:00 /icons/icon-96x96.png ................................................................ ~ 0.38ms
+  2026-04-02 20:58:01 /admin/login ....................................................................... ~ 501.77ms
+  2026-04-02 20:58:01 /css/app.css ......................................................................... ~ 0.34ms
+  2026-04-02 20:58:01 /js/pwa.js .......................................................................... ~ 31.10ms
+  2026-04-02 20:58:01 /manifest.json ...................................................................... ~ 64.64ms
+  2026-04-02 20:58:05 /admin/login ....................................................................... ~ 514.44ms
+  2026-04-02 20:58:05 /admin ............................................................................. ~ 508.20ms
+  2026-04-02 20:58:06 /css/app.css ......................................................................... ~ 0.43ms
+  2026-04-02 20:58:06 /images/logo-sidebar.png ............................................................. ~ 0.23ms
+  2026-04-02 20:58:06 /js/pwa.js .......................................................................... ~ 22.52ms
+  2026-04-02 20:58:25 /internal/smtp-settings .................................................................. ~ 1s
+  2026-04-02 20:58:26 /css/app.css ......................................................................... ~ 0.28ms
+  2026-04-02 20:58:26 /images/logo-sidebar.png ............................................................. ~ 0.31ms
+  2026-04-02 20:58:26 /js/pwa.js .......................................................................... ~ 26.01ms
+  2026-04-02 20:58:26 /manifest.json ...................................................................... ~ 61.00ms
+  2026-04-02 20:58:28 /internal/staff .......................................................................... ~ 1s
+  2026-04-02 20:58:29 /css/app.css ......................................................................... ~ 0.32ms
+  2026-04-02 20:58:29 /images/logo-sidebar.png ............................................................ ~ 31.92ms
+  2026-04-02 20:58:29 /js/pwa.js .......................................................................... ~ 56.56ms
+  2026-04-02 20:58:29 /manifest.json ...................................................................... ~ 91.24ms
+  2026-04-02 20:58:36 /internal/staff/create ................................................................... ~ 1s
+  2026-04-02 20:58:37 /css/app.css ......................................................................... ~ 0.31ms
+  2026-04-02 20:58:37 /images/logo-sidebar.png ............................................................. ~ 0.32ms
+  2026-04-02 20:58:37 /js/pwa.js .......................................................................... ~ 20.99ms
+  2026-04-02 20:58:37 /manifest.json ...................................................................... ~ 50.75ms
+  local.WARNING: smtp.transport_failed {"host":"","port":0,"encryption":"tls","exception_class":"Symfony\\Component\\Mailer\\Exception\\UnexpectedResponseException","exception_code":"550"}
+  local.ERROR: Email transport failed. Verify SMTP settings and connectivity. {"userId":"a172fbee-38e6-4eca-88e9-282f39046bb9","exception":"[object] (RuntimeException(code: 0): Email transport failed. Verify SMTP settings and connectivity. at C:/Users/Ahmed/Desktop/cebx-code/app/Services/SmtpSettingsService.php:382)
+  [stacktrace]
+  #0 C:/Users/Ahmed/Desktop/cebx-code/app/Services/SmtpSettingsService.php(183): App/Services/SmtpSettingsService->sanitizedTransportException(Object(Symfony/Component/Mailer/Exception/UnexpectedResponseException), 'Email transport...')
+  #1 C:/Users/Ahmed/Desktop/cebx-code/app/Services/InternalStaffAdminService.php(430): App/Services/SmtpSettingsService->sendMailable('ahmedalromaitha...', Object(App/Mail/PasswordResetMail))
+  #2 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Auth/Passwords/PasswordBroker.php(102): App/Services/InternalStaffAdminService->App/Services/{closure}(Object(App/Models/User), 'd6d6dd22f8f7186...')
+  #3 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Support/Timebox.php(34): Illuminate/Auth/Passwords/PasswordBroker->Illuminate/Auth/Passwords/{closure}(Object(Illuminate/Support/Timebox))
+  #4 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Auth/Passwords/PasswordBroker.php(85): Illuminate/Support/Timebox->call(Object(Closure), 200000)
+  #5 C:/Users/Ahmed/Desktop/cebx-code/app/Services/InternalStaffAdminService.php(427): Illuminate/Auth/Passwords/PasswordBroker->sendResetLink(Object(SensitiveParameterValue), Object(Closure))
+  #6 C:/Users/Ahmed/Desktop/cebx-code/app/Services/InternalStaffAdminService.php(56): App/Services/InternalStaffAdminService->dispatchPasswordResetLink(Object(App/Models/User), 'ERR_INTERNAL_ST...', '/xD8/xAA/xD8/xB9/xD8/xB0/xD8/xB1 /xD8/xA5/xD8/xB1/xD8/xB3...')
+  #7 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php(32): App/Services/InternalStaffAdminService->App/Services/{closure}(Object(Illuminate/Database/MySqlConnection))
+  #8 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Database/DatabaseManager.php(495): Illuminate/Database/Connection->transaction(Object(Closure))
+  #9 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Support/Facades/Facade.php(361): Illuminate/Database/DatabaseManager->__call('transaction', Array)
+  #10 C:/Users/Ahmed/Desktop/cebx-code/app/Services/InternalStaffAdminService.php(49): Illuminate/Support/Facades/Facade::__callStatic('transaction', Array)
+  #11 C:/Users/Ahmed/Desktop/cebx-code/app/Http/Controllers/Web/InternalStaffManagementController.php(43): App/Services/InternalStaffAdminService->inviteStaffUser(Array, Object(App/Models/User))
+  #12 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Routing/Controller.php(54): App/Http/Controllers/Web/InternalStaffManagementController->store(Object(Illuminate/Http/Request), Object(App/Support/Internal/InternalControlPlane))
+  #13 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Routing/ControllerDispatcher.php(44): Illuminate/Routing/Controller->callAction('store', Array)
+  #14 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Routing/Route.php(266): Illuminate/Routing/ControllerDispatcher->dispatch(Object(Illuminate/Routing/Route), Object(App/Http/Controllers/Web/InternalStaffManagementController), 'store')
+  #15 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Routing/Route.php(212): Illuminate/Routing/Route->runController()
+  #16 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Routing/Router.php(808): Illuminate/Routing/Route->run()
+  #17 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(170): Illuminate/Routing/Router->Illuminate/Routing/{closure}(Object(Illuminate/Http/Request))
+  #18 C:/Users/Ahmed/Desktop/cebx-code/app/Http/Middleware/EnsureInternalSurfaceAccess.php(56): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+  #19 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(209): App/Http/Middleware/EnsureInternalSurfaceAccess->handle(Object(Illuminate/Http/Request), Object(Closure), 'internal_staff_...')
+  #20 C:/Users/Ahmed/Desktop/cebx-code/app/Http/Middleware/CheckPermission.php(45): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+  #21 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(209): App/Http/Middleware/CheckPermission->handle(Object(Illuminate/Http/Request), Object(Closure), 'roles.assign')
+  #22 C:/Users/Ahmed/Desktop/cebx-code/app/Http/Middleware/CheckPermission.php(45): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+  #23 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(209): App/Http/Middleware/CheckPermission->handle(Object(Illuminate/Http/Request), Object(Closure), 'users.manage')
+  #24 C:/Users/Ahmed/Desktop/cebx-code/app/Http/Middleware/EnsureUserTypeMiddleware.php(54): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+  #25 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(209): App/Http/Middleware/EnsureUserTypeMiddleware->handle(Object(Illuminate/Http/Request), Object(Closure), 'internal')
+  #26 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Routing/Middleware/SubstituteBindings.php(51): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+  #27 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(209): Illuminate/Routing/Middleware/SubstituteBindings->handle(Object(Illuminate/Http/Request), Object(Closure))
+  #28 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Auth/Middleware/Authenticate.php(64): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+  #29 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(209): Illuminate/Auth/Middleware/Authenticate->handle(Object(Illuminate/Http/Request), Object(Closure), 'web')
+  #30 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/VerifyCsrfToken.php(88): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+  #31 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(209): Illuminate/Foundation/Http/Middleware/VerifyCsrfToken->handle(Object(Illuminate/Http/Request), Object(Closure))
+  #32 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/View/Middleware/ShareErrorsFromSession.php(49): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+  #33 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(209): Illuminate/View/Middleware/ShareErrorsFromSession->handle(Object(Illuminate/Http/Request), Object(Closure))
+  #34 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Session/Middleware/StartSession.php(121): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+  #35 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Session/Middleware/StartSession.php(64): Illuminate/Session/Middleware/StartSession->handleStatefulRequest(Object(Illuminate/Http/Request), Object(Illuminate/Session/Store), Object(Closure))
+  #36 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(209): Illuminate/Session/Middleware/StartSession->handle(Object(Illuminate/Http/Request), Object(Closure))
+  #37 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Cookie/Middleware/AddQueuedCookiesToResponse.php(37): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+  #38 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(209): Illuminate/Cookie/Middleware/AddQueuedCookiesToResponse->handle(Object(Illuminate/Http/Request), Object(Closure))
+  #39 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Cookie/Middleware/EncryptCookies.php(75): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+  #40 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(209): Illuminate/Cookie/Middleware/EncryptCookies->handle(Object(Illuminate/Http/Request), Object(Closure))
+  #41 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(127): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+  #42 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Routing/Router.php(807): Illuminate/Pipeline/Pipeline->then(Object(Closure))
+  #43 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Routing/Router.php(786): Illuminate/Routing/Router->runRouteWithinStack(Object(Illuminate/Routing/Route), Object(Illuminate/Http/Request))
+  #44 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Routing/Router.php(750): Illuminate/Routing/Router->runRoute(Object(Illuminate/Http/Request), Object(Illuminate/Routing/Route))
+  #45 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Routing/Router.php(739): Illuminate/Routing/Router->dispatchToRoute(Object(Illuminate/Http/Request))
+  #46 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(201): Illuminate/Routing/Router->dispatch(Object(Illuminate/Http/Request))
+  #47 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(170): Illuminate/Foundation/Http/Kernel->Illuminate/Foundation/Http/{closure}(Object(Illuminate/Http/Request))
+  #48 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php(21): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+  #49 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/ConvertEmptyStringsToNull.php(31): Illuminate/Foundation/Http/Middleware/TransformsRequest->handle(Object(Illuminate/Http/Request), Object(Closure))
+  #50 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(209): Illuminate/Foundation/Http/Middleware/ConvertEmptyStringsToNull->handle(Object(Illuminate/Http/Request), Object(Closure))
+  #51 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php(21): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+  #52 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TrimStrings.php(51): Illuminate/Foundation/Http/Middleware/TransformsRequest->handle(Object(Illuminate/Http/Request), Object(Closure))
+  #53 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(209): Illuminate/Foundation/Http/Middleware/TrimStrings->handle(Object(Illuminate/Http/Request), Object(Closure))
+  #54 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Http/Middleware/ValidatePostSize.php(27): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+  #55 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(209): Illuminate/Http/Middleware/ValidatePostSize->handle(Object(Illuminate/Http/Request), Object(Closure))
+  #56 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/PreventRequestsDuringMaintenance.php(110): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+  #57 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(209): Illuminate/Foundation/Http/Middleware/PreventRequestsDuringMaintenance->handle(Object(Illuminate/Http/Request), Object(Closure))
+  #58 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Http/Middleware/HandleCors.php(49): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+  #59 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(209): Illuminate/Http/Middleware/HandleCors->handle(Object(Illuminate/Http/Request), Object(Closure))
+  #60 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Http/Middleware/TrustProxies.php(58): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+  #61 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(209): Illuminate/Http/Middleware/TrustProxies->handle(Object(Illuminate/Http/Request), Object(Closure))
+  #62 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/InvokeDeferredCallbacks.php(22): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+  #63 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(209): Illuminate/Foundation/Http/Middleware/InvokeDeferredCallbacks->handle(Object(Illuminate/Http/Request), Object(Closure))
+  #64 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(127): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+  #65 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(176): Illuminate/Pipeline/Pipeline->then(Object(Closure))
+  #66 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(145): Illuminate/Foundation/Http/Kernel->sendRequestThroughRouter(Object(Illuminate/Http/Request))
+  #67 C:/Users/Ahmed/Desktop/cebx-code/public/index.php(16): Illuminate/Foundation/Http/Kernel->handle(Object(Illuminate/Http/Request))
+  #68 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php(23): require_once('C://Users//Ahmed//...')
+  #69 {main}
+  [object] (Symfony\\Component\\Mailer\\Exception\\UnexpectedResponseException(code: 550): Expected response code \"250/251/252\" but got code \"550\", with message \"550 5.7.1 Relaying denied\". at C:/Users/Ahmed/Desktop/cebx-code/vendor/symfony/mailer/Transport/Smtp/SmtpTransport.php:331)
+  [stacktrace]
+  #0 C:/Users/Ahmed/Desktop/cebx-code/vendor/symfony/mailer/Transport/Smtp/SmtpTransport.php(187): Symfony/Component/Mailer/Transport/Smtp/SmtpTransport->assertResponseCode('550 5.7.1 Relay...', Array)
+  #1 C:/Users/Ahmed/Desktop/cebx-code/vendor/symfony/mailer/Transport/Smtp/EsmtpTransport.php(150): Symfony/Component/Mailer/Transport/Smtp/SmtpTransport->executeCommand('RCPT TO:<ahmeda...', Array)
+  #2 C:/Users/Ahmed/Desktop/cebx-code/vendor/symfony/mailer/Transport/Smtp/SmtpTransport.php(257): Symfony/Component/Mailer/Transport/Smtp/EsmtpTransport->executeCommand('RCPT TO:<ahmeda...', Array)
+  #3 C:/Users/Ahmed/Desktop/cebx-code/vendor/symfony/mailer/Transport/Smtp/SmtpTransport.php(206): Symfony/Component/Mailer/Transport/Smtp/SmtpTransport->doRcptToCommand('ahmedalromaitha...')
+  #4 C:/Users/Ahmed/Desktop/cebx-code/vendor/symfony/mailer/Transport/AbstractTransport.php(69): Symfony/Component/Mailer/Transport/Smtp/SmtpTransport->doSend(Object(Symfony/Component/Mailer/SentMessage))
+  #5 C:/Users/Ahmed/Desktop/cebx-code/vendor/symfony/mailer/Transport/Smtp/SmtpTransport.php(138): Symfony/Component/Mailer/Transport/AbstractTransport->send(Object(Symfony/Component/Mime/Email), Object(Symfony/Component/Mailer/DelayedEnvelope))
+  #6 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Mail/Mailer.php(585): Symfony/Component/Mailer/Transport/Smtp/SmtpTransport->send(Object(Symfony/Component/Mime/Email), Object(Symfony/Component/Mailer/DelayedEnvelope))
+  #7 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Mail/Mailer.php(332): Illuminate/Mail/Mailer->sendSymfonyMessage(Object(Symfony/Component/Mime/Email))
+  #8 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Mail/Mailable.php(207): Illuminate/Mail/Mailer->send('emails.password...', Array, Object(Closure))
+  #9 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Support/Traits/Localizable.php(19): Illuminate/Mail/Mailable->Illuminate/Mail/{closure}()
+  #10 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Mail/Mailable.php(200): Illuminate/Mail/Mailable->withLocale(NULL, Object(Closure))
+  #11 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Mail/Mailer.php(354): Illuminate/Mail/Mailable->send(Object(Illuminate/Mail/Mailer))
+  #12 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Mail/Mailer.php(301): Illuminate/Mail/Mailer->sendMailable(Object(App/Mail/PasswordResetMail))
+  #13 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Mail/PendingMail.php(124): Illuminate/Mail/Mailer->send(Object(App/Mail/PasswordResetMail))
+  #14 C:/Users/Ahmed/Desktop/cebx-code/app/Services/SmtpSettingsService.php(181): Illuminate/Mail/PendingMail->send(Object(App/Mail/PasswordResetMail))
+  #15 C:/Users/Ahmed/Desktop/cebx-code/app/Services/InternalStaffAdminService.php(430): App/Services/SmtpSettingsService->sendMailable('ahmedalromaitha...', Object(App/Mail/PasswordResetMail))
+  #16 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Auth/Passwords/PasswordBroker.php(102): App/Services/InternalStaffAdminService->App/Services/{closure}(Object(App/Models/User), 'd6d6dd22f8f7186...')
+  #17 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Support/Timebox.php(34): Illuminate/Auth/Passwords/PasswordBroker->Illuminate/Auth/Passwords/{closure}(Object(Illuminate/Support/Timebox))
+  #18 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Auth/Passwords/PasswordBroker.php(85): Illuminate/Support/Timebox->call(Object(Closure), 200000)
+  #19 C:/Users/Ahmed/Desktop/cebx-code/app/Services/InternalStaffAdminService.php(427): Illuminate/Auth/Passwords/PasswordBroker->sendResetLink(Object(SensitiveParameterValue), Object(Closure))
+  #20 C:/Users/Ahmed/Desktop/cebx-code/app/Services/InternalStaffAdminService.php(56): App/Services/InternalStaffAdminService->dispatchPasswordResetLink(Object(App/Models/User), 'ERR_INTERNAL_ST...', '/xD8/xAA/xD8/xB9/xD8/xB0/xD8/xB1 /xD8/xA5/xD8/xB1/xD8/xB3...')
+  #21 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Database/Concerns/ManagesTransactions.php(32): App/Services/InternalStaffAdminService->App/Services/{closure}(Object(Illuminate/Database/MySqlConnection))
+  #22 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Database/DatabaseManager.php(495): Illuminate/Database/Connection->transaction(Object(Closure))
+  #23 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Support/Facades/Facade.php(361): Illuminate/Database/DatabaseManager->__call('transaction', Array)
+  #24 C:/Users/Ahmed/Desktop/cebx-code/app/Services/InternalStaffAdminService.php(49): Illuminate/Support/Facades/Facade::__callStatic('transaction', Array)
+  #25 C:/Users/Ahmed/Desktop/cebx-code/app/Http/Controllers/Web/InternalStaffManagementController.php(43): App/Services/InternalStaffAdminService->inviteStaffUser(Array, Object(App/Models/User))
+  #26 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Routing/Controller.php(54): App/Http/Controllers/Web/InternalStaffManagementController->store(Object(Illuminate/Http/Request), Object(App/Support/Internal/InternalControlPlane))
+  #27 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Routing/ControllerDispatcher.php(44): Illuminate/Routing/Controller->callAction('store', Array)
+  #28 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Routing/Route.php(266): Illuminate/Routing/ControllerDispatcher->dispatch(Object(Illuminate/Routing/Route), Object(App/Http/Controllers/Web/InternalStaffManagementController), 'store')
+  #29 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Routing/Route.php(212): Illuminate/Routing/Route->runController()
+  #30 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Routing/Router.php(808): Illuminate/Routing/Route->run()
+  #31 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(170): Illuminate/Routing/Router->Illuminate/Routing/{closure}(Object(Illuminate/Http/Request))
+  #32 C:/Users/Ahmed/Desktop/cebx-code/app/Http/Middleware/EnsureInternalSurfaceAccess.php(56): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+  #33 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(209): App/Http/Middleware/EnsureInternalSurfaceAccess->handle(Object(Illuminate/Http/Request), Object(Closure), 'internal_staff_...')
+  #34 C:/Users/Ahmed/Desktop/cebx-code/app/Http/Middleware/CheckPermission.php(45): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+  #35 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(209): App/Http/Middleware/CheckPermission->handle(Object(Illuminate/Http/Request), Object(Closure), 'roles.assign')
+  #36 C:/Users/Ahmed/Desktop/cebx-code/app/Http/Middleware/CheckPermission.php(45): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+  #37 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(209): App/Http/Middleware/CheckPermission->handle(Object(Illuminate/Http/Request), Object(Closure), 'users.manage')
+  #38 C:/Users/Ahmed/Desktop/cebx-code/app/Http/Middleware/EnsureUserTypeMiddleware.php(54): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+  #39 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(209): App/Http/Middleware/EnsureUserTypeMiddleware->handle(Object(Illuminate/Http/Request), Object(Closure), 'internal')
+  #40 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Routing/Middleware/SubstituteBindings.php(51): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+  #41 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(209): Illuminate/Routing/Middleware/SubstituteBindings->handle(Object(Illuminate/Http/Request), Object(Closure))
+  #42 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Auth/Middleware/Authenticate.php(64): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+  #43 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(209): Illuminate/Auth/Middleware/Authenticate->handle(Object(Illuminate/Http/Request), Object(Closure), 'web')
+  #44 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/VerifyCsrfToken.php(88): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+  #45 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(209): Illuminate/Foundation/Http/Middleware/VerifyCsrfToken->handle(Object(Illuminate/Http/Request), Object(Closure))
+  #46 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/View/Middleware/ShareErrorsFromSession.php(49): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+  #47 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(209): Illuminate/View/Middleware/ShareErrorsFromSession->handle(Object(Illuminate/Http/Request), Object(Closure))
+  #48 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Session/Middleware/StartSession.php(121): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+  #49 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Session/Middleware/StartSession.php(64): Illuminate/Session/Middleware/StartSession->handleStatefulRequest(Object(Illuminate/Http/Request), Object(Illuminate/Session/Store), Object(Closure))
+  #50 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(209): Illuminate/Session/Middleware/StartSession->handle(Object(Illuminate/Http/Request), Object(Closure))
+  #51 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Cookie/Middleware/AddQueuedCookiesToResponse.php(37): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+  #52 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(209): Illuminate/Cookie/Middleware/AddQueuedCookiesToResponse->handle(Object(Illuminate/Http/Request), Object(Closure))
+  #53 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Cookie/Middleware/EncryptCookies.php(75): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+  #54 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(209): Illuminate/Cookie/Middleware/EncryptCookies->handle(Object(Illuminate/Http/Request), Object(Closure))
+  #55 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(127): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+  #56 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Routing/Router.php(807): Illuminate/Pipeline/Pipeline->then(Object(Closure))
+  #57 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Routing/Router.php(786): Illuminate/Routing/Router->runRouteWithinStack(Object(Illuminate/Routing/Route), Object(Illuminate/Http/Request))
+  #58 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Routing/Router.php(750): Illuminate/Routing/Router->runRoute(Object(Illuminate/Http/Request), Object(Illuminate/Routing/Route))
+  #59 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Routing/Router.php(739): Illuminate/Routing/Router->dispatchToRoute(Object(Illuminate/Http/Request))
+  #60 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(201): Illuminate/Routing/Router->dispatch(Object(Illuminate/Http/Request))
+  #61 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(170): Illuminate/Foundation/Http/Kernel->Illuminate/Foundation/Http/{closure}(Object(Illuminate/Http/Request))
+  #62 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php(21): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+  #63 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/ConvertEmptyStringsToNull.php(31): Illuminate/Foundation/Http/Middleware/TransformsRequest->handle(Object(Illuminate/Http/Request), Object(Closure))
+  #64 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(209): Illuminate/Foundation/Http/Middleware/ConvertEmptyStringsToNull->handle(Object(Illuminate/Http/Request), Object(Closure))
+  #65 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TransformsRequest.php(21): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+  #66 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/TrimStrings.php(51): Illuminate/Foundation/Http/Middleware/TransformsRequest->handle(Object(Illuminate/Http/Request), Object(Closure))
+  #67 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(209): Illuminate/Foundation/Http/Middleware/TrimStrings->handle(Object(Illuminate/Http/Request), Object(Closure))
+  #68 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Http/Middleware/ValidatePostSize.php(27): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+  #69 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(209): Illuminate/Http/Middleware/ValidatePostSize->handle(Object(Illuminate/Http/Request), Object(Closure))
+  #70 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/PreventRequestsDuringMaintenance.php(110): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+  #71 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(209): Illuminate/Foundation/Http/Middleware/PreventRequestsDuringMaintenance->handle(Object(Illuminate/Http/Request), Object(Closure))
+  #72 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Http/Middleware/HandleCors.php(49): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+  #73 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(209): Illuminate/Http/Middleware/HandleCors->handle(Object(Illuminate/Http/Request), Object(Closure))
+  #74 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Http/Middleware/TrustProxies.php(58): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+  #75 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(209): Illuminate/Http/Middleware/TrustProxies->handle(Object(Illuminate/Http/Request), Object(Closure))
+  #76 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Foundation/Http/Middleware/InvokeDeferredCallbacks.php(22): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+  #77 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(209): Illuminate/Foundation/Http/Middleware/InvokeDeferredCallbacks->handle(Object(Illuminate/Http/Request), Object(Closure))
+  #78 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Pipeline/Pipeline.php(127): Illuminate/Pipeline/Pipeline->Illuminate/Pipeline/{closure}(Object(Illuminate/Http/Request))
+  #79 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(176): Illuminate/Pipeline/Pipeline->then(Object(Closure))
+  #80 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Foundation/Http/Kernel.php(145): Illuminate/Foundation/Http/Kernel->sendRequestThroughRouter(Object(Illuminate/Http/Request))
+  #81 C:/Users/Ahmed/Desktop/cebx-code/public/index.php(16): Illuminate/Foundation/Http/Kernel->handle(Object(Illuminate/Http/Request))
+  #82 C:/Users/Ahmed/Desktop/cebx-code/vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php(23): require_once('C://Users//Ahmed//...')
+  #83 {main}
+  "}
+  2026-04-02 21:00:29 /internal/staff .......................................................................... ~ 4s
+  2026-04-02 21:00:33 /internal/staff/create ............................................................. ~ 510.71ms
+  2026-04-02 21:00:34 /css/app.css ......................................................................... ~ 0.34ms
+  2026-04-02 21:00:34 /images/logo-sidebar.png ............................................................. ~ 0.35ms
+  2026-04-02 21:00:34 /js/pwa.js .......................................................................... ~ 19.82ms
+  2026-04-02 21:00:34 /manifest.json ...................................................................... ~ 47.46ms
+  2026-04-02 21:00:41 /internal/smtp-settings ............................................................ ~ 515.45ms
+  2026-04-02 21:00:41 /css/app.css ......................................................................... ~ 0.37ms
+  2026-04-02 21:00:41 /images/logo-sidebar.png ............................................................ ~ 31.41ms
+  2026-04-02 21:00:41 /js/pwa.js .......................................................................... ~ 52.11ms
+  2026-04-02 21:00:41 /manifest.json ...................................................................... ~ 81.26ms
+  2026-04-02 21:01:51 /internal/smtp-settings ............................................................ ~ 501.69ms
+  2026-04-02 21:01:51 /internal/smtp-settings .................................................................. ~ 1s
+  2026-04-02 21:01:52 /css/app.css ......................................................................... ~ 0.34ms
+  2026-04-02 21:01:52 /images/logo-sidebar.png ............................................................. ~ 0.36ms
+  2026-04-02 21:01:52 /js/pwa.js .......................................................................... ~ 19.64ms
+  2026-04-02 21:01:52 /manifest.json ...................................................................... ~ 47.26ms
+  2026-04-02 21:01:54 /internal/smtp-settings/test-connection .................................................. ~ 1s
+  2026-04-02 21:01:54 /internal/smtp-settings .................................................................. ~ 2s
+  2026-04-02 21:01:56 /css/app.css ......................................................................... ~ 0.32ms
+  2026-04-02 21:01:56 /images/logo-sidebar.png ............................................................ ~ 27.10ms
+  2026-04-02 21:01:56 /js/pwa.js .......................................................................... ~ 46.07ms
+  2026-04-02 21:01:56 /manifest.json ...................................................................... ~ 73.26ms
+  2026-04-02 21:02:01 /manifest.json ....................................................................... ~ 2.36ms
+  2026-04-02 21:02:02 /manifest.json ....................................................................... ~ 2.20ms
+  2026-04-02 21:02:01 /internal/staff ......................................................................... ~ 11s
+  2026-04-02 21:02:01 /internal/staff ......................................................................... ~ 11s
+  2026-04-02 21:02:13 /internal/staff/create ............................................................. ~ 534.40ms
+  2026-04-02 21:02:13 /admin ............................................................................. ~ 532.62ms
+  2026-04-02 21:02:14 /css/app.css ......................................................................... ~ 0.22ms
+  2026-04-02 21:02:14 /images/logo-sidebar.png ............................................................ ~ 26.88ms
+  2026-04-02 21:02:14 /js/pwa.js .......................................................................... ~ 46.65ms
+  2026-04-02 21:02:14 /manifest.json ...................................................................... ~ 75.23ms
+  2026-04-02 21:02:13 /login ............................................................................. ~ 648.07ms
+  2026-04-02 21:02:14 /css/app.css ......................................................................... ~ 0.22ms
+  2026-04-02 21:02:14 /images/logo-auth.png ............................................................... ~ 26.71ms
+  2026-04-02 21:02:14 /manifest.json ...................................................................... ~ 46.72ms
+  2026-04-02 21:02:14 /js/pwa.js .......................................................................... ~ 72.91ms
+  2026-04-02 21:02:40 /admin/login ....................................................................... ~ 506.71ms
+  2026-04-02 21:02:40 /css/app.css ......................................................................... ~ 0.49ms
+  2026-04-02 21:02:40 /manifest.json ...................................................................... ~ 34.44ms
+  2026-04-02 21:02:40 /js/pwa.js ........................................................................... ~ 0.28ms
+  2026-04-02 21:03:01 /reset-password/90400efe22892d06c552e5408e6c6c5ff7a7860f9617af9bb76b17362358cc07 ..... ~ 0.52ms
+  2026-04-02 21:03:01 /css/app.css ......................................................................... ~ 0.24ms
+  2026-04-02 21:03:01 /icons/icon-96x96.png ................................................................ ~ 0.44ms
+  2026-04-02 21:03:01 /icons/icon-192x192.png .............................................................. ~ 0.39ms
+  2026-04-02 21:03:45 /reset-password .................................................................... ~ 513.41ms
+  2026-04-02 21:03:45 /admin/login ............................................................................. ~ 1s
+  2026-04-02 21:03:46 /css/app.css ......................................................................... ~ 0.32ms
+  2026-04-02 21:03:46 /js/pwa.js .......................................................................... ~ 27.53ms
+  2026-04-02 21:04:03 /admin/login ....................................................................... ~ 500.95ms
+  2026-04-02 21:04:04 /admin ............................................................................. ~ 502.96ms
+  2026-04-02 21:04:04 /css/app.css ......................................................................... ~ 0.36ms
+  2026-04-02 21:04:04 /js/pwa.js .......................................................................... ~ 27.95ms
+  2026-04-02 21:04:04 /images/logo-sidebar.png ............................................................ ~ 31.90ms
+  2026-04-02 21:04:04 /favicon.ico ......................................................................... ~ 0.18ms
+  2026-04-02 21:04:53 /admin/login ....................................................................... ~ 516.24ms
+  2026-04-02 21:04:54 /admin/login ......................................................................... ~ 0.27ms
+  2026-04-02 21:04:54 /css/app.css ......................................................................... ~ 0.36ms
+  2026-04-02 21:04:54 /js/pwa.js .......................................................................... ~ 26.72ms
+  2026-04-02 21:04:54 /manifest.json ...................................................................... ~ 54.11ms
+  2026-04-02 21:04:57 /internal/staff .................................................................... ~ 511.73ms
+  2026-04-02 21:04:57 /css/app.css ......................................................................... ~ 0.29ms
+  2026-04-02 21:04:57 /images/logo-sidebar.png ............................................................. ~ 0.32ms
+  2026-04-02 21:04:57 /js/pwa.js .......................................................................... ~ 20.10ms
+  2026-04-02 21:04:57 /manifest.json ...................................................................... ~ 48.17ms
+  2026-04-02 21:05:04 /admin/login ....................................................................... ~ 500.57ms
+  2026-04-02 21:05:04 /admin ................................................................................... ~ 1s
+  2026-04-02 21:05:06 /css/app.css ......................................................................... ~ 0.38ms
+  2026-04-02 21:05:06 /images/logo-sidebar.png ............................................................ ~ 26.56ms
+  2026-04-02 21:05:06 /js/pwa.js ........................................................................... ~ 0.33ms
+  2026-04-02 21:05:22 /internal/staff/a172fbee-514f-45df-8333-e7b2a4cd0ad8 ................................. ~ 0.69ms
+  2026-04-02 21:05:23 /login ............................................................................. ~ 506.36ms
+  2026-04-02 21:05:23 /css/app.css ......................................................................... ~ 0.34ms
+  2026-04-02 21:05:23 /images/logo-auth.png ................................................................ ~ 0.26ms
+  2026-04-02 21:05:23 /js/pwa.js .......................................................................... ~ 28.00ms
+  2026-04-02 21:05:23 /manifest.json ...................................................................... ~ 62.36ms
+  2026-04-02 21:05:26 /admin/login ....................................................................... ~ 515.23ms
+  2026-04-02 21:05:27 /css/app.css ......................................................................... ~ 0.44ms
+  2026-04-02 21:05:27 /js/pwa.js ........................................................................... ~ 0.44ms
+  2026-04-02 21:05:27 /manifest.json ...................................................................... ~ 36.83ms
+  2026-04-02 21:05:31 /admin/login ....................................................................... ~ 502.20ms
+  2026-04-02 21:05:31 /admin/login ......................................................................... ~ 0.36ms
+  2026-04-02 21:05:32 /css/app.css ......................................................................... ~ 0.37ms
+  2026-04-02 21:05:32 /js/pwa.js .......................................................................... ~ 35.27ms
+  2026-04-02 21:05:32 /manifest.json ...................................................................... ~ 67.32ms
+  2026-04-02 21:05:39 /admin/login ....................................................................... ~ 514.99ms
+  2026-04-02 21:05:40 /admin/login ......................................................................... ~ 0.28ms
+  2026-04-02 21:05:40 /css/app.css ......................................................................... ~ 0.43ms
+  2026-04-02 21:05:40 /js/pwa.js .......................................................................... ~ 45.32ms
+  2026-04-02 21:05:40 /manifest.json ...................................................................... ~ 83.30ms
+  2026-04-02 21:05:42 /admin/login ....................................................................... ~ 513.68ms
+  2026-04-02 21:05:42 /css/app.css ......................................................................... ~ 1.46ms
+  2026-04-02 21:05:42 /js/pwa.js .......................................................................... ~ 32.90ms
+  2026-04-02 21:05:42 /manifest.json ...................................................................... ~ 65.23ms
+  2026-04-02 21:05:42 /favicon.ico ......................................................................... ~ 0.31ms
+  2026-04-02 21:05:42 /favicon.ico ......................................................................... ~ 0.22ms
+  2026-04-02 21:05:42 /icons/icon-96x96.png ................................................................ ~ 0.20ms
+  2026-04-02 21:05:43 /admin/login ....................................................................... ~ 500.66ms
+  2026-04-02 21:05:44 /css/app.css ......................................................................... ~ 0.45ms
+  2026-04-02 21:05:44 /js/pwa.js .......................................................................... ~ 36.78ms
+  2026-04-02 21:05:44 /manifest.json ...................................................................... ~ 73.28ms
+  2026-04-02 21:05:44 /favicon.ico ......................................................................... ~ 0.38ms
+  2026-04-02 21:05:44 /favicon.ico ......................................................................... ~ 0.21ms
+  2026-04-02 21:05:44 /icons/icon-96x96.png ................................................................ ~ 0.25ms
+  2026-04-02 21:05:46 /admin/tenant-context .............................................................. ~ 514.37ms
+  2026-04-02 21:05:46 /login ................................................................................... ~ 1s
+  2026-04-02 21:05:47 /css/app.css ......................................................................... ~ 0.34ms
+  2026-04-02 21:05:47 /images/logo-auth.png ............................................................... ~ 31.17ms
+  2026-04-02 21:05:47 /js/pwa.js ........................................................................... ~ 1.55ms
+  2026-04-02 21:05:47 /manifest.json ...................................................................... ~ 35.75ms
+  2026-04-02 21:06:39 /admin/login ............................................................................. ~ 1s
+  2026-04-02 21:06:41 /js/pwa.js ........................................................................... ~ 0.39ms
+  2026-04-02 21:06:40 /css/app.css ........................................................................ ~ 34.88ms
+  2026-04-02 21:06:41 /manifest.json ...................................................................... ~ 67.87ms
+  172.16.0.89:63172 Invalid request (An existing connection was forcibly closed by the remote host)
+  2026-04-02 21:04:18 ...................................................................................... ~ 5m 17s
+  2026-04-02 21:10:21 /admin/login ............................................................................. ~ 2s
+  2026-04-02 21:10:24 /admin/login ............................................................................. ~ 1s
+  2026-04-02 21:10:25 /css/app.css ......................................................................... ~ 1.06ms
+  2026-04-02 21:10:25 /manifest.json ..................................................................... ~ 152.13ms
+  2026-04-02 21:10:25 /js/pwa.js ......................................................................... ~ 289.78ms
+  2026-04-02 21:18:43 /admin/login ....................................................................... ~ 505.40ms
+  2026-04-02 21:18:44 /admin ............................................................................. ~ 508.48ms
+  2026-04-02 21:18:44 /css/app.css ......................................................................... ~ 0.29ms
+  2026-04-02 21:18:44 /images/logo-sidebar.png ............................................................ ~ 27.31ms
+  2026-04-02 21:18:44 /js/pwa.js .......................................................................... ~ 20.14ms
+  2026-04-02 21:27:15 /logout ............................................................................ ~ 518.17ms
+  2026-04-02 21:27:15 /admin/login ......................................................................... ~ 0.32ms
+  2026-04-02 21:27:15 /css/app.css ......................................................................... ~ 0.29ms
+  2026-04-02 21:27:15 /js/pwa.js .......................................................................... ~ 27.39ms
+  2026-04-02 21:27:15 /manifest.json ...................................................................... ~ 54.11ms
+  2026-04-02 21:27:18 /login ............................................................................... ~ 1.09ms
+  2026-04-02 21:27:18 /css/app.css ......................................................................... ~ 0.37ms
+  2026-04-02 21:27:19 /images/logo-auth.png ................................................................ ~ 0.33ms
+  2026-04-02 21:27:19 /js/pwa.js .......................................................................... ~ 21.60ms
+  2026-04-02 21:27:19 /manifest.json ....................................................................... ~ 0.17ms
+  2026-04-02 21:27:20 /b2b/login ......................................................................... ~ 501.90ms
+  2026-04-02 21:27:20 /css/app.css ......................................................................... ~ 0.35ms
+  2026-04-02 21:27:20 /js/pwa.js ........................................................................... ~ 0.19ms
+  2026-04-02 21:27:20 /manifest.json ....................................................................... ~ 0.35ms
+  2026-04-02 21:27:26 /b2b/login ......................................................................... ~ 508.83ms
+  2026-04-02 21:27:27 /b2b/login ......................................................................... ~ 505.43ms
+  2026-04-02 21:27:27 /css/app.css ......................................................................... ~ 0.31ms
+  2026-04-02 21:27:27 /js/pwa.js .......................................................................... ~ 28.38ms
+  2026-04-02 21:27:27 /manifest.json ...................................................................... ~ 57.89ms
+  2026-04-02 21:28:13 /b2b/login ........................................................................... ~ 0.51ms
+  2026-04-02 21:28:13 /b2b/login ......................................................................... ~ 512.75ms
+  2026-04-02 21:28:13 /css/app.css ......................................................................... ~ 0.34ms
+  2026-04-02 21:28:13 /js/pwa.js ........................................................................... ~ 0.28ms
+  2026-04-02 21:28:13 /manifest.json ...................................................................... ~ 28.67ms
+  2026-04-02 21:28:22 /b2b/login ......................................................................... ~ 508.84ms
+  2026-04-02 21:28:23 /b2b/login ........................................................................... ~ 0.35ms
+  2026-04-02 21:28:23 /css/app.css ......................................................................... ~ 0.35ms
+  2026-04-02 21:28:23 /js/pwa.js .......................................................................... ~ 26.91ms
+  2026-04-02 21:28:23 /manifest.json ....................................................................... ~ 0.34ms
+  2026-04-02 21:28:37 /b2b/login ......................................................................... ~ 523.35ms
+  2026-04-02 21:28:38 /b2b/dashboard ..................................................................... ~ 509.09ms
+  2026-04-02 21:28:38 /css/app.css ......................................................................... ~ 0.32ms
+  2026-04-02 21:28:38 /js/pwa.js .......................................................................... ~ 27.01ms
+  2026-04-02 21:28:38 /images/logo-sidebar.png ............................................................ ~ 54.87ms
+  2026-04-02 21:28:38 /manifest.json ....................................................................... ~ 0.18ms
+  2026-04-02 21:31:45 /b2b/shipments ........................................................................... ~ 2s
+  2026-04-02 21:31:47 /css/app.css ......................................................................... ~ 0.34ms
+  2026-04-02 21:31:47 /js/pwa.js ........................................................................... ~ 0.36ms
+  2026-04-02 21:31:47 /images/logo-sidebar.png ............................................................ ~ 28.83ms
+  2026-04-02 21:31:47 /manifest.json ....................................................................... ~ 0.18ms
+  2026-04-02 21:34:57 /b2b/shipments/a1730179-fc31-4246-8f47-9dc5a2d35079 ...................................... ~ 2s
+  2026-04-02 21:35:00 /css/app.css ......................................................................... ~ 0.37ms
+  2026-04-02 21:35:00 /images/logo-sidebar.png ............................................................ ~ 32.17ms
+  2026-04-02 21:35:00 /js/pwa.js .......................................................................... ~ 55.04ms
+  2026-04-02 21:35:00 /manifest.json ....................................................................... ~ 0.87ms
+  2026-04-02 21:34:34 ...................................................................................... ~ 1m 41s
+  2026-04-02 21:36:46 /notifications ........................................................................... ~ 1s
+  2026-04-02 21:36:48 /css/app.css ......................................................................... ~ 0.35ms
+  2026-04-02 21:36:48 /images/logo-sidebar.png ............................................................. ~ 0.31ms
+  2026-04-02 21:36:48 /js/pwa.js ........................................................................... ~ 0.34ms
+  2026-04-02 21:36:48 /manifest.json ....................................................................... ~ 0.25ms
+  2026-04-02 21:37:32 /b2b/shipments ..................................................................... ~ 501.82ms
+  2026-04-02 21:37:32 /css/app.css ....................................................................... ~ 528.54ms
+  2026-04-02 21:37:33 /images/logo-sidebar.png ............................................................. ~ 0.34ms
+  2026-04-02 21:37:33 /js/pwa.js ........................................................................... ~ 0.35ms
+  2026-04-02 21:37:33 /manifest.json ...................................................................... ~ 28.89ms
+  2026-04-02 21:39:19 /b2b/orders/create ................................................................. ~ 514.98ms
+  2026-04-02 21:39:19 /b2b/dashboard .......................................................................... ~ 36s
+  2026-04-02 21:39:56 /css/app.css ......................................................................... ~ 0.35ms
+  2026-04-02 21:39:56 /images/logo-sidebar.png ............................................................. ~ 0.33ms
+  2026-04-02 21:39:56 /js/pwa.js ........................................................................... ~ 0.35ms
+  2026-04-02 21:39:56 /manifest.json ....................................................................... ~ 0.39ms
+  2026-04-02 21:40:47 /b2b/addresses ..................................................................... ~ 503.20ms
+  2026-04-02 21:40:48 /css/app.css ......................................................................... ~ 0.28ms
+  2026-04-02 21:40:48 /images/logo-sidebar.png ............................................................. ~ 0.36ms
+  2026-04-02 21:40:48 /js/pwa.js .......................................................................... ~ 19.65ms
+  2026-04-02 21:40:48 /manifest.json ....................................................................... ~ 0.18ms
+  2026-04-02 21:41:23 /admin/login ......................................................................... ~ 0.39ms
+  2026-04-02 21:41:24 /admin ............................................................................. ~ 506.19ms
+  2026-04-02 21:41:24 /css/app.css ......................................................................... ~ 0.23ms
+  2026-04-02 21:41:24 /images/logo-sidebar.png ............................................................ ~ 34.87ms
+  2026-04-02 21:41:24 /js/pwa.js .......................................................................... ~ 57.77ms
