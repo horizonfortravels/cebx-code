@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Models\Account;
+use App\Models\Notification;
 use App\Models\Shipment;
 use App\Models\User;
 use App\Services\CarrierService;
@@ -20,6 +21,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
+use Throwable;
 
 class InternalShipmentReadCenterController extends Controller
 {
@@ -76,6 +78,7 @@ class InternalShipmentReadCenterController extends Controller
         $publicTracking = $this->publicTrackingSummary($shipmentModel);
         $kycSummary = $this->buildKycRestrictionSummary($shipmentModel->account);
         $user = $request->user();
+        $notifications = $this->buildNotificationsPanel($shipmentModel, $user);
 
         return view('pages.admin.shipments-show', [
             'shipment' => $shipmentModel,
@@ -87,9 +90,11 @@ class InternalShipmentReadCenterController extends Controller
             'documents' => $documents,
             'documentHeadline' => $this->documentHeadline($documents),
             'publicTracking' => $publicTracking,
+            'notifications' => $notifications,
             'kycSummary' => $kycSummary,
             'canViewAccount' => $this->canViewAccount($user, $controlPlane),
             'canViewKyc' => $this->canViewKyc($user, $controlPlane),
+            'canViewDocuments' => $this->canViewDocuments($user, $controlPlane),
         ]);
     }
 
@@ -367,7 +372,8 @@ class InternalShipmentReadCenterController extends Controller
      *   label: string,
      *   detail: string,
      *   enabled_at: string,
-     *   expires_at: string
+     *   expires_at: string,
+     *   url: string|null
      * }
      */
     private function publicTrackingSummary(Shipment $shipment): array
@@ -387,6 +393,105 @@ class InternalShipmentReadCenterController extends Controller
                 : 'No active public tracking link is exposed from this internal surface.',
             'enabled_at' => $enabledAt,
             'expires_at' => $expiresAt,
+            'url' => $enabled ? $this->existingPublicTrackingUrl($shipment) : null,
+        ];
+    }
+
+    /**
+     * @return array{
+     *   visible: bool,
+     *   total_count: int,
+     *   delivered_count: int,
+     *   issue_count: int,
+     *   latest_created_at: string,
+     *   channels: array<int, string>,
+     *   items: Collection<int, array{
+     *     subject: string,
+     *     event_type_label: string,
+     *     channel_label: string,
+     *     status_label: string,
+     *     created_at_display: string,
+     *     sent_at_display: string
+     *   }>
+     * }
+     */
+    private function buildNotificationsPanel(Shipment $shipment, ?User $user): array
+    {
+        if (! $this->canViewNotifications($user) || ! Schema::hasTable('notifications')) {
+            return [
+                'visible' => false,
+                'total_count' => 0,
+                'delivered_count' => 0,
+                'issue_count' => 0,
+                'latest_created_at' => '-',
+                'channels' => [],
+                'items' => collect(),
+            ];
+        }
+
+        $baseQuery = Notification::query()
+            ->withoutGlobalScopes()
+            ->where('account_id', (string) $shipment->account_id)
+            ->where('entity_type', 'shipment')
+            ->where('entity_id', (string) $shipment->id);
+
+        $totalCount = (clone $baseQuery)->count();
+        $deliveredCount = (clone $baseQuery)
+            ->whereIn('status', [Notification::STATUS_SENT, Notification::STATUS_DELIVERED])
+            ->count();
+        $issueCount = (clone $baseQuery)
+            ->whereIn('status', [
+                Notification::STATUS_FAILED,
+                Notification::STATUS_BOUNCED,
+                Notification::STATUS_RETRYING,
+                Notification::STATUS_DLQ,
+            ])
+            ->count();
+        $latestCreatedAt = $this->displayDateTime((clone $baseQuery)->latest('created_at')->value('created_at')) ?? '-';
+
+        $channels = (clone $baseQuery)
+            ->select('channel')
+            ->distinct()
+            ->pluck('channel')
+            ->filter(static fn ($channel): bool => is_string($channel) && trim($channel) !== '')
+            ->map(fn (string $channel): string => $this->notificationChannelLabel($channel))
+            ->values()
+            ->all();
+
+        $items = $baseQuery
+            ->latest('created_at')
+            ->limit(6)
+            ->get()
+            ->map(function (Notification $notification): array {
+                $subject = trim((string) (
+                    $notification->subject
+                    ?? data_get($notification->event_data, 'title')
+                    ?? $notification->event_type
+                    ?? 'Shipment notification'
+                ));
+
+                return [
+                    'subject' => $subject !== '' ? $subject : 'Shipment notification',
+                    'event_type_label' => PortalShipmentLabeler::event(
+                        (string) $notification->event_type,
+                        $subject
+                    ),
+                    'channel_label' => $this->notificationChannelLabel((string) $notification->channel),
+                    'status_label' => $this->notificationStatusLabel((string) $notification->status),
+                    'created_at_display' => optional($notification->created_at)->format('Y-m-d H:i') ?? '-',
+                    'sent_at_display' => optional($notification->sent_at)->format('Y-m-d H:i') ?? '-',
+                ];
+            })
+            ->values();
+
+        return [
+            'visible' => true,
+            'total_count' => $totalCount,
+            'delivered_count' => $deliveredCount,
+            'issue_count' => $issueCount,
+            'latest_created_at' => $latestCreatedAt,
+            'channels' => $channels,
+            'items' => $items,
         ];
     }
 
@@ -530,6 +635,20 @@ class InternalShipmentReadCenterController extends Controller
             && $controlPlane->canSeeSurface($user, InternalControlPlane::SURFACE_INTERNAL_KYC_DETAIL);
     }
 
+    private function canViewDocuments(?User $user, InternalControlPlane $controlPlane): bool
+    {
+        return $user instanceof User
+            && $user->hasPermission('shipments.documents.read')
+            && $controlPlane->canSeeSurface($user, InternalControlPlane::SURFACE_INTERNAL_SHIPMENTS_DOCUMENTS);
+    }
+
+    private function canViewNotifications(?User $user): bool
+    {
+        return $user instanceof User
+            && method_exists($user, 'hasPermission')
+            && $user->hasPermission('notifications.read');
+    }
+
     /**
      * @return array<int, string>
      */
@@ -626,6 +745,34 @@ class InternalShipmentReadCenterController extends Controller
         return $this->statusOptions()[$status] ?? $this->headline($status);
     }
 
+    private function notificationChannelLabel(string $channel): string
+    {
+        return match (strtolower(trim($channel))) {
+            Notification::CHANNEL_IN_APP => 'In app',
+            Notification::CHANNEL_EMAIL => 'Email',
+            Notification::CHANNEL_SMS => 'SMS',
+            Notification::CHANNEL_WEBHOOK => 'Webhook',
+            Notification::CHANNEL_SLACK => 'Slack',
+            default => $this->headline($channel),
+        };
+    }
+
+    private function notificationStatusLabel(string $status): string
+    {
+        return match (strtolower(trim($status))) {
+            Notification::STATUS_PENDING => 'Pending',
+            Notification::STATUS_QUEUED => 'Queued',
+            Notification::STATUS_SENDING => 'Sending',
+            Notification::STATUS_SENT => 'Sent',
+            Notification::STATUS_DELIVERED => 'Delivered',
+            Notification::STATUS_FAILED => 'Failed',
+            Notification::STATUS_BOUNCED => 'Bounced',
+            Notification::STATUS_RETRYING => 'Retrying',
+            Notification::STATUS_DLQ => 'Dead letter',
+            default => $this->headline($status),
+        };
+    }
+
     private function headline(string $value): string
     {
         $normalized = trim($value);
@@ -672,5 +819,30 @@ class InternalShipmentReadCenterController extends Controller
         } catch (\Throwable) {
             return trim($value);
         }
+    }
+
+    private function existingPublicTrackingUrl(Shipment $shipment): ?string
+    {
+        if (! Schema::hasColumns('shipments', ['public_tracking_token', 'public_tracking_token_hash'])) {
+            return null;
+        }
+
+        $hasTokenHash = trim((string) ($shipment->getRawOriginal('public_tracking_token_hash') ?? '')) !== '';
+
+        if (! $hasTokenHash) {
+            return null;
+        }
+
+        try {
+            $token = trim((string) ($shipment->public_tracking_token ?? ''));
+        } catch (Throwable) {
+            return null;
+        }
+
+        if ($token === '') {
+            return null;
+        }
+
+        return route('public.tracking.show', ['token' => $token]);
     }
 }

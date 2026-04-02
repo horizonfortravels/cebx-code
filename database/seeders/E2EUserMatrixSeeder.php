@@ -10,12 +10,16 @@ use App\Models\CarrierShipment;
 use App\Models\Invitation;
 use App\Models\KycDocument;
 use App\Models\KycVerification;
+use App\Models\Notification;
 use App\Models\OrganizationProfile;
 use App\Models\Parcel;
 use App\Models\Shipment;
 use App\Models\ShipmentEvent;
 use App\Models\User;
 use App\Models\VerificationRestriction;
+use App\Models\WalletHold;
+use App\Models\WalletLedgerEntry;
+use App\Models\WalletTopup;
 use App\Services\AuditService;
 use App\Support\CanonicalShipmentStatus;
 use App\Support\Kyc\AccountKycStatusMapper;
@@ -206,10 +210,13 @@ class E2EUserMatrixSeeder extends Seeder
                     'roles.manage',
                     'roles.assign',
                     'shipments.read',
+                    'shipments.documents.read',
                     'shipments.manage',
                     'orders.read',
                     'orders.manage',
                     'wallet.read',
+                    'wallet.balance',
+                    'wallet.ledger',
                     'wallet.manage',
                     'api_keys.read',
                     'api_keys.manage',
@@ -234,6 +241,9 @@ class E2EUserMatrixSeeder extends Seeder
                 permissionKeys: [
                     'accounts.read',
                     'accounts.support.manage',
+                    'wallet.balance',
+                    'wallet.ledger',
+                    'shipments.documents.read',
                     'tickets.read',
                     'tickets.manage',
                 ]
@@ -247,6 +257,9 @@ class E2EUserMatrixSeeder extends Seeder
                 permissionKeys: [
                     'analytics.read',
                     'reports.read',
+                    'wallet.balance',
+                    'wallet.ledger',
+                    'shipments.documents.read',
                 ]
             );
 
@@ -257,6 +270,7 @@ class E2EUserMatrixSeeder extends Seeder
                 description: 'Fallback carrier manager role seeded by E2EUserMatrixSeeder.',
                 permissionKeys: [
                     'notifications.channels.manage',
+                    'shipments.documents.read',
                 ]
             );
 
@@ -285,6 +299,7 @@ class E2EUserMatrixSeeder extends Seeder
         $this->seedDeterministicWallets($accounts);
         $this->seedDeterministicKycFixtures($accounts, $externalUsers);
         $this->seedDeterministicShipmentReadFixtures($accounts, $externalUsers);
+        $this->seedDeterministicWalletReadFixtures($accounts, $externalUsers);
 
         $this->command?->info('E2E user matrix seeded successfully.');
         $this->command?->line('Seeded accounts: A/B as single-user individual accounts, C/D as organization team accounts, plus internal users.');
@@ -385,6 +400,231 @@ class E2EUserMatrixSeeder extends Seeder
                 ]
             );
         }
+    }
+
+    /**
+     * @param array<string, Account> $accounts
+     * @param array<string, array<string, User>> $externalUsers
+     */
+    private function seedDeterministicWalletReadFixtures(array $accounts, array $externalUsers): void
+    {
+        if (!Schema::hasTable('billing_wallets') || !Schema::hasTable('wallet_holds') || !Schema::hasTable('wallet_ledger_entries')) {
+            return;
+        }
+
+        $walletA = BillingWallet::query()->withoutGlobalScopes()
+            ->where('account_id', (string) $accounts['a']->id)
+            ->where('currency', 'USD')
+            ->first();
+
+        if (!$walletA instanceof BillingWallet) {
+            return;
+        }
+
+        $shipmentA = Shipment::query()->withoutGlobalScopes()
+            ->where('reference_number', 'SHP-I5A-A-001')
+            ->first();
+
+        if (!$shipmentA instanceof Shipment) {
+            return;
+        }
+
+        $walletA->forceFill([
+            'available_balance' => 980.00,
+            'reserved_balance' => 25.00,
+            'total_credited' => 1200.00,
+            'total_debited' => 220.00,
+            'status' => 'active',
+        ])->save();
+
+        $shipmentA->forceFill($this->filterExistingColumns('shipments', [
+            'status' => Shipment::STATUS_PAYMENT_PENDING,
+            'currency' => 'USD',
+            'total_charge' => 25.00,
+            'reserved_amount' => 25.00,
+        ]))->save();
+
+        $shipmentCaptured = Shipment::query()->withoutGlobalScopes()->updateOrCreate(
+            ['reference_number' => 'SHP-I6B-A-002'],
+            $this->filterExistingColumns('shipments', [
+                'account_id' => (string) $accounts['a']->id,
+                'user_id' => (string) $externalUsers['a']['primary']->id,
+                'created_by' => (string) $externalUsers['a']['primary']->id,
+                'reference_number' => 'SHP-I6B-A-002',
+                'source' => Shipment::SOURCE_DIRECT,
+                'status' => Shipment::STATUS_PURCHASED,
+                'sender_name' => 'E2E A Billing Sender',
+                'sender_phone' => '+966500100111',
+                'sender_address_1' => 'Riyadh Billing Hub 1',
+                'sender_city' => 'Riyadh',
+                'sender_country' => 'SA',
+                'recipient_name' => 'I6B Captured Recipient',
+                'recipient_phone' => '+966500100112',
+                'recipient_address_1' => 'Jeddah Billing District 7',
+                'recipient_city' => 'Jeddah',
+                'recipient_country' => 'SA',
+                'is_international' => false,
+                'currency' => 'USD',
+                'total_charge' => 52.00,
+                'reserved_amount' => 52.00,
+                'tracking_number' => 'I6B-A-002',
+                'total_weight' => 1.4,
+                'parcels_count' => 1,
+                'pieces' => 1,
+                'created_at' => now()->subHours(5),
+                'updated_at' => now()->subHours(3),
+            ])
+        );
+
+        $shipmentReleased = Shipment::query()->withoutGlobalScopes()->updateOrCreate(
+            ['reference_number' => 'SHP-I6B-A-003'],
+            $this->filterExistingColumns('shipments', [
+                'account_id' => (string) $accounts['a']->id,
+                'user_id' => (string) $externalUsers['a']['primary']->id,
+                'created_by' => (string) $externalUsers['a']['primary']->id,
+                'reference_number' => 'SHP-I6B-A-003',
+                'source' => Shipment::SOURCE_DIRECT,
+                'status' => Shipment::STATUS_REQUIRES_ACTION,
+                'sender_name' => 'E2E A Billing Sender',
+                'sender_phone' => '+966500100113',
+                'sender_address_1' => 'Riyadh Billing Hub 2',
+                'sender_city' => 'Riyadh',
+                'sender_country' => 'SA',
+                'recipient_name' => 'I6B Released Recipient',
+                'recipient_phone' => '+966500100114',
+                'recipient_address_1' => 'Dammam Billing District 3',
+                'recipient_city' => 'Dammam',
+                'recipient_country' => 'SA',
+                'is_international' => false,
+                'currency' => 'USD',
+                'total_charge' => 18.00,
+                'reserved_amount' => 0.00,
+                'total_weight' => 1.1,
+                'parcels_count' => 1,
+                'pieces' => 1,
+                'created_at' => now()->subHours(4),
+                'updated_at' => now()->subHours(2),
+            ])
+        );
+
+        $topup = WalletTopup::query()->withoutGlobalScopes()->updateOrCreate(
+            ['wallet_id' => (string) $walletA->id, 'idempotency_key' => 'e2e:i6b:topup:a'],
+            $this->filterExistingColumns('wallet_topups', [
+                'wallet_id' => (string) $walletA->id,
+                'account_id' => (string) $accounts['a']->id,
+                'amount' => 200.00,
+                'currency' => 'USD',
+                'status' => WalletTopup::STATUS_SUCCESS,
+                'payment_gateway' => 'seeded-fixture',
+                'idempotency_key' => 'e2e:i6b:topup:a',
+                'confirmed_at' => now()->subHours(8),
+            ])
+        );
+
+        $activeHold = WalletHold::query()->withoutGlobalScopes()->updateOrCreate(
+            ['wallet_id' => (string) $walletA->id, 'idempotency_key' => 'e2e:i6b:hold:active:a'],
+            $this->filterExistingColumns('wallet_holds', [
+                'wallet_id' => (string) $walletA->id,
+                'account_id' => (string) $accounts['a']->id,
+                'amount' => 25.00,
+                'currency' => 'USD',
+                'shipment_id' => (string) $shipmentA->id,
+                'source' => 'shipment_preflight',
+                'status' => WalletHold::STATUS_ACTIVE,
+                'idempotency_key' => 'e2e:i6b:hold:active:a',
+                'expires_at' => now()->addHours(12),
+                'created_at' => now()->subHours(6),
+            ])
+        );
+
+        $capturedHold = WalletHold::query()->withoutGlobalScopes()->updateOrCreate(
+            ['wallet_id' => (string) $walletA->id, 'idempotency_key' => 'e2e:i6b:hold:captured:a'],
+            $this->filterExistingColumns('wallet_holds', [
+                'wallet_id' => (string) $walletA->id,
+                'account_id' => (string) $accounts['a']->id,
+                'amount' => 52.00,
+                'currency' => 'USD',
+                'shipment_id' => (string) $shipmentCaptured->id,
+                'source' => 'shipment_preflight',
+                'status' => WalletHold::STATUS_CAPTURED,
+                'idempotency_key' => 'e2e:i6b:hold:captured:a',
+                'captured_at' => now()->subHours(2),
+                'expires_at' => now()->addHours(4),
+                'created_at' => now()->subHours(5),
+            ])
+        );
+
+        $releasedHold = WalletHold::query()->withoutGlobalScopes()->updateOrCreate(
+            ['wallet_id' => (string) $walletA->id, 'idempotency_key' => 'e2e:i6b:hold:released:a'],
+            $this->filterExistingColumns('wallet_holds', [
+                'wallet_id' => (string) $walletA->id,
+                'account_id' => (string) $accounts['a']->id,
+                'amount' => 18.00,
+                'currency' => 'USD',
+                'shipment_id' => (string) $shipmentReleased->id,
+                'source' => 'shipment_preflight',
+                'status' => WalletHold::STATUS_RELEASED,
+                'idempotency_key' => 'e2e:i6b:hold:released:a',
+                'released_at' => now()->subHour(),
+                'expires_at' => now()->addHours(3),
+                'created_at' => now()->subHours(4),
+            ])
+        );
+
+        $shipmentA->forceFill($this->filterExistingColumns('shipments', [
+            'balance_reservation_id' => (string) $activeHold->id,
+            'reserved_amount' => 25.00,
+        ]))->save();
+
+        $shipmentCaptured->forceFill($this->filterExistingColumns('shipments', [
+            'balance_reservation_id' => (string) $capturedHold->id,
+            'reserved_amount' => 52.00,
+        ]))->save();
+
+        $shipmentReleased->forceFill($this->filterExistingColumns('shipments', [
+            'balance_reservation_id' => (string) $releasedHold->id,
+            'reserved_amount' => 0.00,
+        ]))->save();
+
+        $this->seedWalletLedgerEntry($walletA, 1, 'e2e:i6b:ledger:topup', 'topup', 'credit', 200.00, 1200.00, 'topup', (string) $topup->id, 'Seeded top-up visibility fixture', now()->subHours(8));
+        $this->seedWalletLedgerEntry($walletA, 2, 'e2e:i6b:ledger:adjustment', WalletLedgerEntry::TYPE_ADJUSTMENT, 'debit', 20.00, 1180.00, 'adjustment', 'e2e:i6b:adjustment:a', 'Manual credit review adjustment', now()->subHours(7));
+        $this->seedWalletLedgerEntry($walletA, 3, 'e2e:i6b:ledger:hold-active', 'hold', 'debit', 25.00, 1155.00, 'hold', (string) $activeHold->id, 'Shipment preflight reserved funds for the active reservation.', now()->subHours(6));
+        $this->seedWalletLedgerEntry($walletA, 4, 'e2e:i6b:ledger:hold-captured', 'hold', 'debit', 52.00, 1103.00, 'hold', (string) $capturedHold->id, 'Shipment preflight reserved funds for the captured reservation.', now()->subHours(5));
+        $this->seedWalletLedgerEntry($walletA, 5, 'e2e:i6b:ledger:hold-capture', 'hold_capture', 'debit', 52.00, 1051.00, 'hold', (string) $capturedHold->id, 'Reservation captured when the shipment moved forward.', now()->subHours(4));
+        $this->seedWalletLedgerEntry($walletA, 6, 'e2e:i6b:ledger:hold-released', 'hold', 'debit', 18.00, 1033.00, 'hold', (string) $releasedHold->id, 'Shipment preflight reserved funds before the shipment returned to requires action.', now()->subHours(3));
+        $this->seedWalletLedgerEntry($walletA, 7, 'e2e:i6b:ledger:hold-release', 'hold_release', 'credit', 18.00, 1051.00, 'hold', (string) $releasedHold->id, 'Reservation released after the shipment required more action.', now()->subHours(2));
+        $this->seedWalletLedgerEntry($walletA, 8, 'e2e:i6b:ledger:shipment-debit', 'debit', 'debit', 45.00, 1006.00, 'shipment', (string) $shipmentA->id, 'Shipment debit after label purchase.', now()->subHour());
+    }
+
+    private function seedWalletLedgerEntry(
+        BillingWallet $wallet,
+        int $sequence,
+        string $correlationId,
+        string $transactionType,
+        string $direction,
+        float $amount,
+        float $runningBalance,
+        string $referenceType,
+        string $referenceId,
+        string $notes,
+        \Illuminate\Support\Carbon $createdAt
+    ): void {
+        WalletLedgerEntry::query()->withoutGlobalScopes()->updateOrCreate(
+            ['wallet_id' => (string) $wallet->id, 'correlation_id' => $correlationId],
+            $this->filterExistingColumns('wallet_ledger_entries', [
+                'wallet_id' => (string) $wallet->id,
+                'sequence' => $sequence,
+                'correlation_id' => $correlationId,
+                'transaction_type' => $transactionType,
+                'direction' => $direction,
+                'amount' => $amount,
+                'running_balance' => $runningBalance,
+                'reference_type' => $referenceType,
+                'reference_id' => $referenceId,
+                'notes' => $notes,
+                'created_at' => $createdAt,
+            ])
+        );
     }
 
     /**
@@ -909,8 +1149,12 @@ class E2EUserMatrixSeeder extends Seeder
             );
         }
 
+        $shipmentDPurchaseEvent = null;
+        $shipmentDLabelEvent = null;
+        $shipmentDTransitEvent = null;
+
         if (Schema::hasTable('shipment_events')) {
-            ShipmentEvent::query()->updateOrCreate(
+            $shipmentDPurchaseEvent = ShipmentEvent::query()->updateOrCreate(
                 ['shipment_id' => (string) $shipmentD->id, 'idempotency_key' => 'i5a:d:purchase'],
                 $this->filterExistingColumns('shipment_events', [
                     'shipment_id' => (string) $shipmentD->id,
@@ -927,7 +1171,7 @@ class E2EUserMatrixSeeder extends Seeder
                 ])
             );
 
-            ShipmentEvent::query()->updateOrCreate(
+            $shipmentDLabelEvent = ShipmentEvent::query()->updateOrCreate(
                 ['shipment_id' => (string) $shipmentD->id, 'idempotency_key' => 'i5a:d:label'],
                 $this->filterExistingColumns('shipment_events', [
                     'shipment_id' => (string) $shipmentD->id,
@@ -944,7 +1188,7 @@ class E2EUserMatrixSeeder extends Seeder
                 ])
             );
 
-            ShipmentEvent::query()->updateOrCreate(
+            $shipmentDTransitEvent = ShipmentEvent::query()->updateOrCreate(
                 ['shipment_id' => (string) $shipmentD->id, 'idempotency_key' => 'i5a:d:transit'],
                 $this->filterExistingColumns('shipment_events', [
                     'shipment_id' => (string) $shipmentD->id,
@@ -975,6 +1219,111 @@ class E2EUserMatrixSeeder extends Seeder
                     'source' => ShipmentEvent::SOURCE_SYSTEM,
                     'idempotency_key' => 'i5a:c:blocked',
                     'payload' => ['reference_number' => 'SHP-I5A-C-001'],
+                ])
+            );
+        }
+
+        if (Schema::hasTable('notifications')) {
+            Notification::query()->updateOrCreate(
+                [
+                    'account_id' => (string) $accounts['d']->id,
+                    'user_id' => (string) $externalUsers['d']['organization_owner']->id,
+                    'entity_type' => 'shipment',
+                    'entity_id' => (string) $shipmentD->id,
+                    'event_type' => Notification::EVENT_SHIPMENT_DOCUMENTS_AVAILABLE,
+                    'channel' => Notification::CHANNEL_EMAIL,
+                ],
+                $this->filterExistingColumns('notifications', [
+                    'account_id' => (string) $accounts['d']->id,
+                    'user_id' => (string) $externalUsers['d']['organization_owner']->id,
+                    'shipment_event_id' => $shipmentDLabelEvent?->id,
+                    'event_type' => Notification::EVENT_SHIPMENT_DOCUMENTS_AVAILABLE,
+                    'entity_type' => 'shipment',
+                    'entity_id' => (string) $shipmentD->id,
+                    'event_data' => [
+                        'title' => 'Shipment documents ready',
+                        'tracking_number' => 'I5A-DHL-D-001',
+                    ],
+                    'channel' => Notification::CHANNEL_EMAIL,
+                    'destination' => (string) $externalUsers['d']['organization_owner']->email,
+                    'language' => 'en',
+                    'subject' => 'Shipment documents ready',
+                    'body' => 'Carrier label and invoice are ready for review.',
+                    'status' => Notification::STATUS_SENT,
+                    'sent_at' => now()->subHours(9),
+                    'delivered_at' => now()->subHours(9),
+                    'provider' => 'seeded-fixture',
+                    'created_at' => now()->subHours(9),
+                    'updated_at' => now()->subHours(9),
+                ])
+            );
+
+            Notification::query()->updateOrCreate(
+                [
+                    'account_id' => (string) $accounts['d']->id,
+                    'user_id' => (string) $externalUsers['d']['organization_owner']->id,
+                    'entity_type' => 'shipment',
+                    'entity_id' => (string) $shipmentD->id,
+                    'event_type' => Notification::EVENT_SHIPMENT_IN_TRANSIT,
+                    'channel' => Notification::CHANNEL_IN_APP,
+                ],
+                $this->filterExistingColumns('notifications', [
+                    'account_id' => (string) $accounts['d']->id,
+                    'user_id' => (string) $externalUsers['d']['organization_owner']->id,
+                    'shipment_event_id' => $shipmentDTransitEvent?->id,
+                    'event_type' => Notification::EVENT_SHIPMENT_IN_TRANSIT,
+                    'entity_type' => 'shipment',
+                    'entity_id' => (string) $shipmentD->id,
+                    'event_data' => [
+                        'title' => 'Shipment is moving through the network',
+                        'tracking_number' => 'I5A-DHL-D-001',
+                    ],
+                    'channel' => Notification::CHANNEL_IN_APP,
+                    'destination' => (string) $externalUsers['d']['organization_owner']->id,
+                    'language' => 'en',
+                    'subject' => 'Shipment is moving through the network',
+                    'body' => 'The latest carrier scan marked this shipment as in transit.',
+                    'status' => Notification::STATUS_DELIVERED,
+                    'sent_at' => now()->subHours(2),
+                    'delivered_at' => now()->subHours(2),
+                    'read_at' => now()->subHour(),
+                    'provider' => 'seeded-fixture',
+                    'created_at' => now()->subHours(2),
+                    'updated_at' => now()->subHour(),
+                ])
+            );
+
+            Notification::query()->updateOrCreate(
+                [
+                    'account_id' => (string) $accounts['d']->id,
+                    'user_id' => (string) $externalUsers['d']['organization_admin']->id,
+                    'entity_type' => 'shipment',
+                    'entity_id' => (string) $shipmentD->id,
+                    'event_type' => Notification::EVENT_SHIPMENT_PURCHASED,
+                    'channel' => Notification::CHANNEL_IN_APP,
+                ],
+                $this->filterExistingColumns('notifications', [
+                    'account_id' => (string) $accounts['d']->id,
+                    'user_id' => (string) $externalUsers['d']['organization_admin']->id,
+                    'shipment_event_id' => $shipmentDPurchaseEvent?->id,
+                    'event_type' => Notification::EVENT_SHIPMENT_PURCHASED,
+                    'entity_type' => 'shipment',
+                    'entity_id' => (string) $shipmentD->id,
+                    'event_data' => [
+                        'title' => 'Shipment purchase completed',
+                        'tracking_number' => 'I5A-DHL-D-001',
+                    ],
+                    'channel' => Notification::CHANNEL_IN_APP,
+                    'destination' => (string) $externalUsers['d']['organization_admin']->id,
+                    'language' => 'en',
+                    'subject' => 'Shipment purchase completed',
+                    'body' => 'Carrier purchase completed and label generation finished successfully.',
+                    'status' => Notification::STATUS_DELIVERED,
+                    'sent_at' => now()->subHours(12),
+                    'delivered_at' => now()->subHours(12),
+                    'provider' => 'seeded-fixture',
+                    'created_at' => now()->subHours(12),
+                    'updated_at' => now()->subHours(12),
                 ])
             );
         }

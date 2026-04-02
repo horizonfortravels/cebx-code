@@ -40,6 +40,8 @@
     $canSelectTenant = $currentUser?->hasPermission('tenancy.context.select') ?? false;
     $canManageNotificationChannels = $currentUser?->hasPermission('notifications.channels.manage') ?? false;
     $canReadAccounts = $currentUser?->hasPermission('accounts.read') ?? false;
+    $canViewWalletBalance = $currentUser?->hasPermission('wallet.balance') ?? false;
+    $canViewWalletLedger = $currentUser?->hasPermission('wallet.ledger') ?? false;
     $canReadShipments = $currentUser?->hasPermission('shipments.read') ?? false;
     $canReadUsers = $currentUser?->hasPermission('users.read') ?? false;
     $canReadKyc = $currentUser?->hasPermission('kyc.read') ?? false;
@@ -69,6 +71,11 @@
         && $canReadKyc
         && $internalControlPlane?->canSeeSurface($currentUser, \App\Support\Internal\InternalControlPlane::SURFACE_INTERNAL_KYC_INDEX)
         && Route::has('internal.kyc.index');
+    $showInternalBillingReadCenter = $isInternalUser
+        && $canViewWalletBalance
+        && $canViewWalletLedger
+        && $internalControlPlane?->canSeeSurface($currentUser, \App\Support\Internal\InternalControlPlane::SURFACE_INTERNAL_BILLING_INDEX)
+        && Route::has('internal.billing.index');
     $showInternalShipmentReadCenter = $isInternalUser
         && $canReadShipments
         && $internalControlPlane?->canSeeSurface($currentUser, \App\Support\Internal\InternalControlPlane::SURFACE_INTERNAL_SHIPMENTS_INDEX)
@@ -97,8 +104,16 @@
             $menu[] = ['active' => ['internal.accounts.*'], 'route' => 'internal.accounts.index', 'icon' => 'ACC', 'label' => 'حسابات العملاء'];
         }
 
-        if ($showInternalShipmentReadCenter) {
+        if ($showInternalBillingReadCenter) {
             if (! $showExternalAccountsReadCenter) {
+                $menu[] = ['divider' => 'عمليات العملاء'];
+            }
+
+            $menu[] = ['active' => ['internal.billing.*'], 'route' => 'internal.billing.index', 'icon' => 'WAL', 'label' => 'Wallet & billing'];
+        }
+
+        if ($showInternalShipmentReadCenter) {
+            if (! $showExternalAccountsReadCenter && ! $showInternalBillingReadCenter) {
                 $menu[] = ['divider' => 'عمليات العملاء'];
             }
 

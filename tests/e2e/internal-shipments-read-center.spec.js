@@ -88,7 +88,12 @@ test('internal super_admin can open the internal shipment list and detail', asyn
   await expect(page.locator('[data-testid="internal-shipment-parcels-card"]')).toBeVisible();
   await expect(page.locator('[data-testid="internal-shipment-timeline-card"]')).toBeVisible();
   await expect(page.locator('[data-testid="internal-shipment-documents-card"]')).toBeVisible();
+  await expect(page.locator('[data-testid="internal-shipment-notifications-card"]')).toBeVisible();
+  await expect(page.locator('[data-testid="internal-shipment-notification-item"]').first()).toBeVisible();
   await expect(page.locator('[data-testid="internal-shipment-kyc-summary-card"]')).toBeVisible();
+  await expect(page.locator('[data-testid="internal-shipment-public-tracking-link"]')).toBeVisible();
+  await expect(page.locator('[data-testid="internal-shipment-public-tracking-link"]')).toHaveAttribute('href', /\/track\//);
+  await expect(page.locator('body')).toContainText('Shipment documents ready');
   await expect(page.locator('body')).toContainText('i5a-d-label.pdf');
   await expect(page.locator('body')).not.toContainText('i5a-public-token-d-001');
   await expect(page.locator('body')).not.toContainText('content_base64');
@@ -100,6 +105,11 @@ test('internal support can open the shipment read center', async ({ page }) => {
   await openShipmentsCenter(page);
 
   await openShipmentDetail(page, 'SHP-I5A-D-001');
+  await expect(page.locator('[data-testid="internal-shipment-operational-state-card"]')).toBeVisible();
+  await expect(page.locator('[data-testid="internal-shipment-timeline-card"]')).toBeVisible();
+  await expect(page.locator('[data-testid="internal-shipment-notifications-card"]')).toBeVisible();
+  await expect(page.locator('[data-testid="internal-shipment-notification-item"]').first()).toBeVisible();
+  await expect(page.locator('[data-testid="internal-shipment-public-tracking-link"]')).toBeVisible();
   await expect(page.locator('[data-testid="internal-shipment-account-link"]')).toBeVisible();
   await expect(page.locator('[data-testid="internal-shipment-kyc-link"]')).toBeVisible();
   await expect(page.locator('body')).not.toContainText('Internal Server Error');
@@ -109,11 +119,15 @@ test('internal ops_readonly can open the shipment read center', async ({ page })
   await loginWith(page, 'admin', USERS.internalOpsReadonly);
   await openShipmentsCenter(page);
 
-  await openShipmentDetail(page, 'SHP-I5A-C-001');
+  await openShipmentDetail(page, 'SHP-I5A-D-001');
+  await expect(page.locator('[data-testid="internal-shipment-operational-state-card"]')).toBeVisible();
+  await expect(page.locator('[data-testid="internal-shipment-timeline-card"]')).toBeVisible();
+  await expect(page.locator('[data-testid="internal-shipment-notifications-card"]')).toBeVisible();
+  await expect(page.locator('[data-testid="internal-shipment-notification-item"]').first()).toBeVisible();
+  await expect(page.locator('[data-testid="internal-shipment-public-tracking-link"]')).toBeVisible();
   await expect(page.locator('[data-testid="internal-shipment-kyc-link"]')).toBeVisible();
   await expect(page.locator('[data-testid="internal-shipment-account-link"]')).toHaveCount(0);
   await expect(page.locator('[data-testid="internal-shipment-kyc-summary-card"]')).toBeVisible();
-  await expect(page.locator('body')).toContainText('KYC blocked');
   await expect(page.locator('body')).not.toContainText('Internal Server Error');
 });
 

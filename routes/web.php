@@ -7,9 +7,11 @@ use App\Http\Controllers\Web\InternalAccountMembersController;
 use App\Http\Controllers\Web\InternalAccountReadCenterController;
 use App\Http\Controllers\Web\InternalAccountSupportActionsController;
 use App\Http\Controllers\Web\InternalAdminWebController;
+use App\Http\Controllers\Web\InternalBillingReadCenterController;
 use App\Http\Controllers\Web\InternalKycDecisionController;
 use App\Http\Controllers\Web\InternalKycReadCenterController;
 use App\Http\Controllers\Web\InternalKycRestrictionController;
+use App\Http\Controllers\Web\InternalShipmentDocumentController;
 use App\Http\Controllers\Web\InternalShipmentReadCenterController;
 use App\Http\Controllers\Web\InternalStaffManagementController;
 use App\Http\Controllers\Web\InternalStaffReadCenterController;
@@ -66,6 +68,14 @@ Route::middleware(['auth:web', 'userType:internal'])->prefix('internal')->name('
     });
 
     Route::middleware([
+        'permission:wallet.balance',
+        'permission:wallet.ledger',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_BILLING_INDEX,
+    ])->group(function (): void {
+        Route::get('/billing', [InternalBillingReadCenterController::class, 'index'])->name('billing.index');
+    });
+
+    Route::middleware([
         'permission:shipments.read',
         'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_SHIPMENTS_INDEX,
     ])->group(function (): void {
@@ -111,10 +121,32 @@ Route::middleware(['auth:web', 'userType:internal'])->prefix('internal')->name('
     });
 
     Route::middleware([
+        'permission:wallet.balance',
+        'permission:wallet.ledger',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_BILLING_DETAIL,
+    ])->group(function (): void {
+        Route::get('/billing/{account}', [InternalBillingReadCenterController::class, 'show'])->name('billing.show');
+        Route::get('/billing/{account}/preflights/{hold}', [InternalBillingReadCenterController::class, 'showPreflight'])->name('billing.preflights.show');
+        Route::get('/billing/{account}/ledger/{entry}', [InternalBillingReadCenterController::class, 'showLedger'])->name('billing.ledger.show');
+    });
+
+    Route::middleware([
         'permission:shipments.read',
         'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_SHIPMENTS_DETAIL,
     ])->group(function (): void {
         Route::get('/shipments/{shipment}', [InternalShipmentReadCenterController::class, 'show'])->name('shipments.show');
+    });
+
+    Route::middleware([
+        'permission:shipments.documents.read',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_SHIPMENTS_DOCUMENTS,
+    ])->group(function (): void {
+        Route::get('/shipments/{shipment}/documents', [InternalShipmentDocumentController::class, 'index'])
+            ->name('shipments.documents.index');
+        Route::get('/shipments/{shipment}/documents/{document}/preview/{previewName?}', [InternalShipmentDocumentController::class, 'preview'])
+            ->name('shipments.documents.preview');
+        Route::get('/shipments/{shipment}/documents/{document}/{downloadName?}', [InternalShipmentDocumentController::class, 'download'])
+            ->name('shipments.documents.download');
     });
 
     Route::middleware([

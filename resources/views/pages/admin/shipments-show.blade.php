@@ -29,6 +29,57 @@
     <x-stat-card icon="DOC" label="Documents" :value="number_format($documents->count())" />
 </div>
 
+<section class="card" data-testid="internal-shipment-actions-card" style="margin-bottom:24px">
+    <div class="card-title">Operational actions</div>
+    <p style="margin:0 0 12px;color:var(--td);font-size:13px">
+        This internal panel exposes only safe operational links that already exist in the live product contract. Carrier retry, reissue, cancel, and manual status editing remain intentionally unavailable from this surface.
+    </p>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <a href="{{ route('internal.shipments.show', $shipment) }}"
+           class="btn btn-pr"
+           data-testid="internal-shipment-refresh-link">Refresh operational view</a>
+
+        @if($canViewDocuments)
+            <a href="{{ route('internal.shipments.documents.index', $shipment) }}"
+               class="btn btn-s"
+               data-testid="internal-shipment-documents-workspace-link">Open document workspace</a>
+        @endif
+
+        @if($canViewAccount && isset($accountSummary['account']))
+            <a href="{{ route('internal.accounts.show', $accountSummary['account']) }}"
+               class="btn btn-s"
+               data-testid="internal-shipment-actions-account-link">Open linked account detail</a>
+        @endif
+
+        @if($canViewKyc && isset($accountSummary['account']))
+            <a href="{{ route('internal.kyc.show', $accountSummary['account']) }}"
+               class="btn btn-s"
+               data-testid="internal-shipment-actions-kyc-link">Open KYC and restrictions</a>
+        @endif
+
+        @if(!empty($publicTracking['url']))
+            <a href="{{ $publicTracking['url'] }}"
+               target="_blank"
+               rel="noopener noreferrer"
+               class="btn btn-s"
+               data-testid="internal-shipment-actions-public-tracking-link">Open public tracking page</a>
+            <button type="button"
+                    class="btn btn-s"
+                    data-testid="internal-shipment-copy-public-tracking-link"
+                    data-copy-text="{{ $publicTracking['url'] }}"
+                    data-copy-target="internal-shipment-copy-status">Copy public tracking link</button>
+        @endif
+    </div>
+
+    <div id="internal-shipment-copy-status"
+         data-testid="internal-shipment-copy-status"
+         aria-live="polite"
+         style="font-size:12px;color:var(--tm);margin-top:12px">
+        Use these read-only shortcuts for operational follow-up without bypassing declaration, wallet, or compliance controls.
+    </div>
+</section>
+
 <div class="grid-2" style="margin-bottom:24px">
     <section class="card" data-testid="internal-shipment-summary-card">
         <div class="card-title">Shipment summary</div>
@@ -114,6 +165,15 @@
             <dd style="margin:0;color:var(--tx)">
                 <div>{{ $publicTracking['label'] }}</div>
                 <div style="font-size:12px;color:var(--td);margin-top:4px">{{ $publicTracking['detail'] }}</div>
+                @if(!empty($publicTracking['url']))
+                    <div style="margin-top:10px">
+                        <a href="{{ $publicTracking['url'] }}"
+                           target="_blank"
+                           rel="noopener noreferrer"
+                           class="btn btn-s"
+                           data-testid="internal-shipment-public-tracking-link">Open public tracking page</a>
+                    </div>
+                @endif
                 <div style="font-size:12px;color:var(--tm);margin-top:6px">Enabled: {{ $publicTracking['enabled_at'] }} • Expires: {{ $publicTracking['expires_at'] }}</div>
             </dd>
         </dl>
@@ -176,6 +236,13 @@
     <section class="card" data-testid="internal-shipment-documents-card">
         <div class="card-title">Document summary</div>
         <p style="margin:0 0 12px;color:var(--td);font-size:13px">{{ $documentHeadline }}</p>
+        @if($canViewDocuments)
+            <div style="margin:0 0 12px">
+                <a href="{{ route('internal.shipments.documents.index', $shipment) }}"
+                   class="btn btn-s"
+                   data-testid="internal-shipment-documents-link">Open document workspace</a>
+            </div>
+        @endif
         <div style="display:flex;flex-direction:column;gap:10px">
             @forelse($documents as $document)
                 <div style="padding:12px;border:1px solid var(--bd);border-radius:12px">
@@ -197,6 +264,63 @@
         </div>
     </section>
 </div>
+
+<section class="card" data-testid="internal-shipment-notifications-card" style="margin-bottom:24px">
+    <div class="card-title">Notification activity</div>
+    @if(!$notifications['visible'])
+        <div class="empty-state">Notification visibility is not enabled for this role.</div>
+    @else
+        <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:14px">
+            <div>
+                <div style="font-size:12px;color:var(--tm)">Total projections</div>
+                <div style="font-weight:700;color:var(--tx)">{{ number_format($notifications['total_count']) }}</div>
+            </div>
+            <div>
+                <div style="font-size:12px;color:var(--tm)">Sent or delivered</div>
+                <div style="font-weight:700;color:var(--tx)">{{ number_format($notifications['delivered_count']) }}</div>
+            </div>
+            <div>
+                <div style="font-size:12px;color:var(--tm)">Needs review</div>
+                <div style="font-weight:700;color:var(--tx)">{{ number_format($notifications['issue_count']) }}</div>
+            </div>
+            <div>
+                <div style="font-size:12px;color:var(--tm)">Latest activity</div>
+                <div style="font-weight:700;color:var(--tx)">{{ $notifications['latest_created_at'] }}</div>
+            </div>
+        </div>
+
+        <div style="font-size:12px;color:var(--tm);margin-bottom:12px">
+            Channels:
+            @if($notifications['channels'] !== [])
+                {{ collect($notifications['channels'])->implode(' / ') }}
+            @else
+                None recorded yet
+            @endif
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:10px">
+            @forelse($notifications['items'] as $notification)
+                <div data-testid="internal-shipment-notification-item" style="padding:12px;border:1px solid var(--bd);border-radius:12px">
+                    <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap">
+                        <div>
+                            <div style="font-weight:700;color:var(--tx)">{{ $notification['subject'] }}</div>
+                            <div style="font-size:13px;color:var(--td);margin-top:6px">{{ $notification['event_type_label'] }} / {{ $notification['channel_label'] }}</div>
+                        </div>
+                        <span class="badge">{{ $notification['status_label'] }}</span>
+                    </div>
+                    <div style="font-size:12px;color:var(--tm);margin-top:8px">
+                        Created: {{ $notification['created_at_display'] }}
+                        @if($notification['sent_at_display'] !== '-')
+                            | Sent: {{ $notification['sent_at_display'] }}
+                        @endif
+                    </div>
+                </div>
+            @empty
+                <div class="empty-state">No shipment-linked notification activity is currently visible.</div>
+            @endforelse
+        </div>
+    @endif
+</section>
 
 <section class="card" data-testid="internal-shipment-kyc-summary-card">
     <div class="card-title">KYC and restriction effect</div>
@@ -232,3 +356,49 @@
     @endif
 </section>
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('click', async function (event) {
+    const trigger = event.target.closest('[data-copy-text]');
+
+    if (!trigger) {
+        return;
+    }
+
+    const text = trigger.getAttribute('data-copy-text') || '';
+    const statusId = trigger.getAttribute('data-copy-target');
+    const statusNode = statusId ? document.getElementById(statusId) : null;
+
+    if (!text) {
+        return;
+    }
+
+    const setStatus = function (message) {
+        if (statusNode) {
+            statusNode.textContent = message;
+        }
+    };
+
+    try {
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(text);
+        } else {
+            const helper = document.createElement('textarea');
+            helper.value = text;
+            helper.setAttribute('readonly', 'readonly');
+            helper.style.position = 'absolute';
+            helper.style.left = '-9999px';
+            document.body.appendChild(helper);
+            helper.select();
+            document.execCommand('copy');
+            document.body.removeChild(helper);
+        }
+
+        setStatus('Public tracking link copied for internal follow-up.');
+    } catch (error) {
+        setStatus('Unable to copy the public tracking link automatically. You can still open it directly.');
+    }
+});
+</script>
+@endpush
