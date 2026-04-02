@@ -10,6 +10,7 @@ use App\Http\Controllers\Web\InternalAdminWebController;
 use App\Http\Controllers\Web\InternalKycDecisionController;
 use App\Http\Controllers\Web\InternalKycReadCenterController;
 use App\Http\Controllers\Web\InternalKycRestrictionController;
+use App\Http\Controllers\Web\InternalShipmentReadCenterController;
 use App\Http\Controllers\Web\InternalStaffManagementController;
 use App\Http\Controllers\Web\InternalStaffReadCenterController;
 use App\Http\Controllers\Web\InternalSmtpSettingsController;
@@ -65,6 +66,13 @@ Route::middleware(['auth:web', 'userType:internal'])->prefix('internal')->name('
     });
 
     Route::middleware([
+        'permission:shipments.read',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_SHIPMENTS_INDEX,
+    ])->group(function (): void {
+        Route::get('/shipments', [InternalShipmentReadCenterController::class, 'index'])->name('shipments.index');
+    });
+
+    Route::middleware([
         'permission:users.manage',
         'permission:roles.assign',
         'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_STAFF_CREATE,
@@ -100,6 +108,13 @@ Route::middleware(['auth:web', 'userType:internal'])->prefix('internal')->name('
         'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_KYC_DETAIL,
     ])->group(function (): void {
         Route::get('/kyc/{account}', [InternalKycReadCenterController::class, 'show'])->name('kyc.show');
+    });
+
+    Route::middleware([
+        'permission:shipments.read',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_SHIPMENTS_DETAIL,
+    ])->group(function (): void {
+        Route::get('/shipments/{shipment}', [InternalShipmentReadCenterController::class, 'show'])->name('shipments.show');
     });
 
     Route::middleware([

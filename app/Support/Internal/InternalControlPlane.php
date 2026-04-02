@@ -28,6 +28,8 @@ class InternalControlPlane
     public const SURFACE_INTERNAL_KYC_DETAIL = 'internal_kyc_detail';
     public const SURFACE_INTERNAL_KYC_REVIEW = 'internal_kyc_review';
     public const SURFACE_INTERNAL_KYC_RESTRICTIONS = 'internal_kyc_restrictions';
+    public const SURFACE_INTERNAL_SHIPMENTS_INDEX = 'internal_shipments_index';
+    public const SURFACE_INTERNAL_SHIPMENTS_DETAIL = 'internal_shipments_detail';
     public const SURFACE_INTERNAL_STAFF_INDEX = 'internal_staff_index';
     public const SURFACE_INTERNAL_STAFF_DETAIL = 'internal_staff_detail';
     public const SURFACE_INTERNAL_STAFF_CREATE = 'internal_staff_create';
@@ -101,6 +103,8 @@ class InternalControlPlane
             self::SURFACE_INTERNAL_KYC_DETAIL,
             self::SURFACE_INTERNAL_KYC_REVIEW,
             self::SURFACE_INTERNAL_KYC_RESTRICTIONS,
+            self::SURFACE_INTERNAL_SHIPMENTS_INDEX,
+            self::SURFACE_INTERNAL_SHIPMENTS_DETAIL,
             self::SURFACE_INTERNAL_STAFF_INDEX,
             self::SURFACE_INTERNAL_STAFF_DETAIL,
             self::SURFACE_INTERNAL_STAFF_CREATE,
@@ -114,12 +118,16 @@ class InternalControlPlane
             self::SURFACE_EXTERNAL_ACCOUNTS_SUPPORT_ACTIONS,
             self::SURFACE_INTERNAL_KYC_INDEX,
             self::SURFACE_INTERNAL_KYC_DETAIL,
+            self::SURFACE_INTERNAL_SHIPMENTS_INDEX,
+            self::SURFACE_INTERNAL_SHIPMENTS_DETAIL,
             self::SURFACE_INTERNAL_STAFF_INDEX,
             self::SURFACE_INTERNAL_STAFF_DETAIL,
         ],
         self::ROLE_OPS_READONLY => [
             self::SURFACE_INTERNAL_KYC_INDEX,
             self::SURFACE_INTERNAL_KYC_DETAIL,
+            self::SURFACE_INTERNAL_SHIPMENTS_INDEX,
+            self::SURFACE_INTERNAL_SHIPMENTS_DETAIL,
         ],
         self::ROLE_CARRIER_MANAGER => [
             self::SURFACE_SMTP_SETTINGS,
@@ -147,6 +155,8 @@ class InternalControlPlane
         self::SURFACE_INTERNAL_KYC_DETAIL,
         self::SURFACE_INTERNAL_KYC_REVIEW,
         self::SURFACE_INTERNAL_KYC_RESTRICTIONS,
+        self::SURFACE_INTERNAL_SHIPMENTS_INDEX,
+        self::SURFACE_INTERNAL_SHIPMENTS_DETAIL,
         self::SURFACE_INTERNAL_STAFF_INDEX,
         self::SURFACE_INTERNAL_STAFF_DETAIL,
         self::SURFACE_INTERNAL_STAFF_CREATE,

@@ -40,6 +40,7 @@
     $canSelectTenant = $currentUser?->hasPermission('tenancy.context.select') ?? false;
     $canManageNotificationChannels = $currentUser?->hasPermission('notifications.channels.manage') ?? false;
     $canReadAccounts = $currentUser?->hasPermission('accounts.read') ?? false;
+    $canReadShipments = $currentUser?->hasPermission('shipments.read') ?? false;
     $canReadUsers = $currentUser?->hasPermission('users.read') ?? false;
     $canReadKyc = $currentUser?->hasPermission('kyc.read') ?? false;
     $canReadIntegrations = $currentUser?->hasPermission('integrations.read') ?? false;
@@ -68,6 +69,10 @@
         && $canReadKyc
         && $internalControlPlane?->canSeeSurface($currentUser, \App\Support\Internal\InternalControlPlane::SURFACE_INTERNAL_KYC_INDEX)
         && Route::has('internal.kyc.index');
+    $showInternalShipmentReadCenter = $isInternalUser
+        && $canReadShipments
+        && $internalControlPlane?->canSeeSurface($currentUser, \App\Support\Internal\InternalControlPlane::SURFACE_INTERNAL_SHIPMENTS_INDEX)
+        && Route::has('internal.shipments.index');
     $internalTopbarRole = $hasDeprecatedInternalRoles
         ? 'وصول داخلي قديم تم إخفاء مسماه من الواجهة النشطة'
         : ($internalRoleProfile['label'] ?? 'وصول داخلي مضبوط وفق الدور المعتمد');
@@ -92,8 +97,16 @@
             $menu[] = ['active' => ['internal.accounts.*'], 'route' => 'internal.accounts.index', 'icon' => 'ACC', 'label' => 'حسابات العملاء'];
         }
 
-        if ($showInternalKycReadCenter) {
+        if ($showInternalShipmentReadCenter) {
             if (! $showExternalAccountsReadCenter) {
+                $menu[] = ['divider' => 'عمليات العملاء'];
+            }
+
+            $menu[] = ['active' => ['internal.shipments.*'], 'route' => 'internal.shipments.index', 'icon' => 'SHP', 'label' => 'Shipments'];
+        }
+
+        if ($showInternalKycReadCenter) {
+            if (! $showExternalAccountsReadCenter && ! $showInternalShipmentReadCenter) {
                 $menu[] = ['divider' => 'عمليات العملاء'];
             }
 

@@ -1,0 +1,234 @@
+@extends('layouts.app')
+@section('title', 'Shipment Detail')
+
+@section('content')
+<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:24px">
+    <div>
+        <div style="font-size:12px;color:var(--tm);margin-bottom:8px">
+            <a href="{{ route('internal.home') }}" style="color:inherit;text-decoration:none">Internal workspace</a>
+            <span style="margin:0 6px">/</span>
+            <a href="{{ route('internal.shipments.index') }}" style="color:inherit;text-decoration:none">Shipments</a>
+            <span style="margin:0 6px">/</span>
+            <span>{{ $shipmentSummary['reference'] }}</span>
+        </div>
+        <h1 style="font-size:28px;font-weight:800;color:var(--tx);margin:0">Shipment detail</h1>
+        <p style="color:var(--td);font-size:14px;margin:8px 0 0;max-width:920px">
+            Read-only internal shipment visibility with normalized status, carrier artifacts, public tracking state, and linked KYC impact summaries. This page intentionally hides raw document storage paths, carrier payloads, private token values, and other unsafe metadata.
+        </p>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <a href="{{ route('internal.shipments.index') }}" class="btn btn-s">Back to queue</a>
+        <a href="{{ route('internal.shipments.show', $shipment) }}" class="btn btn-pr">Refresh detail</a>
+    </div>
+</div>
+
+<div class="stats-grid" style="margin-bottom:24px">
+    <x-stat-card icon="REF" label="Reference" :value="$shipmentSummary['reference']" />
+    <x-stat-card icon="STS" label="Workflow" :value="$shipmentSummary['workflow_status_label']" />
+    <x-stat-card icon="TRK" label="Normalized status" :value="$shipmentSummary['normalized_status_label']" />
+    <x-stat-card icon="DOC" label="Documents" :value="number_format($documents->count())" />
+</div>
+
+<div class="grid-2" style="margin-bottom:24px">
+    <section class="card" data-testid="internal-shipment-summary-card">
+        <div class="card-title">Shipment summary</div>
+        <dl style="display:grid;grid-template-columns:minmax(120px,170px) 1fr;gap:10px 14px;margin:0">
+            <dt style="color:var(--tm)">Reference</dt>
+            <dd style="margin:0;color:var(--tx)">{{ $shipmentSummary['reference'] }}</dd>
+
+            <dt style="color:var(--tm)">Workflow status</dt>
+            <dd style="margin:0;color:var(--tx)">{{ $shipmentSummary['workflow_status_label'] }}</dd>
+
+            <dt style="color:var(--tm)">Normalized status</dt>
+            <dd style="margin:0;color:var(--tx)">{{ $shipmentSummary['normalized_status_label'] }}</dd>
+
+            <dt style="color:var(--tm)">Source</dt>
+            <dd style="margin:0;color:var(--tx)">{{ $shipmentSummary['source_label'] }}</dd>
+
+            <dt style="color:var(--tm)">Created</dt>
+            <dd style="margin:0;color:var(--tx)">{{ $shipmentSummary['created_at'] ?? '—' }}</dd>
+
+            <dt style="color:var(--tm)">Updated</dt>
+            <dd style="margin:0;color:var(--tx)">{{ $shipmentSummary['updated_at'] ?? '—' }}</dd>
+
+            <dt style="color:var(--tm)">Destination</dt>
+            <dd style="margin:0;color:var(--tx)">{{ $shipmentSummary['recipient_city'] ?: '—' }} @if($shipmentSummary['recipient_country']) • {{ $shipmentSummary['recipient_country'] }} @endif</dd>
+
+            <dt style="color:var(--tm)">Flags</dt>
+            <dd style="margin:0;color:var(--tx)">
+                @if($shipmentSummary['flags'] !== [])
+                    <div style="display:flex;gap:6px;flex-wrap:wrap">
+                        @foreach($shipmentSummary['flags'] as $flag)
+                            <span class="badge">{{ $flag }}</span>
+                        @endforeach
+                    </div>
+                @else
+                    None
+                @endif
+            </dd>
+        </dl>
+    </section>
+
+    <section class="card" data-testid="internal-shipment-linked-account-card">
+        <div class="card-title">Linked account</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+            <div>
+                <div style="font-weight:700;color:var(--tx)">{{ $accountSummary['name'] }}</div>
+                <div style="font-size:13px;color:var(--td)">{{ $accountSummary['type_label'] }} • {{ $accountSummary['slug'] }}</div>
+            </div>
+            <div style="font-size:13px;color:var(--tx)">{{ $accountSummary['owner_label'] }}</div>
+            <div style="font-size:12px;color:var(--td)">{{ $accountSummary['owner_secondary'] }}</div>
+
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+                @if($canViewAccount && isset($accountSummary['account']))
+                    <a href="{{ route('internal.accounts.show', $accountSummary['account']) }}" data-testid="internal-shipment-account-link" class="btn btn-s">Open account detail</a>
+                @endif
+                @if($canViewKyc && isset($accountSummary['account']))
+                    <a href="{{ route('internal.kyc.show', $accountSummary['account']) }}" data-testid="internal-shipment-kyc-link" class="btn btn-s">Open KYC detail</a>
+                @endif
+            </div>
+        </div>
+    </section>
+</div>
+
+<div class="grid-2" style="margin-bottom:24px">
+    <section class="card" data-testid="internal-shipment-operational-state-card">
+        <div class="card-title">Carrier and tracking</div>
+        <dl style="display:grid;grid-template-columns:minmax(120px,170px) 1fr;gap:10px 14px;margin:0">
+            <dt style="color:var(--tm)">Carrier</dt>
+            <dd style="margin:0;color:var(--tx)">{{ $carrierSummary['carrier_label'] }}</dd>
+
+            <dt style="color:var(--tm)">Service</dt>
+            <dd style="margin:0;color:var(--tx)">{{ $carrierSummary['service_label'] }}</dd>
+
+            <dt style="color:var(--tm)">Carrier shipment</dt>
+            <dd style="margin:0;color:var(--tx)">{{ $carrierSummary['carrier_shipment_id'] }}</dd>
+
+            <dt style="color:var(--tm)">Tracking</dt>
+            <dd style="margin:0;color:var(--tx)">{{ $trackingSummary['tracking_number'] }}</dd>
+
+            <dt style="color:var(--tm)">AWB</dt>
+            <dd style="margin:0;color:var(--tx)">{{ $trackingSummary['awb_number'] }}</dd>
+
+            <dt style="color:var(--tm)">Public tracking</dt>
+            <dd style="margin:0;color:var(--tx)">
+                <div>{{ $publicTracking['label'] }}</div>
+                <div style="font-size:12px;color:var(--td);margin-top:4px">{{ $publicTracking['detail'] }}</div>
+                <div style="font-size:12px;color:var(--tm);margin-top:6px">Enabled: {{ $publicTracking['enabled_at'] }} • Expires: {{ $publicTracking['expires_at'] }}</div>
+            </dd>
+        </dl>
+    </section>
+
+    <section class="card" data-testid="internal-shipment-parcels-card">
+        <div class="card-title">Parcel summary</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+            @forelse($shipment->parcels as $parcel)
+                <div style="padding:12px;border:1px solid var(--bd);border-radius:12px">
+                    <div style="font-weight:700;color:var(--tx)">Parcel {{ $parcel->sequence }}</div>
+                    <div style="font-size:13px;color:var(--td)">
+                        Weight: {{ number_format((float) ($parcel->weight ?? 0), 2) }} kg
+                        • Chargeable: {{ number_format((float) $parcel->chargeableWeight(), 2) }} kg
+                    </div>
+                    <div style="font-size:12px;color:var(--tm)">
+                        {{ strtoupper((string) ($parcel->packaging_type ?? 'custom')) }}
+                        @if($parcel->reference)
+                            • Ref: {{ $parcel->reference }}
+                        @endif
+                        @if($parcel->description)
+                            • {{ $parcel->description }}
+                        @endif
+                    </div>
+                </div>
+            @empty
+                <div class="empty-state">No parcel records are visible on this shipment.</div>
+            @endforelse
+        </div>
+    </section>
+</div>
+
+<div class="grid-2" style="margin-bottom:24px">
+    <section class="card" data-testid="internal-shipment-timeline-card">
+        <div class="card-title">Timeline preview</div>
+        <div style="font-size:13px;color:var(--td);margin-bottom:12px">
+            Current state: <strong style="color:var(--tx)">{{ $timeline['current_status_label'] }}</strong>
+            • Last update: {{ $timeline['last_updated'] ?? '—' }}
+            • Events: {{ number_format($timeline['total_events']) }}
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:12px">
+            @forelse($timeline['events'] as $event)
+                <div data-testid="internal-shipment-event-item" style="padding:12px;border:1px solid var(--bd);border-radius:12px">
+                    <div style="font-weight:700;color:var(--tx)">{{ $event['event_type_label'] }}</div>
+                    <div style="font-size:13px;color:var(--td)">{{ $event['description'] }}</div>
+                    <div style="font-size:12px;color:var(--tm);margin-top:6px">
+                        {{ $event['status_label'] }} • {{ $event['source_label'] }} • {{ $event['event_time_display'] ?? '—' }}
+                        @if(!empty($event['location']))
+                            • {{ $event['location'] }}
+                        @endif
+                    </div>
+                </div>
+            @empty
+                <div class="empty-state">No timeline events are currently available.</div>
+            @endforelse
+        </div>
+    </section>
+
+    <section class="card" data-testid="internal-shipment-documents-card">
+        <div class="card-title">Document summary</div>
+        <p style="margin:0 0 12px;color:var(--td);font-size:13px">{{ $documentHeadline }}</p>
+        <div style="display:flex;flex-direction:column;gap:10px">
+            @forelse($documents as $document)
+                <div style="padding:12px;border:1px solid var(--bd);border-radius:12px">
+                    <div style="font-weight:700;color:var(--tx)">{{ $document['document_type_label'] }}</div>
+                    <div style="font-size:13px;color:var(--td)">{{ $document['filename'] }}</div>
+                    <div style="font-size:12px;color:var(--tm)">
+                        {{ $document['carrier_label'] }} • {{ $document['format_label'] }} • {{ $document['retrieval_mode_label'] }} • {{ $document['size_label'] }} • {{ $document['created_at_display'] ?? '—' }}
+                    </div>
+                    @if(!empty($document['tracking_number']))
+                        <div style="font-size:12px;color:var(--td);margin-top:6px">Tracking: {{ $document['tracking_number'] }}</div>
+                    @endif
+                    @if(!empty($document['notes']))
+                        <div style="font-size:12px;color:var(--td);margin-top:6px">{{ collect($document['notes'])->implode(' • ') }}</div>
+                    @endif
+                </div>
+            @empty
+                <div class="empty-state">No safe carrier document summaries are currently available.</div>
+            @endforelse
+        </div>
+    </section>
+</div>
+
+<section class="card" data-testid="internal-shipment-kyc-summary-card">
+    <div class="card-title">KYC and restriction effect</div>
+    @if($kycSummary)
+        <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px">
+            <div>
+                <div style="font-size:12px;color:var(--tm)">KYC status</div>
+                <div style="font-weight:700;color:var(--tx)">{{ $kycSummary['label'] }}</div>
+            </div>
+            <div>
+                <div style="font-size:12px;color:var(--tm)">Shipment effect</div>
+                <div style="font-weight:700;color:var(--tx)">{{ $kycSummary['queue_summary'] }}</div>
+            </div>
+            <div>
+                <div style="font-size:12px;color:var(--tm)">Further action</div>
+                <div style="font-weight:700;color:var(--tx)">{{ $kycSummary['action_label'] }}</div>
+            </div>
+            <div>
+                <div style="font-size:12px;color:var(--tm)">Blocked shipments</div>
+                <div style="font-weight:700;color:var(--tx)">{{ number_format($kycSummary['blocked_shipments_count']) }}</div>
+            </div>
+        </div>
+
+        @if($kycSummary['restriction_names'] !== [])
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px">
+                @foreach($kycSummary['restriction_names'] as $restrictionName)
+                    <span class="badge">{{ $restrictionName }}</span>
+                @endforeach
+            </div>
+        @endif
+    @else
+        <div class="empty-state">No linked account KYC summary is available for this shipment.</div>
+    @endif
+</section>
+@endsection

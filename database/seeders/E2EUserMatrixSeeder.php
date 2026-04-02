@@ -5,14 +5,19 @@ namespace Database\Seeders;
 use App\Models\Account;
 use App\Models\AuditLog;
 use App\Models\BillingWallet;
+use App\Models\CarrierDocument;
+use App\Models\CarrierShipment;
 use App\Models\Invitation;
 use App\Models\KycDocument;
 use App\Models\KycVerification;
 use App\Models\OrganizationProfile;
+use App\Models\Parcel;
 use App\Models\Shipment;
+use App\Models\ShipmentEvent;
 use App\Models\User;
 use App\Models\VerificationRestriction;
 use App\Services\AuditService;
+use App\Support\CanonicalShipmentStatus;
 use App\Support\Kyc\AccountKycStatusMapper;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -279,6 +284,7 @@ class E2EUserMatrixSeeder extends Seeder
         $this->seedDeterministicPendingInvitations($accounts, $externalUsers);
         $this->seedDeterministicWallets($accounts);
         $this->seedDeterministicKycFixtures($accounts, $externalUsers);
+        $this->seedDeterministicShipmentReadFixtures($accounts, $externalUsers);
 
         $this->command?->info('E2E user matrix seeded successfully.');
         $this->command?->line('Seeded accounts: A/B as single-user individual accounts, C/D as organization team accounts, plus internal users.');
@@ -708,6 +714,328 @@ class E2EUserMatrixSeeder extends Seeder
         );
     }
 
+    /**
+     * @param array<string, Account> $accounts
+     * @param array<string, array<string, User>> $externalUsers
+     */
+    private function seedDeterministicShipmentReadFixtures(array $accounts, array $externalUsers): void
+    {
+        if (!Schema::hasTable('shipments')) {
+            return;
+        }
+
+        $shipmentA = Shipment::query()->withoutGlobalScopes()->updateOrCreate(
+            ['reference_number' => 'SHP-I5A-A-001'],
+            $this->filterExistingColumns('shipments', [
+                'account_id' => (string) $accounts['a']->id,
+                'user_id' => (string) $externalUsers['a']['primary']->id,
+                'created_by' => (string) $externalUsers['a']['primary']->id,
+                'reference_number' => 'SHP-I5A-A-001',
+                'source' => Shipment::SOURCE_DIRECT,
+                'status' => Shipment::STATUS_REQUIRES_ACTION,
+                'carrier_code' => 'fedex',
+                'carrier_name' => 'FedEx',
+                'service_code' => 'intl_priority',
+                'service_name' => 'FedEx International Priority',
+                'tracking_number' => 'I5A-FDX-A-001',
+                'carrier_shipment_id' => 'FDX-I5A-A-001',
+                'tracking_status' => CanonicalShipmentStatus::EXCEPTION,
+                'tracking_updated_at' => now()->subHours(3),
+                'sender_name' => 'E2E A Sender',
+                'sender_phone' => '+966500100101',
+                'sender_address_1' => 'Riyadh Warehouse 10',
+                'sender_city' => 'Riyadh',
+                'sender_country' => 'SA',
+                'recipient_name' => 'I5A A Recipient',
+                'recipient_phone' => '+971500100101',
+                'recipient_address_1' => 'Dubai Marina 21',
+                'recipient_city' => 'Dubai',
+                'recipient_country' => 'AE',
+                'is_international' => true,
+                'is_cod' => false,
+                'is_insured' => false,
+                'has_dangerous_goods' => false,
+                'currency' => 'USD',
+                'weight' => 1.8,
+                'total_weight' => 1.8,
+                'parcels_count' => 1,
+                'pieces' => 1,
+                'created_at' => now()->subHours(6),
+                'updated_at' => now()->subHours(2),
+            ])
+        );
+
+        $shipmentC = Shipment::query()->withoutGlobalScopes()->updateOrCreate(
+            ['reference_number' => 'SHP-I5A-C-001'],
+            $this->filterExistingColumns('shipments', [
+                'account_id' => (string) $accounts['c']->id,
+                'user_id' => (string) $externalUsers['c']['organization_owner']->id,
+                'created_by' => (string) $externalUsers['c']['organization_owner']->id,
+                'reference_number' => 'SHP-I5A-C-001',
+                'source' => Shipment::SOURCE_ORDER,
+                'status' => Shipment::STATUS_KYC_BLOCKED,
+                'sender_name' => 'E2E C Sender',
+                'sender_phone' => '+966500100201',
+                'sender_address_1' => 'Riyadh Hub 8',
+                'sender_city' => 'Riyadh',
+                'sender_country' => 'SA',
+                'recipient_name' => 'I5A C Recipient',
+                'recipient_phone' => '+966500100202',
+                'recipient_address_1' => 'Jeddah District 14',
+                'recipient_city' => 'Jeddah',
+                'recipient_country' => 'SA',
+                'is_international' => false,
+                'is_cod' => false,
+                'is_insured' => false,
+                'has_dangerous_goods' => false,
+                'currency' => 'SAR',
+                'weight' => 2.2,
+                'total_weight' => 2.2,
+                'parcels_count' => 1,
+                'pieces' => 1,
+                'created_at' => now()->subHours(5),
+                'updated_at' => now()->subHours(1),
+            ])
+        );
+
+        $publicTrackingToken = 'i5a-public-token-d-001';
+
+        $shipmentD = Shipment::query()->withoutGlobalScopes()->updateOrCreate(
+            ['reference_number' => 'SHP-I5A-D-001'],
+            $this->filterExistingColumns('shipments', [
+                'account_id' => (string) $accounts['d']->id,
+                'user_id' => (string) $externalUsers['d']['organization_owner']->id,
+                'created_by' => (string) $externalUsers['d']['organization_owner']->id,
+                'reference_number' => 'SHP-I5A-D-001',
+                'source' => Shipment::SOURCE_ORDER,
+                'status' => Shipment::STATUS_IN_TRANSIT,
+                'carrier_code' => 'dhl',
+                'carrier_name' => 'DHL Express',
+                'service_code' => 'express_worldwide',
+                'service_name' => 'DHL Express Worldwide',
+                'tracking_number' => 'I5A-DHL-D-001',
+                'carrier_shipment_id' => 'DHL-I5A-D-001',
+                'tracking_status' => CanonicalShipmentStatus::IN_TRANSIT,
+                'tracking_updated_at' => now()->subHour(),
+                'tracking_url' => 'https://tracking.example.test/i5a-dhl-d-001',
+                'sender_name' => 'E2E D Sender',
+                'sender_phone' => '+966500100301',
+                'sender_address_1' => 'Dammam Branch 3',
+                'sender_city' => 'Dammam',
+                'sender_country' => 'SA',
+                'recipient_name' => 'I5A D Recipient',
+                'recipient_phone' => '+973500100301',
+                'recipient_address_1' => 'Manama Block 12',
+                'recipient_city' => 'Manama',
+                'recipient_country' => 'BH',
+                'is_international' => true,
+                'is_cod' => true,
+                'is_insured' => true,
+                'has_dangerous_goods' => false,
+                'currency' => 'USD',
+                'cod_amount' => 125.00,
+                'weight' => 4.1,
+                'total_weight' => 4.1,
+                'parcels_count' => 2,
+                'pieces' => 2,
+                'public_tracking_token' => $publicTrackingToken,
+                'public_tracking_token_hash' => hash('sha256', $publicTrackingToken),
+                'public_tracking_enabled_at' => now()->subDay(),
+                'public_tracking_expires_at' => now()->addDays(5),
+                'created_at' => now()->subDays(2),
+                'updated_at' => now()->subMinutes(45),
+                'picked_up_at' => now()->subHours(7),
+            ])
+        );
+
+        if (Schema::hasTable('carrier_shipments')) {
+            CarrierShipment::query()->updateOrCreate(
+                ['shipment_id' => (string) $shipmentD->id],
+                $this->filterExistingColumns('carrier_shipments', [
+                    'shipment_id' => (string) $shipmentD->id,
+                    'account_id' => (string) $accounts['d']->id,
+                    'carrier_code' => 'dhl',
+                    'carrier_name' => 'DHL Express',
+                    'carrier_shipment_id' => 'DHL-I5A-D-001',
+                    'tracking_number' => 'I5A-DHL-D-001',
+                    'awb_number' => 'AWB-I5A-D-001',
+                    'service_code' => 'express_worldwide',
+                    'service_name' => 'DHL Express Worldwide',
+                    'status' => CarrierShipment::STATUS_LABEL_READY,
+                    'idempotency_key' => 'i5a-dhl-d-001',
+                    'attempt_count' => 1,
+                    'last_attempt_at' => now()->subDays(2),
+                    'label_format' => 'pdf',
+                    'label_size' => '4x6',
+                    'is_cancellable' => false,
+                    'correlation_id' => 'i5a-correlation-d-001',
+                ])
+            );
+        }
+
+        if (Schema::hasTable('parcels')) {
+            Parcel::query()->updateOrCreate(
+                ['shipment_id' => (string) $shipmentD->id, 'sequence' => 1],
+                $this->filterExistingColumns('parcels', [
+                    'shipment_id' => (string) $shipmentD->id,
+                    'sequence' => 1,
+                    'weight' => 2.0,
+                    'length' => 30,
+                    'width' => 20,
+                    'height' => 18,
+                    'volumetric_weight' => 2.16,
+                    'packaging_type' => Parcel::PACKAGING_BOX,
+                    'description' => 'Apparel',
+                    'reference' => 'PCL-I5A-D-01',
+                    'carrier_tracking' => 'I5A-DHL-D-001-1',
+                ])
+            );
+
+            Parcel::query()->updateOrCreate(
+                ['shipment_id' => (string) $shipmentD->id, 'sequence' => 2],
+                $this->filterExistingColumns('parcels', [
+                    'shipment_id' => (string) $shipmentD->id,
+                    'sequence' => 2,
+                    'weight' => 2.1,
+                    'length' => 32,
+                    'width' => 21,
+                    'height' => 16,
+                    'volumetric_weight' => 2.15,
+                    'packaging_type' => Parcel::PACKAGING_BOX,
+                    'description' => 'Footwear',
+                    'reference' => 'PCL-I5A-D-02',
+                    'carrier_tracking' => 'I5A-DHL-D-001-2',
+                ])
+            );
+        }
+
+        if (Schema::hasTable('shipment_events')) {
+            ShipmentEvent::query()->updateOrCreate(
+                ['shipment_id' => (string) $shipmentD->id, 'idempotency_key' => 'i5a:d:purchase'],
+                $this->filterExistingColumns('shipment_events', [
+                    'shipment_id' => (string) $shipmentD->id,
+                    'account_id' => (string) $accounts['d']->id,
+                    'event_type' => 'shipment.purchased',
+                    'status' => CanonicalShipmentStatus::PURCHASED,
+                    'normalized_status' => CanonicalShipmentStatus::PURCHASED,
+                    'description' => 'Carrier purchase completed for shipment D.',
+                    'location' => 'DHL',
+                    'event_at' => now()->subHours(12),
+                    'source' => ShipmentEvent::SOURCE_SYSTEM,
+                    'idempotency_key' => 'i5a:d:purchase',
+                    'payload' => ['reference_number' => 'SHP-I5A-D-001'],
+                ])
+            );
+
+            ShipmentEvent::query()->updateOrCreate(
+                ['shipment_id' => (string) $shipmentD->id, 'idempotency_key' => 'i5a:d:label'],
+                $this->filterExistingColumns('shipment_events', [
+                    'shipment_id' => (string) $shipmentD->id,
+                    'account_id' => (string) $accounts['d']->id,
+                    'event_type' => 'carrier.documents_available',
+                    'status' => CanonicalShipmentStatus::LABEL_READY,
+                    'normalized_status' => CanonicalShipmentStatus::LABEL_READY,
+                    'description' => 'Carrier artifacts became available.',
+                    'location' => 'DHL',
+                    'event_at' => now()->subHours(9),
+                    'source' => ShipmentEvent::SOURCE_CARRIER,
+                    'idempotency_key' => 'i5a:d:label',
+                    'payload' => ['reference_number' => 'SHP-I5A-D-001'],
+                ])
+            );
+
+            ShipmentEvent::query()->updateOrCreate(
+                ['shipment_id' => (string) $shipmentD->id, 'idempotency_key' => 'i5a:d:transit'],
+                $this->filterExistingColumns('shipment_events', [
+                    'shipment_id' => (string) $shipmentD->id,
+                    'account_id' => (string) $accounts['d']->id,
+                    'event_type' => 'tracking.status_updated',
+                    'status' => CanonicalShipmentStatus::IN_TRANSIT,
+                    'normalized_status' => CanonicalShipmentStatus::IN_TRANSIT,
+                    'description' => 'Shipment is in transit to the destination hub.',
+                    'location' => 'Bahrain',
+                    'event_at' => now()->subHours(2),
+                    'source' => ShipmentEvent::SOURCE_CARRIER,
+                    'idempotency_key' => 'i5a:d:transit',
+                    'payload' => ['reference_number' => 'SHP-I5A-D-001'],
+                ])
+            );
+
+            ShipmentEvent::query()->updateOrCreate(
+                ['shipment_id' => (string) $shipmentC->id, 'idempotency_key' => 'i5a:c:blocked'],
+                $this->filterExistingColumns('shipment_events', [
+                    'shipment_id' => (string) $shipmentC->id,
+                    'account_id' => (string) $accounts['c']->id,
+                    'event_type' => 'shipment.updated',
+                    'status' => Shipment::STATUS_KYC_BLOCKED,
+                    'normalized_status' => CanonicalShipmentStatus::EXCEPTION,
+                    'description' => 'Shipment is blocked pending KYC remediation.',
+                    'location' => 'Internal KYC queue',
+                    'event_at' => now()->subMinutes(90),
+                    'source' => ShipmentEvent::SOURCE_SYSTEM,
+                    'idempotency_key' => 'i5a:c:blocked',
+                    'payload' => ['reference_number' => 'SHP-I5A-C-001'],
+                ])
+            );
+        }
+
+        if (Schema::hasTable('carrier_documents') && Schema::hasTable('carrier_shipments')) {
+            $carrierShipmentId = (string) CarrierShipment::query()
+                ->where('shipment_id', (string) $shipmentD->id)
+                ->value('id');
+
+            if ($carrierShipmentId !== '') {
+                $inlinePdf = base64_encode('%PDF-1.4 I5A label fixture');
+
+                CarrierDocument::query()->updateOrCreate(
+                    ['shipment_id' => (string) $shipmentD->id, 'original_filename' => 'i5a-d-label.pdf'],
+                    $this->filterExistingColumns('carrier_documents', [
+                        'carrier_shipment_id' => $carrierShipmentId,
+                        'shipment_id' => (string) $shipmentD->id,
+                        'carrier_code' => 'dhl',
+                        'type' => CarrierDocument::TYPE_LABEL,
+                        'format' => CarrierDocument::FORMAT_PDF,
+                        'mime_type' => CarrierDocument::getMimeType(CarrierDocument::FORMAT_PDF),
+                        'source' => CarrierDocument::SOURCE_CARRIER,
+                        'retrieval_mode' => CarrierDocument::RETRIEVAL_INLINE,
+                        'original_filename' => 'i5a-d-label.pdf',
+                        'file_size' => strlen(base64_decode($inlinePdf)),
+                        'checksum' => hash('sha256', base64_decode($inlinePdf)),
+                        'content_base64' => $inlinePdf,
+                        'is_available' => true,
+                        'carrier_metadata' => [
+                            'carrier_document_type' => 'label',
+                            'tracking_number' => 'I5A-DHL-D-001',
+                        ],
+                    ])
+                );
+
+                CarrierDocument::query()->updateOrCreate(
+                    ['shipment_id' => (string) $shipmentD->id, 'original_filename' => 'i5a-d-commercial-invoice.pdf'],
+                    $this->filterExistingColumns('carrier_documents', [
+                        'carrier_shipment_id' => $carrierShipmentId,
+                        'shipment_id' => (string) $shipmentD->id,
+                        'carrier_code' => 'dhl',
+                        'type' => CarrierDocument::TYPE_COMMERCIAL_INVOICE,
+                        'format' => CarrierDocument::FORMAT_PDF,
+                        'mime_type' => CarrierDocument::getMimeType(CarrierDocument::FORMAT_PDF),
+                        'source' => CarrierDocument::SOURCE_CARRIER,
+                        'retrieval_mode' => CarrierDocument::RETRIEVAL_INLINE,
+                        'original_filename' => 'i5a-d-commercial-invoice.pdf',
+                        'file_size' => strlen(base64_decode($inlinePdf)),
+                        'checksum' => hash('sha256', 'i5a-d-commercial-invoice.pdf'),
+                        'content_base64' => $inlinePdf,
+                        'is_available' => true,
+                        'carrier_metadata' => [
+                            'carrier_document_type' => 'commercial_invoice',
+                            'tracking_number' => 'I5A-DHL-D-001',
+                        ],
+                    ])
+                );
+            }
+        }
+    }
+
     private function upsertAccount(string $slug, string $name, string $requestedType): Account
     {
         $attributes = Schema::hasColumn('accounts', 'slug')
@@ -967,6 +1295,27 @@ class E2EUserMatrixSeeder extends Seeder
             ],
             $values
         );
+    }
+
+    /**
+     * @param array<string, mixed> $values
+     * @return array<string, mixed>
+     */
+    private function filterExistingColumns(string $table, array $values): array
+    {
+        if (!Schema::hasTable($table)) {
+            return $values;
+        }
+
+        $filtered = [];
+
+        foreach ($values as $column => $value) {
+            if (Schema::hasColumn($table, $column)) {
+                $filtered[$column] = $value;
+            }
+        }
+
+        return $filtered;
     }
 
     private function resolveAccountType(string $requestedType): string
