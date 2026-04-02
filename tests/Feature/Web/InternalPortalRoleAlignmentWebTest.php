@@ -124,6 +124,7 @@ class InternalPortalRoleAlignmentWebTest extends TestCase
     {
         $account = Account::factory()->create(['type' => 'organization']);
         $tenantSession = $this->tenantContextSession($account);
+        $staffTarget = $this->userByEmail('e2e.internal.support@example.test');
 
         $superAdmin = $this->userByEmail('e2e.internal.super_admin@example.test');
         $this->actingAs($superAdmin, 'web')
@@ -150,9 +151,43 @@ class InternalPortalRoleAlignmentWebTest extends TestCase
         $this->actingAs($superAdmin, 'web')
             ->get(route('internal.smtp-settings.edit'))
             ->assertOk();
+        $this->actingAs($superAdmin, 'web')
+            ->get(route('internal.staff.index'))
+            ->assertOk();
+        $this->actingAs($superAdmin, 'web')
+            ->get(route('internal.staff.show', $staffTarget))
+            ->assertOk();
+
+        $support = $this->userByEmail('e2e.internal.support@example.test');
+        $this->assertForbiddenInternalSurface(
+            $this->actingAs($support, 'web')->get(route('admin.index'))
+        );
+        $this->assertForbiddenInternalSurface(
+            $this->actingAs($support, 'web')->get(route('admin.tenant-context'))
+        );
+        $this->assertForbiddenInternalSurface(
+            $this->actingAs($support, 'web')->withSession($tenantSession)->get(route('admin.users'))
+        );
+        $this->assertForbiddenInternalSurface(
+            $this->actingAs($support, 'web')->withSession($tenantSession)->get(route('admin.roles'))
+        );
+        $this->assertForbiddenInternalSurface(
+            $this->actingAs($support, 'web')->withSession($tenantSession)->get(route('admin.reports'))
+        );
+        $this->assertForbiddenInternalSurface(
+            $this->actingAs($support, 'web')->get(route('internal.tenant-context'))
+        );
+        $this->assertForbiddenInternalSurface(
+            $this->actingAs($support, 'web')->get(route('internal.smtp-settings.edit'))
+        );
+        $this->actingAs($support, 'web')
+            ->get(route('internal.staff.index'))
+            ->assertOk();
+        $this->actingAs($support, 'web')
+            ->get(route('internal.staff.show', $staffTarget))
+            ->assertOk();
 
         foreach ([
-            'e2e.internal.support@example.test',
             'e2e.internal.ops_readonly@example.test',
         ] as $email) {
             $user = $this->userByEmail($email);
@@ -178,6 +213,12 @@ class InternalPortalRoleAlignmentWebTest extends TestCase
             $this->assertForbiddenInternalSurface(
                 $this->actingAs($user, 'web')->get(route('internal.smtp-settings.edit'))
             );
+            $this->assertForbiddenInternalSurface(
+                $this->actingAs($user, 'web')->get(route('internal.staff.index'))
+            );
+            $this->assertForbiddenInternalSurface(
+                $this->actingAs($user, 'web')->get(route('internal.staff.show', $staffTarget))
+            );
         }
 
         $carrierManager = $this->userByEmail('e2e.internal.carrier_manager@example.test');
@@ -202,6 +243,12 @@ class InternalPortalRoleAlignmentWebTest extends TestCase
         $this->actingAs($carrierManager, 'web')
             ->get(route('internal.smtp-settings.edit'))
             ->assertOk();
+        $this->assertForbiddenInternalSurface(
+            $this->actingAs($carrierManager, 'web')->get(route('internal.staff.index'))
+        );
+        $this->assertForbiddenInternalSurface(
+            $this->actingAs($carrierManager, 'web')->get(route('internal.staff.show', $staffTarget))
+        );
     }
 
     #[Test]
@@ -217,6 +264,7 @@ class InternalPortalRoleAlignmentWebTest extends TestCase
         ]);
         $account = Account::factory()->create(['type' => 'organization']);
         $tenantSession = $this->tenantContextSession($account);
+        $staffTarget = $this->userByEmail('e2e.internal.support@example.test');
 
         $response = $this->from('/admin/login')->post('/admin/login', [
             'email' => $legacyUser->email,
@@ -260,6 +308,12 @@ class InternalPortalRoleAlignmentWebTest extends TestCase
         );
         $this->assertForbiddenInternalSurface(
             $this->actingAs($legacyUser, 'web')->get(route('internal.smtp-settings.edit'))
+        );
+        $this->assertForbiddenInternalSurface(
+            $this->actingAs($legacyUser, 'web')->get(route('internal.staff.index'))
+        );
+        $this->assertForbiddenInternalSurface(
+            $this->actingAs($legacyUser, 'web')->get(route('internal.staff.show', $staffTarget))
         );
     }
 

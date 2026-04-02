@@ -20,6 +20,7 @@
         @if($canUpdateAccount)
             <a href="{{ route('internal.accounts.edit', $account) }}" class="btn btn-pr">تحرير الحساب</a>
         @endif
+        <a href="{{ route('internal.kyc.show', $account) }}" class="btn btn-s">KYC Center</a>
         <a href="{{ route('internal.accounts.index') }}" class="btn btn-s">العودة إلى القائمة</a>
         <a href="{{ route('internal.accounts.show', $account) }}" class="btn btn-pr">تحديث التفاصيل</a>
     </div>
@@ -128,6 +129,62 @@
             @endif
             @if(!$verificationResendAvailable)
                 <div style="font-size:12px;color:var(--td)">هذه البطاقة تعرض الحالة الحالية فقط. إعادة إرسال التحقق ليست جزءًا من هذه المرحلة.</div>
+            @endif
+        </div>
+    </x-card>
+</div>
+
+<div class="grid-2" style="margin-bottom:24px">
+    <x-card title="الأثر التشغيلي للتحقق" data-testid="account-kyc-operational-effect-card">
+        <div style="display:flex;flex-direction:column;gap:12px">
+            <div data-testid="account-kyc-shipping-operability">
+                <div style="font-size:12px;color:var(--tm)">وضع الشحن الآن</div>
+                <div style="font-weight:700;color:var(--tx)">{{ $kycOperationalEffect['shipping_label'] }}</div>
+                <div style="font-size:13px;color:var(--td)">{{ $kycOperationalEffect['shipping_detail'] }}</div>
+            </div>
+            <div data-testid="account-kyc-international-shipping-state">
+                <div style="font-size:12px;color:var(--tm)">الشحن الدولي</div>
+                <div style="font-weight:700;color:var(--tx)">{{ $kycOperationalEffect['international_label'] }}</div>
+                <div style="font-size:13px;color:var(--td)">{{ $kycOperationalEffect['international_detail'] }}</div>
+            </div>
+            <div data-testid="account-kyc-next-action">
+                <div style="font-size:12px;color:var(--tm)">الحاجة إلى إجراء إضافي</div>
+                <div style="font-weight:700;color:var(--tx)">{{ $kycOperationalEffect['action_label'] }}</div>
+                <div style="font-size:13px;color:var(--td)">{{ $kycOperationalEffect['action_detail'] }}</div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">
+                <div data-testid="account-kyc-shipping-limit-value">
+                    <div style="font-size:12px;color:var(--tm)">حد الشحن الكلي</div>
+                    <div style="color:var(--tx)">{{ $kycOperationalEffect['shipping_limit'] !== null ? number_format($kycOperationalEffect['shipping_limit']) : 'غير محدد' }}</div>
+                </div>
+                <div data-testid="account-kyc-daily-shipment-limit-value">
+                    <div style="font-size:12px;color:var(--tm)">الحد اليومي</div>
+                    <div style="color:var(--tx)">{{ $kycOperationalEffect['daily_shipment_limit'] !== null ? number_format($kycOperationalEffect['daily_shipment_limit']) : 'غير محدد' }}</div>
+                </div>
+                <div data-testid="account-kyc-blocked-shipments-count">
+                    <div style="font-size:12px;color:var(--tm)">شحنات محجوبة حاليًا</div>
+                    <div style="color:var(--tx)">{{ number_format($kycBlockedShipmentsCount) }}</div>
+                </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+                <div style="font-size:12px;color:var(--td)">يعرض هذا الملخص الأثر التشغيلي الحقيقي لحالة KYC الحالية والشحنات المحجوبة فعليًا.</div>
+                <a href="{{ route('internal.kyc.show', $account) }}" class="btn btn-pr">فتح ملف KYC</a>
+            </div>
+            @if($recentKycImpactedShipments->isNotEmpty())
+                <div data-testid="account-kyc-impacted-shipments-card" style="padding:12px;border:1px solid var(--bd);border-radius:12px;background:rgba(15,23,42,.03)">
+                    <div style="font-weight:700;color:var(--tx);margin-bottom:8px">أحدث الشحنات المتأثرة</div>
+                    <div style="display:flex;flex-direction:column;gap:8px">
+                        @foreach($recentKycImpactedShipments as $shipment)
+                            <div style="font-size:13px;color:var(--td)">
+                                <span style="font-weight:700;color:var(--tx)">{{ $shipment['reference'] }}</span>
+                                <span>•</span>
+                                <span>{{ $shipment['status'] }}</span>
+                                <span>•</span>
+                                <span>{{ $shipment['created_at'] ?? '—' }}</span>
+                            </div>
+                        @endforeach
+                    </div>
+                </div>
             @endif
         </div>
     </x-card>

@@ -3,9 +3,17 @@
 namespace Database\Seeders;
 
 use App\Models\Account;
+use App\Models\AuditLog;
 use App\Models\BillingWallet;
 use App\Models\Invitation;
+use App\Models\KycDocument;
+use App\Models\KycVerification;
+use App\Models\OrganizationProfile;
+use App\Models\Shipment;
 use App\Models\User;
+use App\Models\VerificationRestriction;
+use App\Services\AuditService;
+use App\Support\Kyc\AccountKycStatusMapper;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -270,6 +278,7 @@ class E2EUserMatrixSeeder extends Seeder
 
         $this->seedDeterministicPendingInvitations($accounts, $externalUsers);
         $this->seedDeterministicWallets($accounts);
+        $this->seedDeterministicKycFixtures($accounts, $externalUsers);
 
         $this->command?->info('E2E user matrix seeded successfully.');
         $this->command?->line('Seeded accounts: A/B as single-user individual accounts, C/D as organization team accounts, plus internal users.');
@@ -368,6 +377,287 @@ class E2EUserMatrixSeeder extends Seeder
                     'status' => 'active',
                     'allow_negative' => false,
                 ]
+            );
+        }
+    }
+
+    /**
+     * @param array<string, Account> $accounts
+     * @param array<string, array<string, User>> $externalUsers
+     */
+    private function seedDeterministicKycFixtures(array $accounts, array $externalUsers): void
+    {
+        if (!Schema::hasTable('kyc_verifications')) {
+            return;
+        }
+
+        /** @var User $internalReviewer */
+        $internalReviewer = User::query()->withoutGlobalScopes()
+            ->where('email', 'e2e.internal.super_admin@example.test')
+            ->firstOrFail();
+
+        foreach ([
+            'a' => KycVerification::STATUS_PENDING,
+            'b' => KycVerification::STATUS_PENDING,
+            'c' => KycVerification::STATUS_REJECTED,
+            'd' => KycVerification::STATUS_APPROVED,
+        ] as $key => $status) {
+            if (Schema::hasColumn('accounts', 'kyc_status')) {
+                $accounts[$key]->forceFill([
+                    'kyc_status' => AccountKycStatusMapper::fromVerificationStatus($status),
+                ])->save();
+            }
+        }
+
+        if (Schema::hasTable('organization_profiles')) {
+            OrganizationProfile::query()->updateOrCreate(
+                ['account_id' => (string) $accounts['c']->id],
+                [
+                    'legal_name' => 'E2E Account C Logistics LLC',
+                    'trade_name' => 'E2E Logistics',
+                    'registration_number' => 'CR-300300300',
+                    'industry' => 'logistics',
+                    'company_size' => 'medium',
+                    'country' => 'SA',
+                    'city' => 'Riyadh',
+                    'email' => 'ops@e2e-account-c.example.test',
+                ]
+            );
+        }
+
+        $individualVerification = KycVerification::query()->updateOrCreate(
+            ['account_id' => (string) $accounts['a']->id],
+            [
+                'status' => KycVerification::STATUS_PENDING,
+                'verification_type' => 'individual',
+                'verification_level' => KycVerification::LEVEL_BASIC,
+                'required_documents' => ['national_id' => 'الهوية الوطنية', 'address_proof' => 'إثبات العنوان'],
+                'submitted_documents' => ['national_id' => 'kyc/e2e-account-a-id.pdf'],
+                'review_notes' => 'تمت مراجعة أولية للهوية وما زال إثبات العنوان مطلوبًا قبل الاعتماد الكامل.',
+                'submitted_at' => now()->subDays(2),
+                'reviewed_at' => null,
+                'reviewed_by' => null,
+                'rejection_reason' => null,
+                'review_count' => 0,
+                'expires_at' => null,
+            ]
+        );
+
+        $secondPendingVerification = KycVerification::query()->updateOrCreate(
+            ['account_id' => (string) $accounts['b']->id],
+            [
+                'status' => KycVerification::STATUS_PENDING,
+                'verification_type' => 'individual',
+                'verification_level' => KycVerification::LEVEL_BASIC,
+                'required_documents' => ['passport' => 'جواز السفر'],
+                'submitted_documents' => ['passport' => 'kyc/e2e-account-b-passport.pdf'],
+                'review_notes' => 'تم استلام نسخة أولية من الجواز وتحتاج إلى قرار نهائي.',
+                'submitted_at' => now()->subDay(),
+                'reviewed_at' => null,
+                'reviewed_by' => null,
+                'rejection_reason' => null,
+                'review_count' => 0,
+                'expires_at' => null,
+            ]
+        );
+
+        $organizationVerification = KycVerification::query()->updateOrCreate(
+            ['account_id' => (string) $accounts['c']->id],
+            [
+                'status' => KycVerification::STATUS_REJECTED,
+                'verification_type' => 'organization',
+                'verification_level' => KycVerification::LEVEL_ENHANCED,
+                'required_documents' => [
+                    'commercial_registration' => 'السجل التجاري',
+                    'tax_certificate' => 'شهادة الضريبة',
+                ],
+                'submitted_documents' => [
+                    'commercial_registration' => 'kyc/e2e-account-c-cr.pdf',
+                    'tax_certificate' => 'kyc/e2e-account-c-tax.pdf',
+                ],
+                'review_notes' => 'يلزم إعادة رفع السجل التجاري بنسخة أوضح ومطابقة للاسم القانوني.',
+                'submitted_at' => now()->subDays(5),
+                'reviewed_at' => now()->subDays(3),
+                'reviewed_by' => (string) $internalReviewer->id,
+                'rejection_reason' => 'عدم تطابق السجل التجاري مع الاسم القانوني.',
+                'review_count' => 1,
+                'expires_at' => null,
+            ]
+        );
+
+        $approvedVerification = KycVerification::query()->updateOrCreate(
+            ['account_id' => (string) $accounts['d']->id],
+            [
+                'status' => KycVerification::STATUS_APPROVED,
+                'verification_type' => 'organization',
+                'verification_level' => KycVerification::LEVEL_ENHANCED,
+                'required_documents' => [
+                    'commercial_registration' => 'السجل التجاري',
+                    'tax_certificate' => 'شهادة الضريبة',
+                ],
+                'submitted_documents' => [
+                    'commercial_registration' => 'kyc/e2e-account-d-cr.pdf',
+                    'tax_certificate' => 'kyc/e2e-account-d-tax.pdf',
+                ],
+                'review_notes' => 'تمت مراجعة المستندات واعتماد الحساب بنجاح.',
+                'submitted_at' => now()->subDays(8),
+                'reviewed_at' => now()->subDays(6),
+                'reviewed_by' => (string) $internalReviewer->id,
+                'rejection_reason' => null,
+                'review_count' => 1,
+                'expires_at' => now()->addYear(),
+            ]
+        );
+
+        if (Schema::hasTable('kyc_documents')) {
+            KycDocument::query()->updateOrCreate(
+                ['account_id' => (string) $accounts['a']->id, 'document_type' => 'national_id'],
+                [
+                    'kyc_verification_id' => (string) $individualVerification->id,
+                    'original_filename' => 'e2e-account-a-id.pdf',
+                    'stored_path' => 'kyc/e2e-account-a-id.pdf',
+                    'mime_type' => 'application/pdf',
+                    'file_size' => 182400,
+                    'file_hash' => hash('sha256', 'e2e-account-a-id.pdf'),
+                    'uploaded_by' => (string) $externalUsers['a']['primary']->id,
+                ]
+            );
+
+            KycDocument::query()->updateOrCreate(
+                ['account_id' => (string) $accounts['b']->id, 'document_type' => 'passport'],
+                [
+                    'kyc_verification_id' => (string) $secondPendingVerification->id,
+                    'original_filename' => 'e2e-account-b-passport.pdf',
+                    'stored_path' => 'kyc/e2e-account-b-passport.pdf',
+                    'mime_type' => 'application/pdf',
+                    'file_size' => 164220,
+                    'file_hash' => hash('sha256', 'e2e-account-b-passport.pdf'),
+                    'uploaded_by' => (string) $externalUsers['b']['primary']->id,
+                ]
+            );
+
+            KycDocument::query()->updateOrCreate(
+                ['account_id' => (string) $accounts['c']->id, 'document_type' => 'commercial_registration'],
+                [
+                    'kyc_verification_id' => (string) $organizationVerification->id,
+                    'original_filename' => 'e2e-account-c-cr.pdf',
+                    'stored_path' => 'kyc/e2e-account-c-cr.pdf',
+                    'mime_type' => 'application/pdf',
+                    'file_size' => 245760,
+                    'file_hash' => hash('sha256', 'e2e-account-c-cr.pdf'),
+                    'uploaded_by' => (string) $externalUsers['c']['organization_owner']->id,
+                ]
+            );
+
+            KycDocument::query()->updateOrCreate(
+                ['account_id' => (string) $accounts['c']->id, 'document_type' => 'tax_certificate'],
+                [
+                    'kyc_verification_id' => (string) $organizationVerification->id,
+                    'original_filename' => 'e2e-account-c-tax.pdf',
+                    'stored_path' => 'kyc/e2e-account-c-tax.pdf',
+                    'mime_type' => 'application/pdf',
+                    'file_size' => 198640,
+                    'file_hash' => hash('sha256', 'e2e-account-c-tax.pdf'),
+                    'uploaded_by' => (string) $externalUsers['c']['organization_owner']->id,
+                ]
+            );
+
+            KycDocument::query()->updateOrCreate(
+                ['account_id' => (string) $accounts['d']->id, 'document_type' => 'commercial_registration'],
+                [
+                    'kyc_verification_id' => (string) $approvedVerification->id,
+                    'original_filename' => 'e2e-account-d-cr.pdf',
+                    'stored_path' => 'kyc/e2e-account-d-cr.pdf',
+                    'mime_type' => 'application/pdf',
+                    'file_size' => 221184,
+                    'file_hash' => hash('sha256', 'e2e-account-d-cr.pdf'),
+                    'uploaded_by' => (string) $externalUsers['d']['organization_owner']->id,
+                ]
+            );
+
+            Shipment::factory()->create([
+                'account_id' => (string) $accounts['c']->id,
+                'user_id' => (string) $externalUsers['c']['organization_owner']->id,
+                'created_by' => (string) $externalUsers['c']['organization_owner']->id,
+                'status' => Shipment::STATUS_KYC_BLOCKED,
+                'reference_number' => 'SHP-KYC-C-001',
+            ]);
+
+            Shipment::factory()->create([
+                'account_id' => (string) $accounts['c']->id,
+                'user_id' => (string) $externalUsers['c']['organization_owner']->id,
+                'created_by' => (string) $externalUsers['c']['organization_owner']->id,
+                'status' => Shipment::STATUS_KYC_BLOCKED,
+                'reference_number' => 'SHP-KYC-C-002',
+                'created_at' => now()->subHour(),
+                'updated_at' => now()->subHour(),
+            ]);
+        }
+
+        if (Schema::hasTable('verification_restrictions')) {
+            VerificationRestriction::query()->updateOrCreate(
+                ['restriction_key' => 'kyc_pending_international_shipping'],
+                [
+                    'name' => 'تعليق الشحن الدولي',
+                    'description' => 'لا يتاح الشحن الدولي حتى اكتمال المراجعة.',
+                    'applies_to_statuses' => [KycVerification::STATUS_PENDING],
+                    'restriction_type' => VerificationRestriction::TYPE_BLOCK_FEATURE,
+                    'feature_key' => 'international_shipping',
+                    'is_active' => true,
+                ]
+            );
+        }
+
+        if (Schema::hasTable('audit_logs')) {
+            /** @var AuditService $audit */
+            $audit = app(AuditService::class);
+
+            $audit->info(
+                (string) $accounts['a']->id,
+                (string) $externalUsers['a']['primary']->id,
+                'kyc.document_uploaded',
+                AuditLog::CATEGORY_KYC,
+                'KycVerification',
+                (string) $individualVerification->id,
+                null,
+                null,
+                ['document_type' => 'national_id']
+            );
+
+            $audit->info(
+                (string) $accounts['b']->id,
+                (string) $externalUsers['b']['primary']->id,
+                'kyc.document_uploaded',
+                AuditLog::CATEGORY_KYC,
+                'KycVerification',
+                (string) $secondPendingVerification->id,
+                null,
+                null,
+                ['document_type' => 'passport']
+            );
+
+            $audit->warning(
+                (string) $accounts['c']->id,
+                (string) $internalReviewer->id,
+                'kyc.rejected',
+                AuditLog::CATEGORY_KYC,
+                'KycVerification',
+                (string) $organizationVerification->id,
+                ['status' => 'pending'],
+                ['status' => 'rejected'],
+                ['reason' => 'عدم تطابق السجل التجاري مع الاسم القانوني.']
+            );
+
+            $audit->info(
+                (string) $accounts['d']->id,
+                (string) $internalReviewer->id,
+                'kyc.approved',
+                AuditLog::CATEGORY_KYC,
+                'KycVerification',
+                (string) $approvedVerification->id,
+                ['status' => 'pending'],
+                ['status' => 'approved'],
+                ['review_notes' => 'تمت مراجعة المستندات واعتماد الحساب بنجاح.']
             );
         }
     }

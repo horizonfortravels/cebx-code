@@ -7,6 +7,11 @@ use App\Http\Controllers\Web\InternalAccountMembersController;
 use App\Http\Controllers\Web\InternalAccountReadCenterController;
 use App\Http\Controllers\Web\InternalAccountSupportActionsController;
 use App\Http\Controllers\Web\InternalAdminWebController;
+use App\Http\Controllers\Web\InternalKycDecisionController;
+use App\Http\Controllers\Web\InternalKycReadCenterController;
+use App\Http\Controllers\Web\InternalKycRestrictionController;
+use App\Http\Controllers\Web\InternalStaffManagementController;
+use App\Http\Controllers\Web\InternalStaffReadCenterController;
 use App\Http\Controllers\Web\InternalSmtpSettingsController;
 use App\Http\Controllers\Web\OrderWebController;
 use App\Http\Controllers\Web\PageController;
@@ -46,6 +51,29 @@ Route::middleware(['auth:web', 'userType:internal'])->prefix('internal')->name('
     });
 
     Route::middleware([
+        'permission:users.read',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_STAFF_INDEX,
+    ])->group(function (): void {
+        Route::get('/staff', [InternalStaffReadCenterController::class, 'index'])->name('staff.index');
+    });
+
+    Route::middleware([
+        'permission:kyc.read',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_KYC_INDEX,
+    ])->group(function (): void {
+        Route::get('/kyc', [InternalKycReadCenterController::class, 'index'])->name('kyc.index');
+    });
+
+    Route::middleware([
+        'permission:users.manage',
+        'permission:roles.assign',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_STAFF_CREATE,
+    ])->group(function (): void {
+        Route::get('/staff/create', [InternalStaffManagementController::class, 'create'])->name('staff.create');
+        Route::post('/staff', [InternalStaffManagementController::class, 'store'])->name('staff.store');
+    });
+
+    Route::middleware([
         'permission:accounts.create',
         'internalSurface:' . InternalControlPlane::SURFACE_EXTERNAL_ACCOUNTS_CREATE,
     ])->group(function (): void {
@@ -58,6 +86,63 @@ Route::middleware(['auth:web', 'userType:internal'])->prefix('internal')->name('
         'internalSurface:' . InternalControlPlane::SURFACE_EXTERNAL_ACCOUNTS_DETAIL,
     ])->group(function (): void {
         Route::get('/accounts/{account}', [InternalAccountReadCenterController::class, 'show'])->name('accounts.show');
+    });
+
+    Route::middleware([
+        'permission:users.read',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_STAFF_DETAIL,
+    ])->group(function (): void {
+        Route::get('/staff/{user}', [InternalStaffReadCenterController::class, 'show'])->name('staff.show');
+    });
+
+    Route::middleware([
+        'permission:kyc.read',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_KYC_DETAIL,
+    ])->group(function (): void {
+        Route::get('/kyc/{account}', [InternalKycReadCenterController::class, 'show'])->name('kyc.show');
+    });
+
+    Route::middleware([
+        'permission:kyc.manage',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_KYC_REVIEW,
+    ])->group(function (): void {
+        Route::post('/kyc/{account}/approve', [InternalKycDecisionController::class, 'approve'])->name('kyc.approve');
+        Route::post('/kyc/{account}/reject', [InternalKycDecisionController::class, 'reject'])->name('kyc.reject');
+    });
+
+    Route::middleware([
+        'permission:kyc.manage',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_KYC_RESTRICTIONS,
+    ])->group(function (): void {
+        Route::post('/kyc/{account}/restrictions/{feature}', [InternalKycRestrictionController::class, 'sync'])
+            ->name('kyc.restrictions.sync');
+    });
+
+    Route::middleware([
+        'permission:users.manage',
+        'permission:roles.assign',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_STAFF_UPDATE,
+    ])->group(function (): void {
+        Route::get('/staff/{user}/edit', [InternalStaffManagementController::class, 'edit'])->name('staff.edit');
+        Route::put('/staff/{user}', [InternalStaffManagementController::class, 'update'])->name('staff.update');
+    });
+
+    Route::middleware([
+        'permission:users.manage',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_STAFF_LIFECYCLE,
+    ])->group(function (): void {
+        Route::post('/staff/{user}/activate', [InternalStaffManagementController::class, 'activate'])->name('staff.activate');
+        Route::post('/staff/{user}/deactivate', [InternalStaffManagementController::class, 'deactivate'])->name('staff.deactivate');
+        Route::post('/staff/{user}/suspend', [InternalStaffManagementController::class, 'suspend'])->name('staff.suspend');
+        Route::post('/staff/{user}/unsuspend', [InternalStaffManagementController::class, 'unsuspend'])->name('staff.unsuspend');
+    });
+
+    Route::middleware([
+        'permission:users.manage',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_STAFF_SUPPORT_ACTIONS,
+    ])->group(function (): void {
+        Route::post('/staff/{user}/password-reset', [InternalStaffManagementController::class, 'passwordReset'])
+            ->name('staff.password-reset');
     });
 
     Route::middleware([

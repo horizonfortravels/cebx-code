@@ -11,6 +11,7 @@ use App\Models\VerificationRestriction;
 use App\Services\InternalExternalAccountAdminService;
 use App\Services\InternalExternalAccountMemberAdminService;
 use App\Services\InternalExternalAccountSupportService;
+use App\Services\InternalKycOperationalEffectService;
 use App\Support\Internal\InternalControlPlane;
 use App\Support\Kyc\AccountKycStatusMapper;
 use Illuminate\Database\Eloquent\Builder;
@@ -136,6 +137,7 @@ class InternalAccountReadCenterController extends Controller
         InternalExternalAccountAdminService $accountAdminService,
         InternalExternalAccountMemberAdminService $memberAdminService,
         InternalExternalAccountSupportService $accountSupportService,
+        InternalKycOperationalEffectService $operationalEffectService,
     ): View
     {
         $accountModel = Account::query()
@@ -151,12 +153,21 @@ class InternalAccountReadCenterController extends Controller
                 'shipments as shipments_count' => static function (Builder $query): void {
                     $query->withoutGlobalScopes();
                 },
+                'shipments as kyc_blocked_shipments_count' => static function (Builder $query): void {
+                    $query->withoutGlobalScopes()->where('status', Shipment::STATUS_KYC_BLOCKED);
+                },
             ])
             ->findOrFail($account);
 
         $owner = $this->resolveExternalOwner($accountModel);
         $kyc = $this->resolveKycSummary($accountModel);
         $restrictions = $this->restrictionsForStatus($kyc['status']);
+        $kycOperationalEffect = $operationalEffectService->summarize(
+            $accountModel,
+            $kyc['status'],
+            $kyc['capabilities'],
+            (int) ($accountModel->kyc_blocked_shipments_count ?? 0),
+        );
         $wallet = $this->resolveWalletSummary($accountModel);
         $canUpdateAccount = $this->canManageSurface(
             $request,
@@ -192,12 +203,15 @@ class InternalAccountReadCenterController extends Controller
             'typeLabel' => $this->accountTypeLabel((string) $accountModel->type),
             'statusLabel' => $this->accountStatusLabel((string) ($accountModel->status ?? 'pending')),
             'kyc' => $kyc,
+            'kycOperationalEffect' => $kycOperationalEffect,
             'wallet' => $wallet,
             'organizationProfile' => $accountModel->organizationProfile,
             'restrictions' => $restrictions,
+            'recentKycImpactedShipments' => $operationalEffectService->recentImpactedShipments($accountModel, 3),
             'recentShipments' => $recentShipments,
             'externalUsersCount' => (int) ($accountModel->external_users_count ?? 0),
             'shipmentsCount' => (int) ($accountModel->shipments_count ?? 0),
+            'kycBlockedShipmentsCount' => (int) ($accountModel->kyc_blocked_shipments_count ?? 0),
             'canUpdateAccount' => $canUpdateAccount,
             'canManageLifecycle' => $canManageLifecycle,
             'canManageSupportActions' => $canManageSupportActions,
@@ -288,7 +302,7 @@ class InternalAccountReadCenterController extends Controller
     }
 
     /**
-     * @return array{status: string, label: string, description: string, submitted_at: string|null, reviewed_at: string|null, expires_at: string|null, rejection_reason: string|null}
+     * @return array{status: string, label: string, description: string, capabilities: array<string, mixed>, submitted_at: string|null, reviewed_at: string|null, expires_at: string|null, rejection_reason: string|null}
      */
     private function resolveKycSummary(Account $account): array
     {
@@ -304,6 +318,7 @@ class InternalAccountReadCenterController extends Controller
             'status' => $status,
             'label' => (string) ($display['label'] ?? ucfirst($status)),
             'description' => trim((string) ($capabilities['message'] ?? 'لا توجد بيانات تحقق محدثة لهذا الحساب بعد.')),
+            'capabilities' => $capabilities,
             'submitted_at' => optional($verification?->submitted_at)->format('Y-m-d H:i'),
             'reviewed_at' => optional($verification?->reviewed_at)->format('Y-m-d H:i'),
             'expires_at' => optional($verification?->expires_at)->format('Y-m-d'),

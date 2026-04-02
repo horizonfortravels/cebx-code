@@ -7,6 +7,7 @@ use App\Models\AuditLog;
 use App\Models\KycDocument;
 use App\Models\KycVerification;
 use App\Models\User;
+use App\Support\Kyc\AccountKycStatusMapper;
 use App\Exceptions\BusinessException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -115,7 +116,9 @@ class KycService
                 'expires_at'         => now()->addYear(), // KYC valid for 1 year
             ]);
 
-            $account->update(['kyc_status' => KycVerification::STATUS_APPROVED]);
+            $account->update([
+                'kyc_status' => AccountKycStatusMapper::fromVerificationStatus(KycVerification::STATUS_APPROVED),
+            ]);
 
             $this->auditService->info(
                 $account->id, $reviewer->id,
@@ -167,7 +170,9 @@ class KycService
                 'review_count'     => $kyc->review_count + 1,
             ]);
 
-            $account->update(['kyc_status' => KycVerification::STATUS_REJECTED]);
+            $account->update([
+                'kyc_status' => AccountKycStatusMapper::fromVerificationStatus(KycVerification::STATUS_REJECTED),
+            ]);
 
             $this->auditService->warning(
                 $account->id, $reviewer->id,
@@ -216,7 +221,9 @@ class KycService
                 'reviewed_by'          => null,
             ]);
 
-            $account->update(['kyc_status' => KycVerification::STATUS_PENDING]);
+            $account->update([
+                'kyc_status' => AccountKycStatusMapper::fromVerificationStatus(KycVerification::STATUS_PENDING),
+            ]);
 
             $this->auditService->info(
                 $account->id, $performer->id,
@@ -243,7 +250,9 @@ class KycService
         $count = 0;
         foreach ($stale as $kyc) {
             $kyc->update(['status' => KycVerification::STATUS_EXPIRED]);
-            $kyc->account->update(['kyc_status' => KycVerification::STATUS_EXPIRED]);
+            $kyc->account->update([
+                'kyc_status' => AccountKycStatusMapper::fromVerificationStatus(KycVerification::STATUS_EXPIRED),
+            ]);
 
             $this->auditService->warning(
                 $kyc->account_id, null,

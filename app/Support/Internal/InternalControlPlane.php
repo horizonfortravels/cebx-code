@@ -24,6 +24,16 @@ class InternalControlPlane
     public const SURFACE_EXTERNAL_ACCOUNTS_LIFECYCLE = 'external_accounts_lifecycle';
     public const SURFACE_EXTERNAL_ACCOUNTS_SUPPORT_ACTIONS = 'external_accounts_support_actions';
     public const SURFACE_EXTERNAL_ACCOUNTS_MEMBER_ADMIN = 'external_accounts_member_admin';
+    public const SURFACE_INTERNAL_KYC_INDEX = 'internal_kyc_index';
+    public const SURFACE_INTERNAL_KYC_DETAIL = 'internal_kyc_detail';
+    public const SURFACE_INTERNAL_KYC_REVIEW = 'internal_kyc_review';
+    public const SURFACE_INTERNAL_KYC_RESTRICTIONS = 'internal_kyc_restrictions';
+    public const SURFACE_INTERNAL_STAFF_INDEX = 'internal_staff_index';
+    public const SURFACE_INTERNAL_STAFF_DETAIL = 'internal_staff_detail';
+    public const SURFACE_INTERNAL_STAFF_CREATE = 'internal_staff_create';
+    public const SURFACE_INTERNAL_STAFF_UPDATE = 'internal_staff_update';
+    public const SURFACE_INTERNAL_STAFF_LIFECYCLE = 'internal_staff_lifecycle';
+    public const SURFACE_INTERNAL_STAFF_SUPPORT_ACTIONS = 'internal_staff_support_actions';
 
     /**
      * @var array<int, string>
@@ -87,13 +97,30 @@ class InternalControlPlane
             self::SURFACE_EXTERNAL_ACCOUNTS_LIFECYCLE,
             self::SURFACE_EXTERNAL_ACCOUNTS_SUPPORT_ACTIONS,
             self::SURFACE_EXTERNAL_ACCOUNTS_MEMBER_ADMIN,
+            self::SURFACE_INTERNAL_KYC_INDEX,
+            self::SURFACE_INTERNAL_KYC_DETAIL,
+            self::SURFACE_INTERNAL_KYC_REVIEW,
+            self::SURFACE_INTERNAL_KYC_RESTRICTIONS,
+            self::SURFACE_INTERNAL_STAFF_INDEX,
+            self::SURFACE_INTERNAL_STAFF_DETAIL,
+            self::SURFACE_INTERNAL_STAFF_CREATE,
+            self::SURFACE_INTERNAL_STAFF_UPDATE,
+            self::SURFACE_INTERNAL_STAFF_LIFECYCLE,
+            self::SURFACE_INTERNAL_STAFF_SUPPORT_ACTIONS,
         ],
         self::ROLE_SUPPORT => [
             self::SURFACE_EXTERNAL_ACCOUNTS_INDEX,
             self::SURFACE_EXTERNAL_ACCOUNTS_DETAIL,
             self::SURFACE_EXTERNAL_ACCOUNTS_SUPPORT_ACTIONS,
+            self::SURFACE_INTERNAL_KYC_INDEX,
+            self::SURFACE_INTERNAL_KYC_DETAIL,
+            self::SURFACE_INTERNAL_STAFF_INDEX,
+            self::SURFACE_INTERNAL_STAFF_DETAIL,
         ],
-        self::ROLE_OPS_READONLY => [],
+        self::ROLE_OPS_READONLY => [
+            self::SURFACE_INTERNAL_KYC_INDEX,
+            self::SURFACE_INTERNAL_KYC_DETAIL,
+        ],
         self::ROLE_CARRIER_MANAGER => [
             self::SURFACE_SMTP_SETTINGS,
         ],
@@ -116,6 +143,16 @@ class InternalControlPlane
         self::SURFACE_EXTERNAL_ACCOUNTS_LIFECYCLE,
         self::SURFACE_EXTERNAL_ACCOUNTS_SUPPORT_ACTIONS,
         self::SURFACE_EXTERNAL_ACCOUNTS_MEMBER_ADMIN,
+        self::SURFACE_INTERNAL_KYC_INDEX,
+        self::SURFACE_INTERNAL_KYC_DETAIL,
+        self::SURFACE_INTERNAL_KYC_REVIEW,
+        self::SURFACE_INTERNAL_KYC_RESTRICTIONS,
+        self::SURFACE_INTERNAL_STAFF_INDEX,
+        self::SURFACE_INTERNAL_STAFF_DETAIL,
+        self::SURFACE_INTERNAL_STAFF_CREATE,
+        self::SURFACE_INTERNAL_STAFF_UPDATE,
+        self::SURFACE_INTERNAL_STAFF_LIFECYCLE,
+        self::SURFACE_INTERNAL_STAFF_SUPPORT_ACTIONS,
     ];
 
     /**
@@ -164,9 +201,28 @@ class InternalControlPlane
      */
     public function resolvedCanonicalRoles(?User $user): array
     {
+        return $this->resolvedCanonicalRolesFromNames($this->assignedRoleNames($user));
+    }
+
+    public function primaryCanonicalRole(?User $user): ?string
+    {
+        return $this->primaryCanonicalRoleFromNames($this->assignedRoleNames($user));
+    }
+
+    public function hasDeprecatedAssignments(?User $user): bool
+    {
+        return $this->hasDeprecatedAssignmentsFromNames($this->assignedRoleNames($user));
+    }
+
+    /**
+     * @param array<int, string> $roleNames
+     * @return array<int, string>
+     */
+    public function resolvedCanonicalRolesFromNames(array $roleNames): array
+    {
         $resolved = [];
 
-        foreach ($this->assignedRoleNames($user) as $roleName) {
+        foreach ($roleNames as $roleName) {
             $canonical = $this->canonicalRoleForName($roleName);
             if ($canonical !== null) {
                 $resolved[] = $canonical;
@@ -185,14 +241,20 @@ class InternalControlPlane
         return array_values(array_unique($resolved));
     }
 
-    public function primaryCanonicalRole(?User $user): ?string
+    /**
+     * @param array<int, string> $roleNames
+     */
+    public function primaryCanonicalRoleFromNames(array $roleNames): ?string
     {
-        return $this->resolvedCanonicalRoles($user)[0] ?? null;
+        return $this->resolvedCanonicalRolesFromNames($roleNames)[0] ?? null;
     }
 
-    public function hasDeprecatedAssignments(?User $user): bool
+    /**
+     * @param array<int, string> $roleNames
+     */
+    public function hasDeprecatedAssignmentsFromNames(array $roleNames): bool
     {
-        foreach ($this->assignedRoleNames($user) as $roleName) {
+        foreach ($roleNames as $roleName) {
             $normalized = $this->normalizeRoleName($roleName);
             if ($normalized === '') {
                 continue;
@@ -209,9 +271,8 @@ class InternalControlPlane
     /**
      * @return array{name: string|null, label: string, description: string, landing_route: string}
      */
-    public function roleProfile(?User $user): array
+    public function roleProfileForCanonicalRole(?string $roleName): array
     {
-        $roleName = $this->primaryCanonicalRole($user);
         $metadata = self::ROLE_METADATA[$roleName] ?? [
             'label' => 'وصول داخلي',
             'description' => 'تمت مواءمة هذه الواجهة على الأدوار الداخلية المعتمدة فقط.',
@@ -224,6 +285,14 @@ class InternalControlPlane
             'description' => $metadata['description'],
             'landing_route' => $metadata['landing_route'],
         ];
+    }
+
+    /**
+     * @return array{name: string|null, label: string, description: string, landing_route: string}
+     */
+    public function roleProfile(?User $user): array
+    {
+        return $this->roleProfileForCanonicalRole($this->primaryCanonicalRole($user));
     }
 
     public function landingRouteName(?User $user): string

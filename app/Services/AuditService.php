@@ -28,7 +28,7 @@ class AuditService
     /**
      * Record an audit entry. This is the primary method.
      *
-     * @param string      $accountId  Tenant account ID
+     * @param string|null $accountId  Tenant account ID (or null for platform-scoped actions)
      * @param string|null $userId     Actor performing the action (null for system actions)
      * @param string      $action     Action identifier (e.g., 'user.created', 'role.updated')
      * @param string      $category   Category constant (e.g., AuditLog::CATEGORY_USERS)
@@ -40,7 +40,7 @@ class AuditService
      * @param array|null  $metadata   Additional context (custom key-value data)
      */
     public function log(
-        string  $accountId,
+        ?string $accountId,
         ?string $userId,
         string  $action,
         string  $category = AuditLog::CATEGORY_SYSTEM,
@@ -53,7 +53,7 @@ class AuditService
     ): AuditLog {
         $payload = [];
 
-        if ($this->auditColumnExists('account_id')) {
+        if ($accountId !== null && $this->auditColumnExists('account_id')) {
             $payload['account_id'] = $accountId;
         }
 
@@ -120,7 +120,7 @@ class AuditService
      * Log an informational event (default severity).
      */
     public function info(
-        string $accountId, ?string $userId, string $action, string $category,
+        ?string $accountId, ?string $userId, string $action, string $category,
         ?string $entityType = null, ?string $entityId = null,
         ?array $oldValues = null, ?array $newValues = null, ?array $metadata = null
     ): AuditLog {
@@ -132,7 +132,7 @@ class AuditService
      * Log a warning event (e.g., failed permission check, suspicious activity).
      */
     public function warning(
-        string $accountId, ?string $userId, string $action, string $category,
+        ?string $accountId, ?string $userId, string $action, string $category,
         ?string $entityType = null, ?string $entityId = null,
         ?array $oldValues = null, ?array $newValues = null, ?array $metadata = null
     ): AuditLog {
@@ -144,7 +144,7 @@ class AuditService
      * Log a critical security event (e.g., owner change, mass delete, breach attempt).
      */
     public function critical(
-        string $accountId, ?string $userId, string $action, string $category,
+        ?string $accountId, ?string $userId, string $action, string $category,
         ?string $entityType = null, ?string $entityId = null,
         ?array $oldValues = null, ?array $newValues = null, ?array $metadata = null
     ): AuditLog {
@@ -425,6 +425,8 @@ class AuditService
             'kyc.documents_listed'      => ['category' => 'kyc', 'severity' => 'info'],
             'kyc.document_accessed'     => ['category' => 'kyc', 'severity' => 'info'],
             'kyc.document_purged'       => ['category' => 'kyc', 'severity' => 'warning'],
+            'kyc.restriction_updated'   => ['category' => 'kyc', 'severity' => 'warning'],
+            'kyc.restriction_disabled'  => ['category' => 'kyc', 'severity' => 'info'],
             'kyc.access_denied'         => ['category' => 'kyc', 'severity' => 'warning'],
             'kyc.document_access_denied'=> ['category' => 'kyc', 'severity' => 'warning'],
 

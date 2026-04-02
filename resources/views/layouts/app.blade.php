@@ -40,6 +40,8 @@
     $canSelectTenant = $currentUser?->hasPermission('tenancy.context.select') ?? false;
     $canManageNotificationChannels = $currentUser?->hasPermission('notifications.channels.manage') ?? false;
     $canReadAccounts = $currentUser?->hasPermission('accounts.read') ?? false;
+    $canReadUsers = $currentUser?->hasPermission('users.read') ?? false;
+    $canReadKyc = $currentUser?->hasPermission('kyc.read') ?? false;
     $canReadIntegrations = $currentUser?->hasPermission('integrations.read') ?? false;
     $canReadApiKeys = $currentUser?->hasPermission('api_keys.read') ?? false;
     $canReadWebhooks = $currentUser?->hasPermission('webhooks.read') ?? false;
@@ -58,6 +60,14 @@
         && $canReadAccounts
         && $internalControlPlane?->canSeeSurface($currentUser, \App\Support\Internal\InternalControlPlane::SURFACE_EXTERNAL_ACCOUNTS_INDEX)
         && Route::has('internal.accounts.index');
+    $showInternalStaffReadCenter = $isInternalUser
+        && $canReadUsers
+        && $internalControlPlane?->canSeeSurface($currentUser, \App\Support\Internal\InternalControlPlane::SURFACE_INTERNAL_STAFF_INDEX)
+        && Route::has('internal.staff.index');
+    $showInternalKycReadCenter = $isInternalUser
+        && $canReadKyc
+        && $internalControlPlane?->canSeeSurface($currentUser, \App\Support\Internal\InternalControlPlane::SURFACE_INTERNAL_KYC_INDEX)
+        && Route::has('internal.kyc.index');
     $internalTopbarRole = $hasDeprecatedInternalRoles
         ? 'وصول داخلي قديم تم إخفاء مسماه من الواجهة النشطة'
         : ($internalRoleProfile['label'] ?? 'وصول داخلي مضبوط وفق الدور المعتمد');
@@ -80,6 +90,19 @@
         if ($showExternalAccountsReadCenter) {
             $menu[] = ['divider' => 'عمليات العملاء'];
             $menu[] = ['active' => ['internal.accounts.*'], 'route' => 'internal.accounts.index', 'icon' => 'ACC', 'label' => 'حسابات العملاء'];
+        }
+
+        if ($showInternalKycReadCenter) {
+            if (! $showExternalAccountsReadCenter) {
+                $menu[] = ['divider' => 'عمليات العملاء'];
+            }
+
+            $menu[] = ['active' => ['internal.kyc.*'], 'route' => 'internal.kyc.index', 'icon' => 'KYC', 'label' => 'حالات التحقق'];
+        }
+
+        if ($showInternalStaffReadCenter) {
+            $menu[] = ['divider' => 'عمليات المنصة'];
+            $menu[] = ['active' => ['internal.staff.*'], 'route' => 'internal.staff.index', 'icon' => 'STF', 'label' => 'فريق المنصة'];
         }
 
         if ($showSmtpSettings) {
