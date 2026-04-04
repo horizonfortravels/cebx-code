@@ -17,6 +17,8 @@ use App\Http\Controllers\Web\InternalIntegrationReadCenterController;
 use App\Http\Controllers\Web\InternalKycDecisionController;
 use App\Http\Controllers\Web\InternalKycReadCenterController;
 use App\Http\Controllers\Web\InternalKycRestrictionController;
+use App\Http\Controllers\Web\InternalReportExportController;
+use App\Http\Controllers\Web\InternalReportsHubController;
 use App\Http\Controllers\Web\InternalShipmentDocumentController;
 use App\Http\Controllers\Web\InternalShipmentReadCenterController;
 use App\Http\Controllers\Web\InternalStaffManagementController;
@@ -120,6 +122,73 @@ Route::middleware(['auth:web', 'userType:internal'])->prefix('internal')->name('
         'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_WEBHOOKS_INDEX,
     ])->group(function (): void {
         Route::get('/webhooks', [InternalWebhookReadCenterController::class, 'index'])->name('webhooks.index');
+    });
+
+    Route::middleware([
+        'permission:reports.read',
+        'permission:analytics.read',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_REPORTS_INDEX,
+    ])->group(function (): void {
+        Route::get('/reports', [InternalReportsHubController::class, 'index'])->name('reports.index');
+    });
+
+    Route::middleware([
+        'permission:reports.read',
+        'permission:analytics.read',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_REPORTS_SHIPMENTS_DASHBOARD,
+    ])->group(function (): void {
+        Route::get('/reports/shipments', [InternalReportsHubController::class, 'shipments'])->name('reports.shipments');
+    });
+
+    Route::middleware([
+        'permission:reports.read',
+        'permission:analytics.read',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_REPORTS_KYC_DASHBOARD,
+    ])->group(function (): void {
+        Route::get('/reports/kyc', [InternalReportsHubController::class, 'kyc'])->name('reports.kyc');
+    });
+
+    Route::middleware([
+        'permission:reports.read',
+        'permission:analytics.read',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_REPORTS_BILLING_DASHBOARD,
+    ])->group(function (): void {
+        Route::get('/reports/billing', [InternalReportsHubController::class, 'billing'])->name('reports.billing');
+    });
+
+    Route::middleware([
+        'permission:reports.read',
+        'permission:analytics.read',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_REPORTS_COMPLIANCE_DASHBOARD,
+    ])->group(function (): void {
+        Route::get('/reports/compliance', [InternalReportsHubController::class, 'compliance'])->name('reports.compliance');
+    });
+
+    Route::middleware([
+        'permission:reports.read',
+        'permission:analytics.read',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_REPORTS_TICKETS_DASHBOARD,
+    ])->group(function (): void {
+        Route::get('/reports/tickets', [InternalReportsHubController::class, 'tickets'])->name('reports.tickets');
+    });
+
+    Route::middleware([
+        'permission:profitability.read',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_REPORTS_EXECUTIVE_DASHBOARD,
+    ])->group(function (): void {
+        Route::get('/reports/executive', [InternalReportsHubController::class, 'executive'])->name('reports.executive');
+    });
+
+    Route::middleware([
+        'permission:reports.export',
+        'permission:analytics.read',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_REPORTS_EXPORTS,
+    ])->group(function (): void {
+        Route::get('/reports/shipments/export', [InternalReportExportController::class, 'shipments'])->name('reports.shipments.export');
+        Route::get('/reports/kyc/export', [InternalReportExportController::class, 'kyc'])->name('reports.kyc.export');
+        Route::get('/reports/billing/export', [InternalReportExportController::class, 'billing'])->name('reports.billing.export');
+        Route::get('/reports/compliance/export', [InternalReportExportController::class, 'compliance'])->name('reports.compliance.export');
+        Route::get('/reports/tickets/export', [InternalReportExportController::class, 'tickets'])->name('reports.tickets.export');
     });
 
     Route::middleware([

@@ -480,7 +480,10 @@ class E2EUserMatrixSeeder extends Seeder
         $shipmentA->forceFill($this->filterExistingColumns('shipments', [
             'status' => Shipment::STATUS_PAYMENT_PENDING,
             'currency' => 'USD',
+            'shipping_rate' => 20.00,
             'total_charge' => 25.00,
+            'platform_fee' => 5.00,
+            'profit_margin' => 5.00,
             'reserved_amount' => 25.00,
         ]))->save();
 
@@ -505,7 +508,10 @@ class E2EUserMatrixSeeder extends Seeder
                 'recipient_country' => 'SA',
                 'is_international' => false,
                 'currency' => 'USD',
+                'shipping_rate' => 44.00,
                 'total_charge' => 52.00,
+                'platform_fee' => 8.00,
+                'profit_margin' => 8.00,
                 'reserved_amount' => 52.00,
                 'tracking_number' => 'I6B-A-002',
                 'total_weight' => 1.4,
@@ -537,7 +543,10 @@ class E2EUserMatrixSeeder extends Seeder
                 'recipient_country' => 'SA',
                 'is_international' => false,
                 'currency' => 'USD',
+                'shipping_rate' => 15.00,
                 'total_charge' => 18.00,
+                'platform_fee' => 3.00,
+                'profit_margin' => 3.00,
                 'reserved_amount' => 0.00,
                 'total_weight' => 1.1,
                 'parcels_count' => 1,

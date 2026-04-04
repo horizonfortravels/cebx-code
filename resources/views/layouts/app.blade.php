@@ -52,6 +52,8 @@
     $canReadInternalWebhooks = $currentUser?->hasPermission('webhooks.read') ?? false;
     $canReadApiKeys = $currentUser?->hasPermission('api_keys.read') ?? false;
     $canReadTickets = $currentUser?->hasPermission('tickets.read') ?? false;
+    $canReadReports = $currentUser?->hasPermission('reports.read') ?? false;
+    $canReadAnalytics = $currentUser?->hasPermission('analytics.read') ?? false;
     $canReadWebhooks = $currentUser?->hasPermission('webhooks.read') ?? false;
     $showDeveloperWorkspace = ! $isInternalUser && $currentPortal === 'b2b' && ($canReadIntegrations || $canReadApiKeys || $canReadWebhooks);
     $showAdminDashboard = $isInternalUser
@@ -106,6 +108,11 @@
         && $canReadTickets
         && $internalControlPlane?->canSeeSurface($currentUser, \App\Support\Internal\InternalControlPlane::SURFACE_INTERNAL_TICKETS_INDEX)
         && Route::has('internal.tickets.index');
+    $showInternalReportsHub = $isInternalUser
+        && $canReadReports
+        && $canReadAnalytics
+        && $internalControlPlane?->canSeeSurface($currentUser, \App\Support\Internal\InternalControlPlane::SURFACE_INTERNAL_REPORTS_INDEX)
+        && Route::has('internal.reports.index');
     $showInternalShipmentReadCenter = $isInternalUser
         && $canReadShipments
         && $internalControlPlane?->canSeeSurface($currentUser, \App\Support\Internal\InternalControlPlane::SURFACE_INTERNAL_SHIPMENTS_INDEX)
@@ -190,8 +197,16 @@
             $menu[] = ['active' => ['internal.tickets.*'], 'route' => 'internal.tickets.index', 'icon' => 'TKT', 'label' => 'Tickets'];
         }
 
-        if ($showInternalKycReadCenter) {
+        if ($showInternalReportsHub) {
             if (! $showExternalAccountsReadCenter && ! $showInternalShipmentReadCenter && ! $showInternalTicketsReadCenter) {
+                $menu[] = ['divider' => 'عمليات العملاء'];
+            }
+
+            $menu[] = ['active' => ['internal.reports.*'], 'route' => 'internal.reports.index', 'icon' => 'RPT', 'label' => 'Reports & analytics'];
+        }
+
+        if ($showInternalKycReadCenter) {
+            if (! $showExternalAccountsReadCenter && ! $showInternalShipmentReadCenter && ! $showInternalTicketsReadCenter && ! $showInternalReportsHub) {
                 $menu[] = ['divider' => 'عمليات العملاء'];
             }
 

@@ -145,6 +145,7 @@ class RolesAndPermissionsSeeder extends Seeder
                     'compliance.read',
                     'dg.read',
                     'reports.read',
+                    'reports.export',
                     'analytics.read',
                     'intelligence.read',
                     'notifications.read',
