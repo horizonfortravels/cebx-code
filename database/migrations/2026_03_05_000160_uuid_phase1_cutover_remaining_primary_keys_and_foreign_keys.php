@@ -55,7 +55,7 @@ return new class extends Migration
         $tables = [];
 
         foreach (Schema::getTableListing() as $table) {
-            if (in_array($table, ['accounts', 'users'], true)) {
+            if (in_array($table, ['accounts', 'users'], true) || $this->isIgnoredTable($table)) {
                 continue;
             }
 
@@ -77,6 +77,21 @@ return new class extends Migration
         sort($tables);
 
         return $tables;
+    }
+
+    private function isIgnoredTable(string $table): bool
+    {
+        return in_array($table, [
+            'cache',
+            'cache_locks',
+            'failed_jobs',
+            'job_batches',
+            'jobs',
+            'migrations',
+            'password_reset_tokens',
+            'personal_access_tokens',
+            'sessions',
+        ], true);
     }
 
     /**

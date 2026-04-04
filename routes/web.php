@@ -11,6 +11,9 @@ use App\Http\Controllers\Web\InternalBillingActionsController;
 use App\Http\Controllers\Web\InternalBillingReadCenterController;
 use App\Http\Controllers\Web\InternalComplianceActionsController;
 use App\Http\Controllers\Web\InternalComplianceReadCenterController;
+use App\Http\Controllers\Web\InternalApiKeyCenterController;
+use App\Http\Controllers\Web\InternalFeatureFlagCenterController;
+use App\Http\Controllers\Web\InternalIntegrationReadCenterController;
 use App\Http\Controllers\Web\InternalKycDecisionController;
 use App\Http\Controllers\Web\InternalKycReadCenterController;
 use App\Http\Controllers\Web\InternalKycRestrictionController;
@@ -19,6 +22,11 @@ use App\Http\Controllers\Web\InternalShipmentReadCenterController;
 use App\Http\Controllers\Web\InternalStaffManagementController;
 use App\Http\Controllers\Web\InternalStaffReadCenterController;
 use App\Http\Controllers\Web\InternalSmtpSettingsController;
+use App\Http\Controllers\Web\InternalTicketManagementController;
+use App\Http\Controllers\Web\InternalTicketReadCenterController;
+use App\Http\Controllers\Web\InternalTicketWorkflowController;
+use App\Http\Controllers\Web\InternalWebhookActionsController;
+use App\Http\Controllers\Web\InternalWebhookReadCenterController;
 use App\Http\Controllers\Web\OrderWebController;
 use App\Http\Controllers\Web\PageController;
 use App\Http\Controllers\Web\PublicTrackingPortalController;
@@ -87,6 +95,49 @@ Route::middleware(['auth:web', 'userType:internal'])->prefix('internal')->name('
     });
 
     Route::middleware([
+        'permission:integrations.read',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_INTEGRATIONS_INDEX,
+    ])->group(function (): void {
+        Route::get('/integrations', [InternalIntegrationReadCenterController::class, 'index'])->name('integrations.index');
+    });
+
+    Route::middleware([
+        'permission:feature_flags.read',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_FEATURE_FLAGS_INDEX,
+    ])->group(function (): void {
+        Route::get('/feature-flags', [InternalFeatureFlagCenterController::class, 'index'])->name('feature-flags.index');
+    });
+
+    Route::middleware([
+        'permission:api_keys.read',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_API_KEYS_INDEX,
+    ])->group(function (): void {
+        Route::get('/api-keys', [InternalApiKeyCenterController::class, 'index'])->name('api-keys.index');
+    });
+
+    Route::middleware([
+        'permission:webhooks.read',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_WEBHOOKS_INDEX,
+    ])->group(function (): void {
+        Route::get('/webhooks', [InternalWebhookReadCenterController::class, 'index'])->name('webhooks.index');
+    });
+
+    Route::middleware([
+        'permission:tickets.read',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_TICKETS_INDEX,
+    ])->group(function (): void {
+        Route::get('/tickets', [InternalTicketReadCenterController::class, 'index'])->name('tickets.index');
+    });
+
+    Route::middleware([
+        'permission:tickets.manage',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_TICKETS_CREATE,
+    ])->group(function (): void {
+        Route::get('/tickets/create', [InternalTicketManagementController::class, 'create'])->name('tickets.create');
+        Route::post('/tickets', [InternalTicketManagementController::class, 'store'])->name('tickets.store');
+    });
+
+    Route::middleware([
         'permission:shipments.read',
         'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_SHIPMENTS_INDEX,
     ])->group(function (): void {
@@ -115,6 +166,15 @@ Route::middleware(['auth:web', 'userType:internal'])->prefix('internal')->name('
         'internalSurface:' . InternalControlPlane::SURFACE_EXTERNAL_ACCOUNTS_DETAIL,
     ])->group(function (): void {
         Route::get('/accounts/{account}', [InternalAccountReadCenterController::class, 'show'])->name('accounts.show');
+    });
+
+    Route::middleware([
+        'permission:accounts.read',
+        'permission:tickets.manage',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_TICKETS_CREATE,
+    ])->group(function (): void {
+        Route::get('/accounts/{account}/tickets/create', [InternalTicketManagementController::class, 'createForAccount'])
+            ->name('accounts.tickets.create');
     });
 
     Route::middleware([
@@ -159,6 +219,80 @@ Route::middleware(['auth:web', 'userType:internal'])->prefix('internal')->name('
     });
 
     Route::middleware([
+        'permission:integrations.read',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_INTEGRATIONS_DETAIL,
+    ])->group(function (): void {
+        Route::get('/integrations/{integration}', [InternalIntegrationReadCenterController::class, 'show'])->name('integrations.show');
+    });
+
+    Route::middleware([
+        'permission:feature_flags.read',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_FEATURE_FLAGS_DETAIL,
+    ])->group(function (): void {
+        Route::get('/feature-flags/{featureFlag}', [InternalFeatureFlagCenterController::class, 'show'])->name('feature-flags.show');
+    });
+
+    Route::middleware([
+        'permission:feature_flags.manage',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_FEATURE_FLAGS_ACTIONS,
+    ])->group(function (): void {
+        Route::post('/feature-flags/{featureFlag}/toggle', [InternalFeatureFlagCenterController::class, 'toggle'])
+            ->name('feature-flags.toggle');
+    });
+
+    Route::middleware([
+        'permission:api_keys.read',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_API_KEYS_DETAIL,
+    ])->group(function (): void {
+        Route::get('/api-keys/{apiKey}', [InternalApiKeyCenterController::class, 'show'])->name('api-keys.show');
+    });
+
+    Route::middleware([
+        'permission:api_keys.manage',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_API_KEYS_ACTIONS,
+    ])->group(function (): void {
+        Route::post('/api-keys', [InternalApiKeyCenterController::class, 'store'])->name('api-keys.store');
+        Route::post('/api-keys/{apiKey}/rotate', [InternalApiKeyCenterController::class, 'rotate'])->name('api-keys.rotate');
+        Route::post('/api-keys/{apiKey}/revoke', [InternalApiKeyCenterController::class, 'revoke'])->name('api-keys.revoke');
+    });
+
+    Route::middleware([
+        'permission:webhooks.read',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_WEBHOOKS_DETAIL,
+    ])->group(function (): void {
+        Route::get('/webhooks/{endpoint}', [InternalWebhookReadCenterController::class, 'show'])->name('webhooks.show');
+    });
+
+    Route::middleware([
+        'permission:tickets.read',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_TICKETS_DETAIL,
+    ])->group(function (): void {
+        Route::get('/tickets/{ticket}', [InternalTicketReadCenterController::class, 'show'])->name('tickets.show');
+    });
+
+    Route::middleware([
+        'permission:tickets.manage',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_TICKETS_ACTIONS,
+    ])->group(function (): void {
+        Route::post('/tickets/{ticket}/triage', [InternalTicketWorkflowController::class, 'updateTriage'])
+            ->name('tickets.triage');
+        Route::post('/tickets/{ticket}/status', [InternalTicketWorkflowController::class, 'updateStatus'])
+            ->name('tickets.status');
+        Route::post('/tickets/{ticket}/assignment', [InternalTicketWorkflowController::class, 'updateAssignment'])
+            ->name('tickets.assignment');
+        Route::post('/tickets/{ticket}/notes', [InternalTicketWorkflowController::class, 'storeInternalNote'])
+            ->name('tickets.notes.store');
+    });
+
+    Route::middleware([
+        'permission:webhooks.manage',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_WEBHOOKS_ACTIONS,
+    ])->group(function (): void {
+        Route::post('/webhooks/{endpoint}/events/{event}/retry', [InternalWebhookActionsController::class, 'retry'])
+            ->name('webhooks.events.retry');
+    });
+
+    Route::middleware([
         'permission:wallet.configure',
         'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_BILLING_ACTIONS,
     ])->group(function (): void {
@@ -171,6 +305,15 @@ Route::middleware(['auth:web', 'userType:internal'])->prefix('internal')->name('
         'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_SHIPMENTS_DETAIL,
     ])->group(function (): void {
         Route::get('/shipments/{shipment}', [InternalShipmentReadCenterController::class, 'show'])->name('shipments.show');
+    });
+
+    Route::middleware([
+        'permission:shipments.read',
+        'permission:tickets.manage',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_TICKETS_CREATE,
+    ])->group(function (): void {
+        Route::get('/shipments/{shipment}/tickets/create', [InternalTicketManagementController::class, 'createForShipment'])
+            ->name('shipments.tickets.create');
     });
 
     Route::middleware([

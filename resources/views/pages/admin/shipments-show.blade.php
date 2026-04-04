@@ -40,6 +40,12 @@
            class="btn btn-pr"
            data-testid="internal-shipment-refresh-link">Refresh operational view</a>
 
+        @if($canCreateTickets)
+            <a href="{{ route('internal.shipments.tickets.create', $shipment) }}"
+               class="btn btn-s"
+               data-testid="internal-shipment-create-linked-ticket-link">Create linked ticket</a>
+        @endif
+
         @if($canViewDocuments)
             <a href="{{ route('internal.shipments.documents.index', $shipment) }}"
                class="btn btn-s"

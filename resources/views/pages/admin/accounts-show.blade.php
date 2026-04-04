@@ -20,6 +20,9 @@
         @if($canUpdateAccount)
             <a href="{{ route('internal.accounts.edit', $account) }}" class="btn btn-pr">تحرير الحساب</a>
         @endif
+        @if($canCreateTickets)
+            <a href="{{ route('internal.accounts.tickets.create', $account) }}" class="btn btn-s" data-testid="account-create-linked-ticket-link">Create linked ticket</a>
+        @endif
         <a href="{{ route('internal.kyc.show', $account) }}" class="btn btn-s">KYC Center</a>
         <a href="{{ route('internal.accounts.index') }}" class="btn btn-s">العودة إلى القائمة</a>
         <a href="{{ route('internal.accounts.show', $account) }}" class="btn btn-pr">تحديث التفاصيل</a>

@@ -6,6 +6,7 @@ use App\Models\Traits\BelongsToAccount;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Str;
 
 /**
@@ -30,6 +31,16 @@ class ApiKey extends Model
     ];
 
     protected $hidden = ['key_hash'];
+
+    public function account(): BelongsTo
+    {
+        return $this->belongsTo(Account::class);
+    }
+
+    public function creator(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
 
     /**
      * Generate a new API key pair.
@@ -57,6 +68,11 @@ class ApiKey extends Model
     public function revoke(): void
     {
         $this->update(['is_active' => false, 'revoked_at' => now()]);
+    }
+
+    public function isRevoked(): bool
+    {
+        return ! $this->is_active || $this->revoked_at !== null;
     }
 
     public function isExpired(): bool

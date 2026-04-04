@@ -18,6 +18,11 @@ module.exports = defineConfig({
   },
   webServer: {
     command: `php artisan serve --host=127.0.0.1 --port=${port}`,
+    env: {
+      ...process.env,
+      APP_ENV: 'local',
+      DB_DATABASE: process.env.E2E_DB_DATABASE || process.env.DB_DATABASE || 'cbex',
+    },
     url: baseURL,
     reuseExistingServer: true,
     timeout: 120 * 1000,

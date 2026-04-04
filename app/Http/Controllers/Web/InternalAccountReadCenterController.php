@@ -184,6 +184,11 @@ class InternalAccountReadCenterController extends Controller
             'accounts.support.manage',
             InternalControlPlane::SURFACE_EXTERNAL_ACCOUNTS_SUPPORT_ACTIONS,
         );
+        $canCreateTickets = $this->canManageSurface(
+            $request,
+            'tickets.manage',
+            InternalControlPlane::SURFACE_INTERNAL_TICKETS_CREATE,
+        );
         $canManageMembers = $this->canManageSurface(
             $request,
             'accounts.members.manage',
@@ -215,6 +220,7 @@ class InternalAccountReadCenterController extends Controller
             'canUpdateAccount' => $canUpdateAccount,
             'canManageLifecycle' => $canManageLifecycle,
             'canManageSupportActions' => $canManageSupportActions,
+            'canCreateTickets' => $canCreateTickets,
             'canManageMembers' => $canManageMembers,
             'availableLifecycleActions' => $canManageLifecycle
                 ? $accountAdminService->availableLifecycleActions($accountModel)

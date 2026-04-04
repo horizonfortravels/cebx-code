@@ -48,7 +48,10 @@
     $canReadCompliance = $currentUser?->hasPermission('compliance.read') ?? false;
     $canReadDangerousGoods = $currentUser?->hasPermission('dg.read') ?? false;
     $canReadIntegrations = $currentUser?->hasPermission('integrations.read') ?? false;
+    $canReadFeatureFlags = $currentUser?->hasPermission('feature_flags.read') ?? false;
+    $canReadInternalWebhooks = $currentUser?->hasPermission('webhooks.read') ?? false;
     $canReadApiKeys = $currentUser?->hasPermission('api_keys.read') ?? false;
+    $canReadTickets = $currentUser?->hasPermission('tickets.read') ?? false;
     $canReadWebhooks = $currentUser?->hasPermission('webhooks.read') ?? false;
     $showDeveloperWorkspace = ! $isInternalUser && $currentPortal === 'b2b' && ($canReadIntegrations || $canReadApiKeys || $canReadWebhooks);
     $showAdminDashboard = $isInternalUser
@@ -83,6 +86,26 @@
         && $canViewWalletLedger
         && $internalControlPlane?->canSeeSurface($currentUser, \App\Support\Internal\InternalControlPlane::SURFACE_INTERNAL_BILLING_INDEX)
         && Route::has('internal.billing.index');
+    $showInternalIntegrationsReadCenter = $isInternalUser
+        && $canReadIntegrations
+        && $internalControlPlane?->canSeeSurface($currentUser, \App\Support\Internal\InternalControlPlane::SURFACE_INTERNAL_INTEGRATIONS_INDEX)
+        && Route::has('internal.integrations.index');
+    $showInternalFeatureFlagsCenter = $isInternalUser
+        && $canReadFeatureFlags
+        && $internalControlPlane?->canSeeSurface($currentUser, \App\Support\Internal\InternalControlPlane::SURFACE_INTERNAL_FEATURE_FLAGS_INDEX)
+        && Route::has('internal.feature-flags.index');
+    $showInternalApiKeysCenter = $isInternalUser
+        && $canReadApiKeys
+        && $internalControlPlane?->canSeeSurface($currentUser, \App\Support\Internal\InternalControlPlane::SURFACE_INTERNAL_API_KEYS_INDEX)
+        && Route::has('internal.api-keys.index');
+    $showInternalWebhookReadCenter = $isInternalUser
+        && $canReadInternalWebhooks
+        && $internalControlPlane?->canSeeSurface($currentUser, \App\Support\Internal\InternalControlPlane::SURFACE_INTERNAL_WEBHOOKS_INDEX)
+        && Route::has('internal.webhooks.index');
+    $showInternalTicketsReadCenter = $isInternalUser
+        && $canReadTickets
+        && $internalControlPlane?->canSeeSurface($currentUser, \App\Support\Internal\InternalControlPlane::SURFACE_INTERNAL_TICKETS_INDEX)
+        && Route::has('internal.tickets.index');
     $showInternalShipmentReadCenter = $isInternalUser
         && $canReadShipments
         && $internalControlPlane?->canSeeSurface($currentUser, \App\Support\Internal\InternalControlPlane::SURFACE_INTERNAL_SHIPMENTS_INDEX)
@@ -119,16 +142,56 @@
             $menu[] = ['active' => ['internal.billing.*'], 'route' => 'internal.billing.index', 'icon' => 'WAL', 'label' => 'Wallet & billing'];
         }
 
-        if ($showInternalShipmentReadCenter) {
+        if ($showInternalIntegrationsReadCenter) {
             if (! $showExternalAccountsReadCenter && ! $showInternalBillingReadCenter) {
+                $menu[] = ['divider' => 'عمليات العملاء'];
+            }
+
+            $menu[] = ['active' => ['internal.integrations.*'], 'route' => 'internal.integrations.index', 'icon' => 'INT', 'label' => 'Integrations'];
+        }
+
+        if ($showInternalFeatureFlagsCenter) {
+            if (! $showExternalAccountsReadCenter && ! $showInternalBillingReadCenter && ! $showInternalIntegrationsReadCenter) {
+                $menu[] = ['divider' => 'عمليات العملاء'];
+            }
+
+            $menu[] = ['active' => ['internal.feature-flags.*'], 'route' => 'internal.feature-flags.index', 'icon' => 'FLG', 'label' => 'Feature flags'];
+        }
+
+        if ($showInternalApiKeysCenter) {
+            if (! $showExternalAccountsReadCenter && ! $showInternalBillingReadCenter && ! $showInternalIntegrationsReadCenter && ! $showInternalFeatureFlagsCenter) {
+                $menu[] = ['divider' => 'عمليات العملاء'];
+            }
+
+            $menu[] = ['active' => ['internal.api-keys.*'], 'route' => 'internal.api-keys.index', 'icon' => 'KEY', 'label' => 'API keys'];
+        }
+
+        if ($showInternalWebhookReadCenter) {
+            if (! $showExternalAccountsReadCenter && ! $showInternalBillingReadCenter && ! $showInternalIntegrationsReadCenter && ! $showInternalApiKeysCenter) {
+                $menu[] = ['divider' => 'عمليات العملاء'];
+            }
+
+            $menu[] = ['active' => ['internal.webhooks.*'], 'route' => 'internal.webhooks.index', 'icon' => 'WH', 'label' => 'Webhooks'];
+        }
+
+        if ($showInternalShipmentReadCenter) {
+            if (! $showExternalAccountsReadCenter && ! $showInternalBillingReadCenter && ! $showInternalIntegrationsReadCenter && ! $showInternalWebhookReadCenter) {
                 $menu[] = ['divider' => 'عمليات العملاء'];
             }
 
             $menu[] = ['active' => ['internal.shipments.*'], 'route' => 'internal.shipments.index', 'icon' => 'SHP', 'label' => 'Shipments'];
         }
 
+        if ($showInternalTicketsReadCenter) {
+            if (! $showExternalAccountsReadCenter && ! $showInternalShipmentReadCenter && ! $showInternalWebhookReadCenter) {
+                $menu[] = ['divider' => 'عمليات العملاء'];
+            }
+
+            $menu[] = ['active' => ['internal.tickets.*'], 'route' => 'internal.tickets.index', 'icon' => 'TKT', 'label' => 'Tickets'];
+        }
+
         if ($showInternalKycReadCenter) {
-            if (! $showExternalAccountsReadCenter && ! $showInternalShipmentReadCenter) {
+            if (! $showExternalAccountsReadCenter && ! $showInternalShipmentReadCenter && ! $showInternalTicketsReadCenter) {
                 $menu[] = ['divider' => 'عمليات العملاء'];
             }
 

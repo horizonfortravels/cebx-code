@@ -95,6 +95,7 @@ class InternalShipmentReadCenterController extends Controller
             'canViewAccount' => $this->canViewAccount($user, $controlPlane),
             'canViewKyc' => $this->canViewKyc($user, $controlPlane),
             'canViewDocuments' => $this->canViewDocuments($user, $controlPlane),
+            'canCreateTickets' => $this->canCreateTickets($user, $controlPlane),
         ]);
     }
 
@@ -640,6 +641,13 @@ class InternalShipmentReadCenterController extends Controller
         return $user instanceof User
             && $user->hasPermission('shipments.documents.read')
             && $controlPlane->canSeeSurface($user, InternalControlPlane::SURFACE_INTERNAL_SHIPMENTS_DOCUMENTS);
+    }
+
+    private function canCreateTickets(?User $user, InternalControlPlane $controlPlane): bool
+    {
+        return $user instanceof User
+            && $user->hasPermission('tickets.manage')
+            && $controlPlane->canSeeSurface($user, InternalControlPlane::SURFACE_INTERNAL_TICKETS_CREATE);
     }
 
     private function canViewNotifications(?User $user): bool

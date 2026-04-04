@@ -32,6 +32,9 @@ return new class extends Migration
         }
 
         $this->rebuildActorForeignKeys($droppedForeignEdges);
+
+        DB::purge();
+        DB::reconnect();
     }
 
     public function down(): void

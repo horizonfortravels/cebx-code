@@ -1,0 +1,773 @@
+        $developerTools = $this->developerNavigationItems($user);
+
+        return view('pages.portal.b2b.dashboard', [
+            'account' => $account,
+            'developerTools' => $developerTools,
+            'stats' => [
+                ['icon' => 'SH', 'label' => '«·‘Õ‰« ', 'value' => number_format(Shipment::query()->where('account_id', $accountId)->count())],
+                ['icon' => 'OR', 'label' => '«·ÿ·»« ', 'value' => number_format(Order::query()->where('account_id', $accountId)->count())],
+                ['icon' => 'US', 'label' => '«·„” Œœ„Ê‰', 'value' => number_format(User::query()->where('account_id', $accountId)->count())],
+                ['icon' => 'RL', 'label' => '«·√œÊ«—', 'value' => number_format(Role::query()->where('account_id', $accountId)->count())],
+            ],
+        ]);
+    }
+
+    public function b2bShipments(Request $request): View
+    {
+        return $this->shipmentIndexWorkspace($request, 'b2b');
+    }
+
+    public function exportB2bShipments(Request $request): Response
+    {
+        return $this->shipmentIndexExportWorkspace($request, 'b2b');
+    }
+    public function b2cShipmentShow(Request $request, string $id): View
+    {
+        return $this->shipmentTimelineWorkspace($request, $id, 'b2c');
+    }
+
+    public function b2bShipmentShow(Request $request, string $id): View
+    {
+        return $this->shipmentTimelineWorkspace($request, $id, 'b2b');
+    }
+
+    public function b2cShipmentDraft(): View
+    {
+        return $this->shipmentDraftWorkspace('b2c');
+    }
+
+    public function storeB2cShipmentDraft(Request $request): RedirectResponse
+    {
+        return $this->storeShipmentDraftWorkspace($request, 'b2c');
+    }
+
+    public function validateB2cShipmentAddress(Request $request): RedirectResponse
+    {
+        return $this->validateShipmentAddressWorkspace($request, 'b2c');
+    }
+
+    public function b2bShipmentDraft(): View
+    {
+        return $this->shipmentDraftWorkspace('b2b');
+    }
+
+    public function storeB2bShipmentDraft(Request $request): RedirectResponse
+    {
+        return $this->storeShipmentDraftWorkspace($request, 'b2b');
+    }
+
+    public function validateB2bShipmentAddress(Request $request): RedirectResponse
+    {
+        return $this->validateShipmentAddressWorkspace($request, 'b2b');
+    }
+
+    public function b2cShipmentOffers(Request $request, string $id): View
+    {
+        return $this->shipmentOffersWorkspace($request, $id, 'b2c');
+    }
+
+    public function fetchB2cShipmentOffers(Request $request, string $id): RedirectResponse
+    {
+        return $this->fetchShipmentOffersWorkspace($request, $id, 'b2c');
+    }
+
+    public function selectB2cShipmentOffer(Request $request, string $id): RedirectResponse
+    {
+        return $this->selectShipmentOfferWorkspace($request, $id, 'b2c');
+    }
+
+    public function b2cShipmentDeclaration(Request $request, string $id): View
+    {
+        return $this->shipmentDeclarationWorkspace($request, $id, 'b2c');
+    public function b2bDeveloperHome(Request $request): View
+    {
+        $account = $this->currentAccount();
+        $user = $request->user();
+
+        return view('pages.portal.b2b.developer.index', [
+            'account' => $account,
+            'developerTools' => $this->developerNavigationItems($user),
+            'recentApiKeys' => $this->customerApiKeysForCurrentUser($request)->take(3),
+            'recentWebhookEvents' => $this->recentWebhookEvents((string) $account->id)->take(5),
+            'integrationSummaries' => $this->integrationSummaries((string) $account->id)->take(4),
+        ]);
+    }
+
+    public function b2bDeveloperIntegrations(Request $request): View
+    {
+        $account = $this->currentAccount();
+
+        return view('pages.portal.b2b.developer.integrations', [
+            'account' => $account,
+            'integrations' => $this->integrationSummaries((string) $account->id),
+        ]);
+    }
+
+    public function runIntegrationCheck(Request $request, string $integration): RedirectResponse
+    {
+        $account = $this->currentAccount();
+
+        $catalog = $this->integrationCatalog()->keyBy('id');
+        abort_unless($catalog->has($integration), 404);
+
+        $attributes = [
+            'id' => (string) Str::uuid(),
+            'service' => $integration,
+            'status' => 'healthy',
+            'response_time_ms' => random_int(45, 180),
+            'error_rate' => 0,
+            'total_requests' => 1,
+            'failed_requests' => 0,
+            'checked_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ];
+
+        if (Schema::hasColumn('integration_health_logs', 'account_id')) {
+            $attributes['account_id'] = (string) $account->id;
+        }
+        if (Schema::hasColumn('integration_health_logs', 'integration_id')) {
+            $attributes['integration_id'] = $integration;
+        }
+        if (Schema::hasColumn('integration_health_logs', 'metadata')) {
+            $attributes['metadata'] = [
+                'source' => 'browser_workspace',
+                'account_name' => $account->name,
+            ];
+        }
+
+        IntegrationHealthLog::query()->create($attributes);
+
+        return redirect()->route('b2b.developer.integrations')
+            ->with('success', ' „  ‰›Ì– ›Õ’ ”—Ì⁄ ·· ﬂ«„· ' . $catalog[$integration]['name'] . '.');
+    }
+
+    public function b2bDeveloperApiKeys(Request $request): View
+    {
+        $account = $this->currentAccount();
+
+        return view('pages.portal.b2b.developer.api-keys', [
+            'account' => $account,
+            'apiKeys' => $this->customerApiKeysForCurrentUser($request),
+            'scopeOptions' => $this->customerApiScopeOptions(),
+            'newApiKey' => session('new_api_key'),
+        ]);
+    }
+
+    public function storeDeveloperApiKey(Request $request): RedirectResponse
+    {
+        $account = $this->currentAccount();
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:100'],
+            'permissions' => ['required', 'array', 'min:1'],
+            'developerTools' => $this->developerNavigationItems($user),
+            'recentApiKeys' => $this->customerApiKeysForCurrentUser($request)->take(3),
+            'recentWebhookEvents' => $this->recentWebhookEvents((string) $account->id)->take(5),
+            'integrationSummaries' => $this->integrationSummaries((string) $account->id)->take(4),
+        ]);
+    }
+
+    public function b2bDeveloperIntegrations(Request $request): View
+    {
+        $account = $this->currentAccount();
+
+        return view('pages.portal.b2b.developer.integrations', [
+            'account' => $account,
+            'integrations' => $this->integrationSummaries((string) $account->id),
+        ]);
+    }
+
+    public function runIntegrationCheck(Request $request, string $integration): RedirectResponse
+    {
+        $account = $this->currentAccount();
+
+        $catalog = $this->integrationCatalog()->keyBy('id');
+        abort_unless($catalog->has($integration), 404);
+
+        $attributes = [
+            'id' => (string) Str::uuid(),
+            'service' => $integration,
+            'status' => 'healthy',
+            'response_time_ms' => random_int(45, 180),
+            'error_rate' => 0,
+            'total_requests' => 1,
+            'failed_requests' => 0,
+            'checked_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ];
+
+        if (Schema::hasColumn('integration_health_logs', 'account_id')) {
+            $attributes['account_id'] = (string) $account->id;
+        }
+        if (Schema::hasColumn('integration_health_logs', 'integration_id')) {
+            $attributes['integration_id'] = $integration;
+        }
+        if (Schema::hasColumn('integration_health_logs', 'metadata')) {
+            $attributes['metadata'] = [
+                'source' => 'browser_workspace',
+                'account_name' => $account->name,
+            ];
+        }
+
+        IntegrationHealthLog::query()->create($attributes);
+
+        return redirect()->route('b2b.developer.integrations')
+            ->with('success', ' „  ‰›Ì– ›Õ’ ”—Ì⁄ ·· ﬂ«„· ' . $catalog[$integration]['name'] . '.');
+    }
+
+    public function b2bDeveloperApiKeys(Request $request): View
+    {
+        $account = $this->currentAccount();
+
+        return view('pages.portal.b2b.developer.api-keys', [
+            'account' => $account,
+            'apiKeys' => $this->customerApiKeysForCurrentUser($request),
+            'scopeOptions' => $this->customerApiScopeOptions(),
+            'newApiKey' => session('new_api_key'),
+        ]);
+    }
+
+    public function storeDeveloperApiKey(Request $request): RedirectResponse
+    {
+        $account = $this->currentAccount();
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:100'],
+            'permissions' => ['required', 'array', 'min:1'],
+            'permissions.*' => ['string', 'in:' . implode(',', array_keys($this->customerApiScopeOptions()))],
+            'expires_at' => ['nullable', 'date', 'after:today'],
+            'rate_limit_per_minute' => ['nullable', 'integer', 'min:10', 'max:300'],
+        ]);
+
+        $rawKey = 'cbex_' . Str::random(40);
+
+    public function b2bDeveloperIntegrations(Request $request): View
+    {
+        $account = $this->currentAccount();
+
+        return view('pages.portal.b2b.developer.integrations', [
+            'account' => $account,
+            'integrations' => $this->integrationSummaries((string) $account->id),
+        ]);
+    }
+
+    public function runIntegrationCheck(Request $request, string $integration): RedirectResponse
+    {
+        $account = $this->currentAccount();
+
+        $catalog = $this->integrationCatalog()->keyBy('id');
+        abort_unless($catalog->has($integration), 404);
+
+        $attributes = [
+            'id' => (string) Str::uuid(),
+            'service' => $integration,
+            'status' => 'healthy',
+            'response_time_ms' => random_int(45, 180),
+            'error_rate' => 0,
+            'total_requests' => 1,
+            'failed_requests' => 0,
+            'checked_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ];
+
+        if (Schema::hasColumn('integration_health_logs', 'account_id')) {
+            $attributes['account_id'] = (string) $account->id;
+        }
+        if (Schema::hasColumn('integration_health_logs', 'integration_id')) {
+            $attributes['integration_id'] = $integration;
+        }
+        if (Schema::hasColumn('integration_health_logs', 'metadata')) {
+            $attributes['metadata'] = [
+                'source' => 'browser_workspace',
+                'account_name' => $account->name,
+            ];
+        }
+
+        IntegrationHealthLog::query()->create($attributes);
+
+        return redirect()->route('b2b.developer.integrations')
+            ->with('success', ' „  ‰›Ì– ›Õ’ ”—Ì⁄ ·· ﬂ«„· ' . $catalog[$integration]['name'] . '.');
+    }
+
+    public function b2bDeveloperApiKeys(Request $request): View
+    {
+        $account = $this->currentAccount();
+
+        return view('pages.portal.b2b.developer.api-keys', [
+            'account' => $account,
+            'apiKeys' => $this->customerApiKeysForCurrentUser($request),
+            'scopeOptions' => $this->customerApiScopeOptions(),
+            'newApiKey' => session('new_api_key'),
+        ]);
+    }
+
+    public function storeDeveloperApiKey(Request $request): RedirectResponse
+    {
+        $account = $this->currentAccount();
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:100'],
+            'permissions' => ['required', 'array', 'min:1'],
+            'permissions.*' => ['string', 'in:' . implode(',', array_keys($this->customerApiScopeOptions()))],
+            'expires_at' => ['nullable', 'date', 'after:today'],
+            'rate_limit_per_minute' => ['nullable', 'integer', 'min:10', 'max:300'],
+        ]);
+
+        $rawKey = 'cbex_' . Str::random(40);
+
+        CustomerApiKey::query()->create([
+            'account_id' => (string) $account->id,
+            'user_id' => (string) $request->user()->id,
+            'name' => $validated['name'],
+            'key_hash' => hash('sha256', $rawKey),
+            'key_prefix' => substr($rawKey, 0, 12),
+            'permissions' => $validated['permissions'],
+    public function runIntegrationCheck(Request $request, string $integration): RedirectResponse
+    {
+        $account = $this->currentAccount();
+
+        $catalog = $this->integrationCatalog()->keyBy('id');
+        abort_unless($catalog->has($integration), 404);
+
+        $attributes = [
+            'id' => (string) Str::uuid(),
+            'service' => $integration,
+            'status' => 'healthy',
+            'response_time_ms' => random_int(45, 180),
+            'error_rate' => 0,
+            'total_requests' => 1,
+            'failed_requests' => 0,
+            'checked_at' => now(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ];
+
+        if (Schema::hasColumn('integration_health_logs', 'account_id')) {
+            $attributes['account_id'] = (string) $account->id;
+        }
+        if (Schema::hasColumn('integration_health_logs', 'integration_id')) {
+            $attributes['integration_id'] = $integration;
+        }
+        if (Schema::hasColumn('integration_health_logs', 'metadata')) {
+            $attributes['metadata'] = [
+                'source' => 'browser_workspace',
+                'account_name' => $account->name,
+            ];
+        }
+
+        IntegrationHealthLog::query()->create($attributes);
+
+        return redirect()->route('b2b.developer.integrations')
+            ->with('success', ' „  ‰›Ì– ›Õ’ ”—Ì⁄ ·· ﬂ«„· ' . $catalog[$integration]['name'] . '.');
+    }
+
+    public function b2bDeveloperApiKeys(Request $request): View
+    {
+        $account = $this->currentAccount();
+
+        return view('pages.portal.b2b.developer.api-keys', [
+            'account' => $account,
+            'apiKeys' => $this->customerApiKeysForCurrentUser($request),
+            'scopeOptions' => $this->customerApiScopeOptions(),
+            'newApiKey' => session('new_api_key'),
+        ]);
+    }
+
+    public function storeDeveloperApiKey(Request $request): RedirectResponse
+    {
+        $account = $this->currentAccount();
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:100'],
+            'permissions' => ['required', 'array', 'min:1'],
+            'permissions.*' => ['string', 'in:' . implode(',', array_keys($this->customerApiScopeOptions()))],
+            'expires_at' => ['nullable', 'date', 'after:today'],
+            'rate_limit_per_minute' => ['nullable', 'integer', 'min:10', 'max:300'],
+        ]);
+
+        $rawKey = 'cbex_' . Str::random(40);
+
+        CustomerApiKey::query()->create([
+            'account_id' => (string) $account->id,
+            'user_id' => (string) $request->user()->id,
+            'name' => $validated['name'],
+            'key_hash' => hash('sha256', $rawKey),
+            'key_prefix' => substr($rawKey, 0, 12),
+            'permissions' => $validated['permissions'],
+            'rate_limit_per_minute' => $validated['rate_limit_per_minute'] ?? 60,
+            'expires_at' => $validated['expires_at'] ?? null,
+            'is_active' => true,
+        ]);
+
+        return redirect()->route('b2b.developer.api-keys')
+            ->with('success', ' „ ≈‰‘«¡ „› «Õ ÃœÌœ. Œ“¯‰ «·ﬁÌ„… «·ﬂ«„·… «·¬‰ ·√‰Â« ·‰  ı⁄—÷ „—… √Œ—Ï.')
+            ->with('new_api_key', $rawKey);
+    }
+
+    public function b2bDeveloperApiKeys(Request $request): View
+    {
+        $account = $this->currentAccount();
+
+        return view('pages.portal.b2b.developer.api-keys', [
+            'account' => $account,
+            'apiKeys' => $this->customerApiKeysForCurrentUser($request),
+            'scopeOptions' => $this->customerApiScopeOptions(),
+            'newApiKey' => session('new_api_key'),
+        ]);
+    }
+
+    public function storeDeveloperApiKey(Request $request): RedirectResponse
+    {
+        $account = $this->currentAccount();
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:100'],
+            'permissions' => ['required', 'array', 'min:1'],
+            'permissions.*' => ['string', 'in:' . implode(',', array_keys($this->customerApiScopeOptions()))],
+            'expires_at' => ['nullable', 'date', 'after:today'],
+            'rate_limit_per_minute' => ['nullable', 'integer', 'min:10', 'max:300'],
+        ]);
+
+        $rawKey = 'cbex_' . Str::random(40);
+
+        CustomerApiKey::query()->create([
+            'account_id' => (string) $account->id,
+            'user_id' => (string) $request->user()->id,
+            'name' => $validated['name'],
+            'key_hash' => hash('sha256', $rawKey),
+            'key_prefix' => substr($rawKey, 0, 12),
+            'permissions' => $validated['permissions'],
+            'rate_limit_per_minute' => $validated['rate_limit_per_minute'] ?? 60,
+            'expires_at' => $validated['expires_at'] ?? null,
+            'is_active' => true,
+        ]);
+
+        return redirect()->route('b2b.developer.api-keys')
+            ->with('success', ' „ ≈‰‘«¡ „› «Õ ÃœÌœ. Œ“¯‰ «·ﬁÌ„… «·ﬂ«„·… «·¬‰ ·√‰Â« ·‰  ı⁄—÷ „—… √Œ—Ï.')
+            ->with('new_api_key', $rawKey);
+    }
+
+    public function revokeDeveloperApiKey(Request $request, string $apiKey): RedirectResponse
+    {
+        $account = $this->currentAccount();
+
+        $key = $this->customerApiKeysBaseQuery($request)
+            ->where('id', $apiKey)
+            ->firstOrFail();
+
+        $key->update([
+            'is_active' => false,
+            'updated_at' => now(),
+        ]);
+
+        return redirect()->route('b2b.developer.api-keys')
+            ->with('success', ' „ ≈·€«¡ «·„› «Õ «·„Œ «— »‰Ã«Õ.');
+    }
+
+    public function b2bDeveloperWebhooks(): View
+    {
+        $account = $this->currentAccount();
+        $accountId = (string) $account->id;
+
+        return view('pages.portal.b2b.developer.webhooks', [
+            'account' => $account,
+            'baseWebhookUrl' => rtrim(config('app.url'), '/') . '/api/v1/webhooks',
+            'recentWebhookEvents' => $this->recentWebhookEvents($accountId),
+            'stores' => Store::query()->where('account_id', $accountId)->orderBy('name')->limit(8)->get(),
+        ]);
+    }
+
+    private function currentAccount(): Account
+    {
+        if (app()->bound('current_account')) {
+            $account = app('current_account');
+            if ($account instanceof Account) {
+                return $account;
+            }
+        }
+
+    public function storeDeveloperApiKey(Request $request): RedirectResponse
+    {
+        $account = $this->currentAccount();
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:100'],
+            'permissions' => ['required', 'array', 'min:1'],
+            'permissions.*' => ['string', 'in:' . implode(',', array_keys($this->customerApiScopeOptions()))],
+            'expires_at' => ['nullable', 'date', 'after:today'],
+            'rate_limit_per_minute' => ['nullable', 'integer', 'min:10', 'max:300'],
+        ]);
+
+        $rawKey = 'cbex_' . Str::random(40);
+
+        CustomerApiKey::query()->create([
+            'account_id' => (string) $account->id,
+            'user_id' => (string) $request->user()->id,
+            'name' => $validated['name'],
+            'key_hash' => hash('sha256', $rawKey),
+            'key_prefix' => substr($rawKey, 0, 12),
+            'permissions' => $validated['permissions'],
+            'rate_limit_per_minute' => $validated['rate_limit_per_minute'] ?? 60,
+            'expires_at' => $validated['expires_at'] ?? null,
+            'is_active' => true,
+        ]);
+
+        return redirect()->route('b2b.developer.api-keys')
+            ->with('success', ' „ ≈‰‘«¡ „› «Õ ÃœÌœ. Œ“¯‰ «·ﬁÌ„… «·ﬂ«„·… «·¬‰ ·√‰Â« ·‰  ı⁄—÷ „—… √Œ—Ï.')
+            ->with('new_api_key', $rawKey);
+    }
+
+    public function revokeDeveloperApiKey(Request $request, string $apiKey): RedirectResponse
+    {
+        $account = $this->currentAccount();
+
+        $key = $this->customerApiKeysBaseQuery($request)
+            ->where('id', $apiKey)
+            ->firstOrFail();
+
+        $key->update([
+            'is_active' => false,
+            'updated_at' => now(),
+        ]);
+
+        return redirect()->route('b2b.developer.api-keys')
+            ->with('success', ' „ ≈·€«¡ «·„› «Õ «·„Œ «— »‰Ã«Õ.');
+    }
+
+    public function b2bDeveloperWebhooks(): View
+    {
+        $account = $this->currentAccount();
+        $accountId = (string) $account->id;
+
+        return view('pages.portal.b2b.developer.webhooks', [
+            'account' => $account,
+            'baseWebhookUrl' => rtrim(config('app.url'), '/') . '/api/v1/webhooks',
+            'recentWebhookEvents' => $this->recentWebhookEvents($accountId),
+            'stores' => Store::query()->where('account_id', $accountId)->orderBy('name')->limit(8)->get(),
+        ]);
+    }
+
+    private function currentAccount(): Account
+    {
+        if (app()->bound('current_account')) {
+            $account = app('current_account');
+            if ($account instanceof Account) {
+                return $account;
+            }
+        }
+
+        $user = auth()->user();
+        abort_unless($user && $user->account instanceof Account, 400, ' ⁄–—  ÕœÌœ «·Õ”«» «·Õ«·Ì.');
+
+        return $user->account;
+    }
+
+    private function shipmentIndexWorkspace(Request $request, string $portal): View
+    {
+        $account = $this->currentAccount();
+        $accountId = (string) $account->id;
+        $filters = $this->validateShipmentIndexFilters($request);
+
+    public function revokeDeveloperApiKey(Request $request, string $apiKey): RedirectResponse
+    {
+        $account = $this->currentAccount();
+
+        $key = $this->customerApiKeysBaseQuery($request)
+            ->where('id', $apiKey)
+            ->firstOrFail();
+
+        $key->update([
+            'is_active' => false,
+            'updated_at' => now(),
+        ]);
+
+        return redirect()->route('b2b.developer.api-keys')
+            ->with('success', ' „ ≈·€«¡ «·„› «Õ «·„Œ «— »‰Ã«Õ.');
+    }
+
+    public function b2bDeveloperWebhooks(): View
+    {
+        $account = $this->currentAccount();
+        $accountId = (string) $account->id;
+
+        return view('pages.portal.b2b.developer.webhooks', [
+            'account' => $account,
+            'baseWebhookUrl' => rtrim(config('app.url'), '/') . '/api/v1/webhooks',
+            'recentWebhookEvents' => $this->recentWebhookEvents($accountId),
+            'stores' => Store::query()->where('account_id', $accountId)->orderBy('name')->limit(8)->get(),
+        ]);
+    }
+
+    private function currentAccount(): Account
+    {
+        if (app()->bound('current_account')) {
+            $account = app('current_account');
+            if ($account instanceof Account) {
+                return $account;
+            }
+        }
+
+        $user = auth()->user();
+        abort_unless($user && $user->account instanceof Account, 400, ' ⁄–—  ÕœÌœ «·Õ”«» «·Õ«·Ì.');
+
+        return $user->account;
+    }
+
+    private function shipmentIndexWorkspace(Request $request, string $portal): View
+    {
+        $account = $this->currentAccount();
+        $accountId = (string) $account->id;
+        $filters = $this->validateShipmentIndexFilters($request);
+
+        $shipments = $this->buildShipmentIndexQuery($accountId, $filters)
+            ->latest()
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('pages.portal.' . $portal . '.shipments', [
+            'account' => $account,
+            'shipments' => $shipments,
+            'canCreateShipment' => auth()->user()?->can('create', Shipment::class) ?? false,
+            'canExportShipments' => auth()->user()?->can('viewAny', Shipment::class) ?? false,
+            'createRoute' => route($portal . '.shipments.create'),
+            'createRouteName' => $portal . '.shipments.create',
+            'showRoute' => $portal . '.shipments.show',
+            'indexRoute' => route($portal . '.shipments.index'),
+            'exportRoute' => route($portal . '.shipments.export', $this->shipmentIndexPersistedFilters($filters)),
+            'copy' => $this->shipmentIndexCopy($portal),
+            'stats' => $this->shipmentIndexStats($accountId, $portal),
+            'filters' => $filters,
+            'hasActiveFilters' => $this->shipmentIndexHasActiveFilters($filters),
+            'statusOptions' => $this->shipmentIndexStatusOptions($accountId),
+            'carrierOptions' => $this->shipmentIndexCarrierOptions($accountId),
+        ]);
+    }
+
+    private function shipmentIndexExportWorkspace(Request $request, string $portal): Response
+    {
+        $this->authorize('viewAny', Shipment::class);
+
+        $accountId = (string) $this->currentAccount()->id;
+        $filters = $this->validateShipmentIndexFilters($request);
+    public function b2bDeveloperWebhooks(): View
+    {
+        $account = $this->currentAccount();
+        $accountId = (string) $account->id;
+
+        return view('pages.portal.b2b.developer.webhooks', [
+            'account' => $account,
+            'baseWebhookUrl' => rtrim(config('app.url'), '/') . '/api/v1/webhooks',
+            'recentWebhookEvents' => $this->recentWebhookEvents($accountId),
+            'stores' => Store::query()->where('account_id', $accountId)->orderBy('name')->limit(8)->get(),
+        ]);
+    }
+
+    private function currentAccount(): Account
+    {
+        if (app()->bound('current_account')) {
+            $account = app('current_account');
+            if ($account instanceof Account) {
+                return $account;
+            }
+        }
+
+        $user = auth()->user();
+        abort_unless($user && $user->account instanceof Account, 400, ' ⁄–—  ÕœÌœ «·Õ”«» «·Õ«·Ì.');
+
+        return $user->account;
+    }
+
+    private function shipmentIndexWorkspace(Request $request, string $portal): View
+    {
+        $account = $this->currentAccount();
+        $accountId = (string) $account->id;
+        $filters = $this->validateShipmentIndexFilters($request);
+
+        $shipments = $this->buildShipmentIndexQuery($accountId, $filters)
+            ->latest()
+            ->paginate(10)
+            ->withQueryString();
+
+        return view('pages.portal.' . $portal . '.shipments', [
+            'account' => $account,
+            'shipments' => $shipments,
+            'canCreateShipment' => auth()->user()?->can('create', Shipment::class) ?? false,
+            'canExportShipments' => auth()->user()?->can('viewAny', Shipment::class) ?? false,
+            'createRoute' => route($portal . '.shipments.create'),
+            'createRouteName' => $portal . '.shipments.create',
+            'showRoute' => $portal . '.shipments.show',
+            'indexRoute' => route($portal . '.shipments.index'),
+            'exportRoute' => route($portal . '.shipments.export', $this->shipmentIndexPersistedFilters($filters)),
+            'copy' => $this->shipmentIndexCopy($portal),
+            'stats' => $this->shipmentIndexStats($accountId, $portal),
+            'filters' => $filters,
+            'hasActiveFilters' => $this->shipmentIndexHasActiveFilters($filters),
+            'statusOptions' => $this->shipmentIndexStatusOptions($accountId),
+            'carrierOptions' => $this->shipmentIndexCarrierOptions($accountId),
+        ]);
+    }
+
+    private function shipmentIndexExportWorkspace(Request $request, string $portal): Response
+    {
+        $this->authorize('viewAny', Shipment::class);
+
+        $accountId = (string) $this->currentAccount()->id;
+        $filters = $this->validateShipmentIndexFilters($request);
+
+        $shipments = $this->buildShipmentIndexQuery($accountId, $filters)
+            ->orderByDesc('created_at')
+            ->get($this->shipmentIndexExportColumns());
+
+        $writer = Writer::createFromString('');
+        $writer->insertOne([
+            __('portal_shipments.common.reference'),
+            __('portal_shipments.common.created_at'),
+            __('portal_shipments.common.status'),
+            __('portal_shipments.common.carrier'),
+            __('portal_shipments.common.service'),
+            __('portal_shipments.common.tracking_number'),
+            __('portal_shipments.common.sender'),
+            __('portal_shipments.common.recipient'),
+            __('portal_shipments.common.origin'),
+            __('portal_shipments.common.destination'),
+    private function developerNavigationItems(object $user): Collection
+    {
+        return collect([
+            [
+                'route' => 'b2b.developer.index',
+                'label' => 'Ê«ÃÂ… «·„ÿÊ—',
+                'description' => '„·Œ’ ”—Ì⁄ ·ﬂ· „« ÌÕ «ÃÂ ›—Ìﬁ  ﬂ«„· «·„‰Ÿ„… „⁄ Ê«ÃÂ«  «·„‰’… „‰ «·„ ’›Õ.',
+                'permission' => 'integrations.read',
+            ],
+            [
+                'route' => 'b2b.developer.integrations',
+                'label' => 'Õ«·… «· ﬂ«„·« ',
+                'description' => '„—«Ã⁄…  ﬂ«„·«  «·„‰’… «·„ «Õ… ·Â–« «·Õ”«» Ê ‘€Ì· ›Õ’ ”—Ì⁄ ⁄‰œ «·Õ«Ã….',
+                'permission' => 'integrations.read',
+            ],
+            [
+                'route' => 'b2b.developer.api-keys',
+                'label' => '„›« ÌÕ API',
+                'description' => '⁄—÷ „›« ÌÕ Ê«ÃÂ«  «·„‰’…° ≈‰‘«¡ „› «Õ ÃœÌœ° √Ê ≈·€«¡ „› «Õ ‰‘ÿ.',
+                'permission' => 'api_keys.read',
+            ],
+            [
+                'route' => 'b2b.developer.webhooks',
+                'label' => '«·ÊÌ»ÂÊﬂ« ',
+                'description' => '—ƒÌ… ‰ﬁ«ÿ «” ﬁ»«· «·„‰’… Ê”Ã· «·√Õœ«À «·Ê«—œ… Ê¬Œ— «·„Õ«Ê·« .',
+                'permission' => 'webhooks.read',
+            ],
+        ])->filter(fn (array $item): bool => method_exists($user, 'hasPermission') && $user->hasPermission($item['permission']))->values();
+    }
+
+    /**
+     * @return array<string, array{label: string, description: string}>
+     */
+    private function customerApiScopeOptions(): array
+    {
+        return [
+            'shipments.create' => ['label' => '≈‰‘«¡ «·‘Õ‰« ', 'description' => 'Ì”„Õ »≈‰‘«¡ ‘Õ‰«  ÃœÌœ… ⁄»— «·„› «Õ.'],
+            'shipments.read' => ['label' => 'ﬁ—«¡… «·‘Õ‰« ', 'description' => 'Ì”„Õ »ﬁ—«¡… «·‘Õ‰«  «·„— »ÿ… »«·Õ”«».'],
+            'tracking.read' => ['label' => 'ﬁ—«¡… «·  »⁄', 'description' => 'Ì”„Õ »ﬁ—«¡… »Ì«‰«  «·  »⁄.'],
+            'quotes.create' => ['label' => '≈‰‘«¡ ⁄—Ê÷ «·”⁄—', 'description' => 'Ì”„Õ »ÿ·» ⁄—÷ ”⁄— ÃœÌœ »—„ÃÌ«.'],
+            'reports.read' => ['label' => 'ﬁ—«¡… «· ﬁ«—Ì—', 'description' => 'Ì”„Õ »Ã·»  ﬁ«—Ì— «·ﬁ—«¡… ›ﬁÿ.'],
+        ];
+    }
+}

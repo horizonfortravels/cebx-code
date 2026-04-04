@@ -34,6 +34,21 @@ class InternalControlPlane
     public const SURFACE_INTERNAL_BILLING_INDEX = 'internal_billing_index';
     public const SURFACE_INTERNAL_BILLING_DETAIL = 'internal_billing_detail';
     public const SURFACE_INTERNAL_BILLING_ACTIONS = 'internal_billing_actions';
+    public const SURFACE_INTERNAL_INTEGRATIONS_INDEX = 'internal_integrations_index';
+    public const SURFACE_INTERNAL_INTEGRATIONS_DETAIL = 'internal_integrations_detail';
+    public const SURFACE_INTERNAL_FEATURE_FLAGS_INDEX = 'internal_feature_flags_index';
+    public const SURFACE_INTERNAL_FEATURE_FLAGS_DETAIL = 'internal_feature_flags_detail';
+    public const SURFACE_INTERNAL_FEATURE_FLAGS_ACTIONS = 'internal_feature_flags_actions';
+    public const SURFACE_INTERNAL_API_KEYS_INDEX = 'internal_api_keys_index';
+    public const SURFACE_INTERNAL_API_KEYS_DETAIL = 'internal_api_keys_detail';
+    public const SURFACE_INTERNAL_API_KEYS_ACTIONS = 'internal_api_keys_actions';
+    public const SURFACE_INTERNAL_WEBHOOKS_INDEX = 'internal_webhooks_index';
+    public const SURFACE_INTERNAL_WEBHOOKS_DETAIL = 'internal_webhooks_detail';
+    public const SURFACE_INTERNAL_WEBHOOKS_ACTIONS = 'internal_webhooks_actions';
+    public const SURFACE_INTERNAL_TICKETS_INDEX = 'internal_tickets_index';
+    public const SURFACE_INTERNAL_TICKETS_CREATE = 'internal_tickets_create';
+    public const SURFACE_INTERNAL_TICKETS_DETAIL = 'internal_tickets_detail';
+    public const SURFACE_INTERNAL_TICKETS_ACTIONS = 'internal_tickets_actions';
     public const SURFACE_INTERNAL_SHIPMENTS_INDEX = 'internal_shipments_index';
     public const SURFACE_INTERNAL_SHIPMENTS_DETAIL = 'internal_shipments_detail';
     public const SURFACE_INTERNAL_SHIPMENTS_DOCUMENTS = 'internal_shipments_documents';
@@ -116,6 +131,21 @@ class InternalControlPlane
             self::SURFACE_INTERNAL_BILLING_INDEX,
             self::SURFACE_INTERNAL_BILLING_DETAIL,
             self::SURFACE_INTERNAL_BILLING_ACTIONS,
+            self::SURFACE_INTERNAL_INTEGRATIONS_INDEX,
+            self::SURFACE_INTERNAL_INTEGRATIONS_DETAIL,
+            self::SURFACE_INTERNAL_FEATURE_FLAGS_INDEX,
+            self::SURFACE_INTERNAL_FEATURE_FLAGS_DETAIL,
+            self::SURFACE_INTERNAL_FEATURE_FLAGS_ACTIONS,
+            self::SURFACE_INTERNAL_API_KEYS_INDEX,
+            self::SURFACE_INTERNAL_API_KEYS_DETAIL,
+            self::SURFACE_INTERNAL_API_KEYS_ACTIONS,
+            self::SURFACE_INTERNAL_WEBHOOKS_INDEX,
+            self::SURFACE_INTERNAL_WEBHOOKS_DETAIL,
+            self::SURFACE_INTERNAL_WEBHOOKS_ACTIONS,
+            self::SURFACE_INTERNAL_TICKETS_INDEX,
+            self::SURFACE_INTERNAL_TICKETS_CREATE,
+            self::SURFACE_INTERNAL_TICKETS_DETAIL,
+            self::SURFACE_INTERNAL_TICKETS_ACTIONS,
             self::SURFACE_INTERNAL_SHIPMENTS_INDEX,
             self::SURFACE_INTERNAL_SHIPMENTS_DETAIL,
             self::SURFACE_INTERNAL_SHIPMENTS_DOCUMENTS,
@@ -136,6 +166,18 @@ class InternalControlPlane
             self::SURFACE_INTERNAL_COMPLIANCE_DETAIL,
             self::SURFACE_INTERNAL_BILLING_INDEX,
             self::SURFACE_INTERNAL_BILLING_DETAIL,
+            self::SURFACE_INTERNAL_INTEGRATIONS_INDEX,
+            self::SURFACE_INTERNAL_INTEGRATIONS_DETAIL,
+            self::SURFACE_INTERNAL_FEATURE_FLAGS_INDEX,
+            self::SURFACE_INTERNAL_FEATURE_FLAGS_DETAIL,
+            self::SURFACE_INTERNAL_API_KEYS_INDEX,
+            self::SURFACE_INTERNAL_API_KEYS_DETAIL,
+            self::SURFACE_INTERNAL_WEBHOOKS_INDEX,
+            self::SURFACE_INTERNAL_WEBHOOKS_DETAIL,
+            self::SURFACE_INTERNAL_TICKETS_INDEX,
+            self::SURFACE_INTERNAL_TICKETS_CREATE,
+            self::SURFACE_INTERNAL_TICKETS_DETAIL,
+            self::SURFACE_INTERNAL_TICKETS_ACTIONS,
             self::SURFACE_INTERNAL_SHIPMENTS_INDEX,
             self::SURFACE_INTERNAL_SHIPMENTS_DETAIL,
             self::SURFACE_INTERNAL_SHIPMENTS_DOCUMENTS,
@@ -149,12 +191,24 @@ class InternalControlPlane
             self::SURFACE_INTERNAL_COMPLIANCE_DETAIL,
             self::SURFACE_INTERNAL_BILLING_INDEX,
             self::SURFACE_INTERNAL_BILLING_DETAIL,
+            self::SURFACE_INTERNAL_INTEGRATIONS_INDEX,
+            self::SURFACE_INTERNAL_INTEGRATIONS_DETAIL,
+            self::SURFACE_INTERNAL_FEATURE_FLAGS_INDEX,
+            self::SURFACE_INTERNAL_FEATURE_FLAGS_DETAIL,
+            self::SURFACE_INTERNAL_API_KEYS_INDEX,
+            self::SURFACE_INTERNAL_API_KEYS_DETAIL,
+            self::SURFACE_INTERNAL_WEBHOOKS_INDEX,
+            self::SURFACE_INTERNAL_WEBHOOKS_DETAIL,
+            self::SURFACE_INTERNAL_TICKETS_INDEX,
+            self::SURFACE_INTERNAL_TICKETS_DETAIL,
             self::SURFACE_INTERNAL_SHIPMENTS_INDEX,
             self::SURFACE_INTERNAL_SHIPMENTS_DETAIL,
             self::SURFACE_INTERNAL_SHIPMENTS_DOCUMENTS,
         ],
         self::ROLE_CARRIER_MANAGER => [
             self::SURFACE_SMTP_SETTINGS,
+            self::SURFACE_INTERNAL_INTEGRATIONS_INDEX,
+            self::SURFACE_INTERNAL_INTEGRATIONS_DETAIL,
             self::SURFACE_INTERNAL_SHIPMENTS_DOCUMENTS,
         ],
     ];
@@ -186,6 +240,21 @@ class InternalControlPlane
         self::SURFACE_INTERNAL_BILLING_INDEX,
         self::SURFACE_INTERNAL_BILLING_DETAIL,
         self::SURFACE_INTERNAL_BILLING_ACTIONS,
+        self::SURFACE_INTERNAL_INTEGRATIONS_INDEX,
+        self::SURFACE_INTERNAL_INTEGRATIONS_DETAIL,
+        self::SURFACE_INTERNAL_FEATURE_FLAGS_INDEX,
+        self::SURFACE_INTERNAL_FEATURE_FLAGS_DETAIL,
+        self::SURFACE_INTERNAL_FEATURE_FLAGS_ACTIONS,
+        self::SURFACE_INTERNAL_API_KEYS_INDEX,
+        self::SURFACE_INTERNAL_API_KEYS_DETAIL,
+        self::SURFACE_INTERNAL_API_KEYS_ACTIONS,
+        self::SURFACE_INTERNAL_WEBHOOKS_INDEX,
+        self::SURFACE_INTERNAL_WEBHOOKS_DETAIL,
+        self::SURFACE_INTERNAL_WEBHOOKS_ACTIONS,
+        self::SURFACE_INTERNAL_TICKETS_INDEX,
+        self::SURFACE_INTERNAL_TICKETS_CREATE,
+        self::SURFACE_INTERNAL_TICKETS_DETAIL,
+        self::SURFACE_INTERNAL_TICKETS_ACTIONS,
         self::SURFACE_INTERNAL_SHIPMENTS_INDEX,
         self::SURFACE_INTERNAL_SHIPMENTS_DETAIL,
         self::SURFACE_INTERNAL_SHIPMENTS_DOCUMENTS,

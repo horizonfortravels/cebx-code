@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Account;
+use App\Models\ApiKey;
 use App\Models\AuditLog;
 use App\Models\BillingWallet;
 use App\Models\CarrierDocument;
@@ -16,14 +17,23 @@ use App\Models\KycVerification;
 use App\Models\Notification;
 use App\Models\OrganizationProfile;
 use App\Models\Parcel;
+use App\Models\PaymentGateway;
 use App\Models\Shipment;
 use App\Models\ShipmentEvent;
+use App\Models\StoreSyncLog;
+use App\Models\SupportTicket;
+use App\Models\SupportTicketReply;
+use App\Models\TicketReply;
+use App\Models\TrackingWebhook;
 use App\Models\User;
 use App\Models\VerificationRestriction;
 use App\Models\WalletHold;
 use App\Models\WalletLedgerEntry;
 use App\Models\WalletTopup;
 use App\Models\WaiverVersion;
+use App\Models\WebhookEvent;
+use App\Models\FeatureFlag;
+use App\Models\IntegrationHealthLog;
 use App\Services\AuditService;
 use App\Support\CanonicalShipmentStatus;
 use App\Support\Kyc\AccountKycStatusMapper;
@@ -224,6 +234,8 @@ class E2EUserMatrixSeeder extends Seeder
                     'wallet.manage',
                     'api_keys.read',
                     'api_keys.manage',
+                    'feature_flags.read',
+                    'feature_flags.manage',
                     'webhooks.read',
                     'webhooks.manage',
                     'integrations.read',
@@ -247,8 +259,12 @@ class E2EUserMatrixSeeder extends Seeder
                 permissionKeys: [
                     'accounts.read',
                     'accounts.support.manage',
+                    'api_keys.read',
+                    'feature_flags.read',
                     'wallet.balance',
                     'wallet.ledger',
+                    'integrations.read',
+                    'webhooks.read',
                     'shipments.read',
                     'shipments.documents.read',
                     'tickets.read',
@@ -266,8 +282,13 @@ class E2EUserMatrixSeeder extends Seeder
                 permissionKeys: [
                     'analytics.read',
                     'reports.read',
+                    'api_keys.read',
+                    'feature_flags.read',
                     'wallet.balance',
                     'wallet.ledger',
+                    'integrations.read',
+                    'webhooks.read',
+                    'tickets.read',
                     'shipments.read',
                     'shipments.documents.read',
                     'compliance.read',
@@ -282,6 +303,7 @@ class E2EUserMatrixSeeder extends Seeder
                 description: 'Fallback carrier manager role seeded by E2EUserMatrixSeeder.',
                 permissionKeys: [
                     'notifications.channels.manage',
+                    'integrations.read',
                     'shipments.documents.read',
                 ]
             );
@@ -313,6 +335,11 @@ class E2EUserMatrixSeeder extends Seeder
         $this->seedDeterministicShipmentReadFixtures($accounts, $externalUsers);
         $this->seedDeterministicComplianceFixtures($accounts, $externalUsers);
         $this->seedDeterministicWalletReadFixtures($accounts, $externalUsers);
+        $this->seedDeterministicIntegrationReadFixtures($accounts);
+        $this->seedDeterministicTicketFixtures($accounts, $externalUsers, [
+            'super_admin' => $internalSuperAdmin,
+            'support' => $internalSupport,
+        ]);
 
         $this->command?->info('E2E user matrix seeded successfully.');
         $this->command?->line('Seeded accounts: A/B as single-user individual accounts, C/D as organization team accounts, plus internal users.');
@@ -638,6 +665,327 @@ class E2EUserMatrixSeeder extends Seeder
                 'created_at' => $createdAt,
             ])
         );
+    }
+
+    /**
+     * @param array<string, Account> $accounts
+     */
+    private function seedDeterministicIntegrationReadFixtures(array $accounts): void
+    {
+        if (Schema::hasTable('stores')) {
+            $storeLookup = $this->filterExistingColumns('stores', [
+                'account_id' => (string) $accounts['c']->id,
+                'slug' => 'i8a-shopify',
+                'name' => 'I8A Shopify Store',
+            ]);
+
+            $storeValues = $this->filterExistingColumns('stores', [
+                'account_id' => (string) $accounts['c']->id,
+                'name' => 'I8A Shopify Store',
+                'slug' => 'i8a-shopify',
+                'platform' => 'shopify',
+                'currency' => 'USD',
+                'language' => 'en',
+                'timezone' => 'UTC',
+                'external_store_id' => 'gid://shopify/Store/1001',
+                'external_store_url' => 'https://i8a-shopify.example.test',
+                'connection_config' => json_encode([
+                    'access_token' => 'i8a-shopify-token-001',
+                    'webhook_secret' => 'i8a-shopify-webhook-secret-001',
+                    'client_id' => 'i8a-shopify-client-id-001',
+                ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'last_synced_at' => now()->subMinutes(45),
+                'store_url' => 'https://i8a-shopify.example.test',
+                'api_key' => 'i8a-shopify-token-001',
+                'api_secret' => 'i8a-shopify-webhook-secret-001',
+                'last_sync_at' => now()->subMinutes(45),
+                'created_by' => null,
+                'created_at' => now()->subDays(3),
+                'updated_at' => now()->subMinutes(30),
+            ]);
+
+            if (Schema::hasColumn('stores', 'connection_status')) {
+                $storeValues['status'] = 'active';
+                $storeValues['connection_status'] = 'connected';
+            } elseif (Schema::hasColumn('stores', 'status')) {
+                $storeValues['status'] = 'connected';
+            }
+
+            $existingStoreId = DB::table('stores')
+                ->where($storeLookup)
+                ->value('id');
+
+            $storeId = $existingStoreId ? (string) $existingStoreId : (string) Str::uuid();
+
+            if ($existingStoreId) {
+                DB::table('stores')
+                    ->where('id', $storeId)
+                    ->update($storeValues);
+            } else {
+                DB::table('stores')->insert(array_merge(
+                    ['id' => $storeId],
+                    $storeLookup,
+                    $storeValues
+                ));
+            }
+
+            if (Schema::hasTable('store_sync_logs')) {
+                StoreSyncLog::query()->withoutGlobalScopes()->updateOrCreate(
+                    ['store_id' => $storeId, 'sync_type' => StoreSyncLog::SYNC_WEBHOOK],
+                    $this->filterExistingColumns('store_sync_logs', [
+                        'account_id' => (string) $accounts['c']->id,
+                        'store_id' => $storeId,
+                        'sync_type' => StoreSyncLog::SYNC_WEBHOOK,
+                        'status' => StoreSyncLog::STATUS_COMPLETED,
+                        'orders_found' => 4,
+                        'orders_imported' => 3,
+                        'orders_skipped' => 1,
+                        'orders_failed' => 0,
+                        'errors' => [],
+                        'retry_count' => 0,
+                        'started_at' => now()->subMinutes(46),
+                        'completed_at' => now()->subMinutes(45),
+                        'created_at' => now()->subMinutes(46),
+                        'updated_at' => now()->subMinutes(45),
+                    ])
+                );
+            }
+
+            if (Schema::hasTable('webhook_events')) {
+                WebhookEvent::query()->withoutGlobalScopes()->updateOrCreate(
+                    ['store_id' => $storeId, 'external_event_id' => 'i8a-shopify-webhook-001'],
+                    $this->filterExistingColumns('webhook_events', [
+                        'account_id' => (string) $accounts['c']->id,
+                        'store_id' => $storeId,
+                        'platform' => 'shopify',
+                        'event_type' => 'orders/updated',
+                        'external_event_id' => 'i8a-shopify-webhook-001',
+                        'external_resource_id' => '1001-ORD',
+                        'status' => WebhookEvent::STATUS_PROCESSED,
+                        'payload' => ['safe' => 'masked'],
+                        'error_message' => null,
+                        'retry_count' => 0,
+                        'processed_at' => now()->subMinutes(44),
+                        'created_at' => now()->subMinutes(44),
+                        'updated_at' => now()->subMinutes(44),
+                    ])
+                );
+
+                WebhookEvent::query()->withoutGlobalScopes()->updateOrCreate(
+                    ['store_id' => $storeId, 'external_event_id' => 'i8b-shopify-webhook-failed-001'],
+                    $this->filterExistingColumns('webhook_events', [
+                        'account_id' => (string) $accounts['c']->id,
+                        'store_id' => $storeId,
+                        'platform' => 'shopify',
+                        'event_type' => 'orders/create',
+                        'external_event_id' => 'i8b-shopify-webhook-failed-001',
+                        'external_resource_id' => '1002-ORD',
+                        'status' => WebhookEvent::STATUS_FAILED,
+                        'payload' => [
+                            'id' => 1002,
+                            'order_number' => '1002',
+                            'name' => '#1002',
+                            'currency' => 'USD',
+                            'subtotal_price' => '34.00',
+                            'total_tax' => '0.00',
+                            'total_discounts' => '0.00',
+                            'total_price' => '40.00',
+                            'shipping_lines' => [
+                                ['price' => '6.00'],
+                            ],
+                            'customer' => [
+                                'first_name' => 'Webhook',
+                                'last_name' => 'Retry',
+                                'email' => 'webhook.retry@example.test',
+                                'phone' => '+966500200100',
+                            ],
+                            'shipping_address' => [
+                                'first_name' => 'Webhook',
+                                'last_name' => 'Retry',
+                                'phone' => '+966500200100',
+                                'address1' => 'Webhook Street 22',
+                                'address2' => 'Suite 5',
+                                'city' => 'Riyadh',
+                                'province' => 'Riyadh',
+                                'zip' => '12345',
+                                'country_code' => 'SA',
+                            ],
+                            'line_items' => [
+                                [
+                                    'id' => 501,
+                                    'sku' => 'I8B-RETRY-001',
+                                    'title' => 'Webhook retry item',
+                                    'quantity' => 1,
+                                    'price' => '34.00',
+                                    'grams' => 1200,
+                                ],
+                            ],
+                            'created_at' => now()->subMinutes(16)->toIso8601String(),
+                            'updated_at' => now()->subMinutes(15)->toIso8601String(),
+                        ],
+                        'error_message' => 'Timed out while a prior worker attempted to import this delivery.',
+                        'retry_count' => 1,
+                        'processed_at' => null,
+                        'created_at' => now()->subMinutes(15),
+                        'updated_at' => now()->subMinutes(15),
+                    ])
+                );
+            }
+        }
+
+        if (Schema::hasTable('payment_gateways')) {
+            PaymentGateway::query()->updateOrCreate(
+                ['slug' => 'moyasar'],
+                [
+                    'name' => 'Moyasar',
+                    'slug' => 'moyasar',
+                    'provider' => 'moyasar',
+                    'supported_currencies' => ['SAR', 'USD'],
+                    'supported_methods' => ['card', 'apple_pay'],
+                    'is_active' => true,
+                    'is_sandbox' => true,
+                    'sort_order' => 1,
+                    'transaction_fee_pct' => 2.75,
+                    'transaction_fee_fixed' => 1.00,
+                ]
+            );
+        }
+
+        if (Schema::hasTable('integration_health_logs')) {
+            foreach ([
+                ['service' => 'carrier:dhl', 'status' => IntegrationHealthLog::STATUS_HEALTHY, 'response_time_ms' => 220, 'error_rate' => 0.0, 'total_requests' => 140, 'failed_requests' => 1],
+                ['service' => 'carrier:fedex', 'status' => IntegrationHealthLog::STATUS_DEGRADED, 'response_time_ms' => 610, 'error_rate' => 1.5, 'total_requests' => 88, 'failed_requests' => 4],
+                ['service' => 'store:shopify', 'status' => IntegrationHealthLog::STATUS_HEALTHY, 'response_time_ms' => 180, 'error_rate' => 0.0, 'total_requests' => 64, 'failed_requests' => 0],
+                ['service' => 'gateway:moyasar', 'status' => IntegrationHealthLog::STATUS_HEALTHY, 'response_time_ms' => 240, 'error_rate' => 0.0, 'total_requests' => 52, 'failed_requests' => 0],
+            ] as $row) {
+                IntegrationHealthLog::query()->updateOrCreate(
+                    ['service' => $row['service']],
+                    array_merge($row, [
+                        'error_message' => null,
+                        'correlation_id' => 'i8a-' . str_replace(':', '-', $row['service']) . '-health',
+                        'metadata' => ['safe' => true],
+                        'checked_at' => now()->subMinutes(20),
+                    ])
+                );
+            }
+        }
+
+        if (Schema::hasTable('tracking_webhooks')) {
+            TrackingWebhook::query()->updateOrCreate(
+                ['carrier_code' => 'dhl', 'message_reference' => 'i8a-dhl-webhook-001'],
+                [
+                    'carrier_code' => 'dhl',
+                    'signature' => 'masked-signature',
+                    'signature_valid' => true,
+                    'message_reference' => 'i8a-dhl-webhook-001',
+                    'replay_token' => 'masked-replay-token',
+                    'source_ip' => '198.51.100.20',
+                    'user_agent' => 'I8A webhook agent',
+                    'headers' => ['x-safe' => 'masked'],
+                    'event_type' => 'shipment.updated',
+                    'tracking_number' => 'I8A-DHL-0001',
+                    'payload' => ['safe' => 'masked'],
+                    'payload_size' => 512,
+                    'status' => TrackingWebhook::STATUS_PROCESSED,
+                    'rejection_reason' => null,
+                    'events_extracted' => 2,
+                    'processing_time_ms' => 140,
+                ]
+            );
+
+            TrackingWebhook::query()->updateOrCreate(
+                ['carrier_code' => 'dhl', 'message_reference' => 'i8b-dhl-webhook-failed-001'],
+                [
+                    'carrier_code' => 'dhl',
+                    'signature' => 'masked-signature-failed',
+                    'signature_valid' => false,
+                    'message_reference' => 'i8b-dhl-webhook-failed-001',
+                    'replay_token' => 'masked-replay-token-failed',
+                    'source_ip' => '198.51.100.21',
+                    'user_agent' => 'I8B webhook agent',
+                    'headers' => ['x-safe' => 'masked'],
+                    'event_type' => 'shipment.updated',
+                    'tracking_number' => 'I8B-DHL-0002',
+                    'payload' => ['safe' => 'masked'],
+                    'payload_size' => 480,
+                    'status' => TrackingWebhook::STATUS_REJECTED,
+                    'rejection_reason' => 'Signature validation failed for the stored webhook delivery.',
+                    'events_extracted' => 0,
+                    'processing_time_ms' => 92,
+                ]
+            );
+        }
+
+        if (Schema::hasTable('feature_flags')) {
+            foreach ([
+                ['key' => 'carrier_dhl', 'name' => 'Carrier DHL', 'description' => 'Enable DHL carrier workflows', 'is_enabled' => true],
+                ['key' => 'ecommerce_shopify', 'name' => 'Ecommerce Shopify', 'description' => 'Enable Shopify store connector', 'is_enabled' => true],
+                ['key' => 'payment_moyasar', 'name' => 'Payment Moyasar', 'description' => 'Enable Moyasar payment gateway', 'is_enabled' => true],
+                ['key' => 'internal_ops_visibility_fixture', 'name' => 'I8D Internal Ops Fixture', 'description' => 'Seeded DB-backed flag for safe internal feature-flag verification.', 'is_enabled' => true],
+            ] as $flag) {
+                FeatureFlag::query()->updateOrCreate(
+                    ['key' => $flag['key']],
+                    array_merge($flag, [
+                        'rollout_percentage' => $flag['key'] === 'internal_ops_visibility_fixture' ? 50 : 100,
+                        'target_accounts' => $flag['key'] === 'internal_ops_visibility_fixture'
+                            ? [(string) $accounts['c']->id]
+                            : [],
+                        'target_plans' => $flag['key'] === 'internal_ops_visibility_fixture'
+                            ? ['enterprise']
+                            : [],
+                        'created_by' => 'e2e-seeder',
+                    ])
+                );
+            }
+        }
+
+        if (Schema::hasTable('api_keys')) {
+            $internalSuperAdminId = (string) User::query()->withoutGlobalScopes()
+                ->where('email', 'e2e.internal.super_admin@example.test')
+                ->value('id');
+
+            $activeRawKey = 'sgw_i8c_seed_active_001';
+            ApiKey::query()->withoutGlobalScopes()->updateOrCreate(
+                [
+                    'account_id' => (string) $accounts['c']->id,
+                    'name' => 'I8C Active Operations Key',
+                ],
+                [
+                    'created_by' => $internalSuperAdminId,
+                    'key_prefix' => substr($activeRawKey, 0, 8),
+                    'key_hash' => hash('sha256', $activeRawKey),
+                    'scopes' => ['shipments:read'],
+                    'allowed_ips' => ['203.0.113.20'],
+                    'last_used_at' => now()->subHours(4),
+                    'expires_at' => now()->addDays(30),
+                    'revoked_at' => null,
+                    'is_active' => true,
+                    'created_at' => now()->subDays(4),
+                    'updated_at' => now()->subHours(4),
+                ]
+            );
+
+            $revokedRawKey = 'sgw_i8c_seed_revoked_001';
+            ApiKey::query()->withoutGlobalScopes()->updateOrCreate(
+                [
+                    'account_id' => (string) $accounts['a']->id,
+                    'name' => 'I8C Revoked Legacy Key',
+                ],
+                [
+                    'created_by' => $internalSuperAdminId,
+                    'key_prefix' => substr($revokedRawKey, 0, 8),
+                    'key_hash' => hash('sha256', $revokedRawKey),
+                    'scopes' => ['shipments:read'],
+                    'allowed_ips' => ['198.51.100.44'],
+                    'last_used_at' => now()->subDays(8),
+                    'expires_at' => now()->addDays(7),
+                    'revoked_at' => now()->subDays(2),
+                    'is_active' => false,
+                    'created_at' => now()->subDays(12),
+                    'updated_at' => now()->subDays(2),
+                ]
+            );
+        }
     }
 
     /**
@@ -1910,6 +2258,198 @@ class E2EUserMatrixSeeder extends Seeder
     /**
      * @param array<int, string> $permissionKeys
      */
+    /**
+     * @param array<string, Account> $accounts
+     * @param array<string, array<string, User>> $externalUsers
+     * @param array{super_admin: User, support: User} $internalUsers
+     */
+    private function seedDeterministicTicketFixtures(array $accounts, array $externalUsers, array $internalUsers): void
+    {
+        if (! Schema::hasTable('support_tickets')) {
+            return;
+        }
+
+        $numberColumn = Schema::hasColumn('support_tickets', 'ticket_number') ? 'ticket_number' : 'reference_number';
+        $bodyColumn = Schema::hasColumn('support_tickets', 'description') ? 'description' : 'body';
+        $shipmentIdAcceptsCurrentShipmentIds = Schema::hasColumn('support_tickets', 'shipment_id')
+            && Schema::getColumnType('support_tickets', 'shipment_id') !== 'bigint';
+        $entityColumns = Schema::hasColumn('support_tickets', 'entity_type') && Schema::hasColumn('support_tickets', 'entity_id');
+        $assignedToAcceptsCurrentUserIds = Schema::hasColumn('support_tickets', 'assigned_to')
+            && Schema::getColumnType('support_tickets', 'assigned_to') !== 'bigint';
+
+        $shipmentA = Shipment::query()->withoutGlobalScopes()->where('reference_number', 'SHP-I5A-A-001')->first();
+        $shipmentC = Shipment::query()->withoutGlobalScopes()->where('reference_number', 'SHP-I5A-C-001')->first();
+        $shipmentD = Shipment::query()->withoutGlobalScopes()->where('reference_number', 'SHP-I5A-D-001')->first();
+
+        $definitions = [
+            [
+                'number' => 'TKT-I9A-C-001',
+                'account' => $accounts['c'],
+                'requester' => $externalUsers['c']['organization_owner'],
+                'assignee' => $internalUsers['support'],
+                'assigned_team' => 'support',
+                'subject' => 'Delayed organization shipment follow-up',
+                'body' => 'Customer reported a delay on the seeded organization shipment and wants an operational update.',
+                'category' => 'shipping',
+                'priority' => 'high',
+                'status' => 'waiting_agent',
+                'shipment' => $shipmentC,
+                'created_at' => now()->subHours(9),
+                'updated_at' => now()->subHours(2),
+            ],
+            [
+                'number' => 'TKT-I9A-A-001',
+                'account' => $accounts['a'],
+                'requester' => $externalUsers['a']['primary'],
+                'assignee' => $internalUsers['super_admin'],
+                'assigned_team' => 'billing',
+                'subject' => 'Wallet charge clarification requested',
+                'body' => 'Customer asked for a safe explanation of a recent wallet charge linked to a shipment purchase.',
+                'category' => 'billing',
+                'priority' => 'medium',
+                'status' => 'resolved',
+                'shipment' => $shipmentA,
+                'created_at' => now()->subDays(2),
+                'updated_at' => now()->subDay(),
+                'resolved_at' => now()->subDay(),
+            ],
+            [
+                'number' => 'TKT-I9A-D-001',
+                'account' => $accounts['d'],
+                'requester' => $externalUsers['d']['organization_admin'],
+                'assignee' => null,
+                'assigned_team' => 'technical',
+                'subject' => 'Tracking event mismatch on recent shipment',
+                'body' => 'Customer flagged a tracking mismatch on the seeded shipment and requested a compliance-safe review.',
+                'category' => 'technical',
+                'priority' => 'urgent',
+                'status' => 'open',
+                'shipment' => $shipmentD,
+                'created_at' => now()->subHours(6),
+                'updated_at' => now()->subHours(1),
+            ],
+        ];
+
+        foreach ($definitions as $definition) {
+            $payload = [
+                'account_id' => (string) $definition['account']->id,
+                'user_id' => (string) $definition['requester']->id,
+                $numberColumn => $definition['number'],
+                'subject' => $definition['subject'],
+                $bodyColumn => $definition['body'],
+                'category' => $definition['category'],
+                'priority' => $definition['priority'],
+                'status' => $definition['status'],
+                'assigned_team' => $definition['assigned_team'],
+                'created_at' => $definition['created_at'],
+                'updated_at' => $definition['updated_at'],
+                'first_response_at' => $definition['assignee'] ? $definition['created_at']->copy()->addHour() : null,
+                'resolved_at' => $definition['resolved_at'] ?? null,
+                'closed_at' => null,
+                'resolution_notes' => isset($definition['resolved_at']) ? 'Customer received the requested billing clarification.' : null,
+            ];
+
+            if ($assignedToAcceptsCurrentUserIds) {
+                $payload['assigned_to'] = $definition['assignee'] ? (string) $definition['assignee']->id : null;
+            }
+
+            if ($shipmentIdAcceptsCurrentShipmentIds && $definition['shipment'] instanceof Shipment) {
+                $payload['shipment_id'] = (string) $definition['shipment']->id;
+            }
+
+            if ($entityColumns && $definition['shipment'] instanceof Shipment) {
+                $payload['entity_type'] = 'shipment';
+                $payload['entity_id'] = (string) $definition['shipment']->id;
+            }
+
+            $ticket = SupportTicket::query()
+                ->withoutGlobalScopes()
+                ->updateOrCreate(
+                    [
+                        'account_id' => (string) $definition['account']->id,
+                        $numberColumn => $definition['number'],
+                    ],
+                    $this->filterExistingColumns('support_tickets', $payload)
+                );
+
+            if (Schema::hasTable('ticket_replies')) {
+                TicketReply::query()
+                    ->withoutGlobalScopes()
+                    ->where('support_ticket_id', (string) $ticket->id)
+                    ->delete();
+
+                $replies = match ($definition['number']) {
+                    'TKT-I9A-C-001' => [
+                        [
+                            'user_id' => (string) $internalUsers['support']->id,
+                            'body' => 'We are checking the latest carrier handoff and will update the customer once the scan settles.',
+                            'is_agent' => true,
+                            'created_at' => $definition['created_at']->copy()->addHours(2),
+                            'updated_at' => $definition['created_at']->copy()->addHours(2),
+                        ],
+                        [
+                            'user_id' => (string) $definition['requester']->id,
+                            'body' => 'Customer confirmed the shipment is still pending delivery and needs an ETA.',
+                            'is_agent' => false,
+                            'created_at' => $definition['created_at']->copy()->addHours(6),
+                            'updated_at' => $definition['created_at']->copy()->addHours(6),
+                        ],
+                    ],
+                    'TKT-I9A-A-001' => [
+                        [
+                            'user_id' => (string) $internalUsers['super_admin']->id,
+                            'body' => 'A billing explanation was shared and the wallet charge matches the linked shipment purchase.',
+                            'is_agent' => true,
+                            'created_at' => $definition['created_at']->copy()->addHours(5),
+                            'updated_at' => $definition['created_at']->copy()->addHours(5),
+                        ],
+                    ],
+                    default => [
+                        [
+                            'user_id' => (string) $definition['requester']->id,
+                            'body' => 'Customer added a follow-up asking for the current shipment status and any restrictions.',
+                            'is_agent' => false,
+                            'created_at' => $definition['created_at']->copy()->addHours(3),
+                            'updated_at' => $definition['created_at']->copy()->addHours(3),
+                        ],
+                    ],
+                };
+
+                foreach ($replies as $reply) {
+                    TicketReply::query()->withoutGlobalScopes()->create([
+                        'support_ticket_id' => (string) $ticket->id,
+                        'user_id' => $reply['user_id'],
+                        'body' => $reply['body'],
+                        'is_agent' => $reply['is_agent'],
+                        'created_at' => $reply['created_at'],
+                        'updated_at' => $reply['updated_at'],
+                    ]);
+                }
+            }
+
+            if (Schema::hasTable('support_ticket_replies')) {
+                SupportTicketReply::query()
+                    ->withoutGlobalScopes()
+                    ->where('ticket_id', (string) $ticket->id)
+                    ->delete();
+
+                if ($definition['number'] === 'TKT-I9A-C-001') {
+                    SupportTicketReply::query()->withoutGlobalScopes()->create(
+                        $this->filterExistingColumns('support_ticket_replies', [
+                            'ticket_id' => (string) $ticket->id,
+                            'user_id' => (string) $internalUsers['super_admin']->id,
+                            'body' => 'Internal escalation note for leadership only.',
+                            'is_internal_note' => true,
+                            'attachments' => ['hidden-note.txt'],
+                            'created_at' => $definition['created_at']->copy()->addHours(7),
+                            'updated_at' => $definition['created_at']->copy()->addHours(7),
+                        ])
+                    );
+                }
+            }
+        }
+    }
+
     private function ensureInternalRole(
         string $name,
         string $displayName,
