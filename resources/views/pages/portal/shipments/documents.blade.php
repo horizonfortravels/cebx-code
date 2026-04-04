@@ -41,7 +41,7 @@
     </div>
 </div>
 
-<div class="grid-2" style="margin-bottom:24px">
+<div class="grid-2-1" style="margin-bottom:24px">
     <x-card title="ملخص الشحنة">
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
             <div>
@@ -94,7 +94,7 @@
         <div style="display:flex;flex-direction:column;gap:14px">
             @foreach($documents as $document)
                 <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;padding:16px;border:1px solid var(--bd);border-radius:18px;background:white">
-                    <div style="display:flex;flex-direction:column;gap:8px;min-width:260px;flex:1">
+                    <div style="display:flex;flex-direction:column;gap:8px;min-width:0;flex:1 1 360px">
                         <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
                             <span style="font-size:18px;font-weight:800;color:var(--tx)">{{ $document['document_type_label'] ?? $document['document_type'] }}</span>
                             <span class="td-mono" style="font-size:12px;color:var(--tm)">{{ $document['format_label'] ?? $document['file_format'] }}</span>
@@ -126,7 +126,7 @@
                             </div>
                         @endif
                     </div>
-                    <div style="display:flex;flex-direction:column;gap:10px;min-width:180px">
+                    <div style="display:flex;flex-direction:column;gap:10px;min-width:0;flex:0 0 200px">
                         <div style="font-size:13px;color:var(--td)">
                             @if($document['available'])
                                 المستند متاح حاليًا للتنزيل.

@@ -2,8 +2,8 @@
 @section('title', 'Internal reports & analytics')
 
 @section('content')
-<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:24px">
-    <div>
+<div class="header-wrap" style="margin-bottom:24px">
+    <div class="header-main">
         <div style="font-size:12px;color:var(--tm);margin-bottom:8px">
             <a href="{{ route('internal.home') }}" style="color:inherit;text-decoration:none">Internal workspace</a>
             <span style="margin:0 6px">/</span>
@@ -14,7 +14,7 @@
             Operational card summaries across shipments, KYC, wallet and billing, compliance, and helpdesk. This hub stays read-only and only shows safe headline metrics before you open the linked internal center for deeper casework.
         </p>
     </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <div class="header-actions">
         <a href="{{ route('internal.reports.index') }}" class="btn btn-s">Refresh</a>
         <a href="{{ route('internal.home') }}" class="btn btn-pr">Back to internal workspace</a>
     </div>
@@ -22,7 +22,7 @@
 
 <div class="card" style="margin-bottom:24px">
     <div class="card-title">Search and filters</div>
-    <form method="GET" action="{{ route('internal.reports.index') }}" data-testid="internal-reports-filter-form" class="filter-grid">
+    <form method="GET" action="{{ route('internal.reports.index') }}" data-testid="internal-reports-filter-form" class="filter-grid-fluid">
         <div>
             <label for="internal-reports-search" style="display:block;font-size:12px;color:var(--tm);margin-bottom:6px">Search</label>
             <input id="internal-reports-search" data-testid="internal-reports-search-input" type="text" name="q" value="{{ $filters['q'] }}" class="input" placeholder="Domain, KPI, or operational summary">
@@ -36,7 +36,7 @@
                 @endforeach
             </select>
         </div>
-        <div style="display:flex;gap:8px">
+        <div class="filter-actions">
             <button type="submit" class="btn btn-pr">Apply</button>
             <a href="{{ route('internal.reports.index') }}" class="btn btn-s">Reset</a>
         </div>
@@ -50,7 +50,7 @@
     </p>
 </div>
 
-<div data-testid="internal-reports-grid" class="grid-auto-300">
+<div data-testid="internal-reports-grid" class="grid-auto-240">
     @forelse($cards as $card)
         <article class="card" data-testid="internal-report-card-{{ $card['key'] }}" style="display:grid;gap:16px">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">
@@ -65,7 +65,7 @@
 
             <p style="margin:0;color:var(--td);line-height:1.8">{{ $card['description'] }}</p>
 
-            <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+            <div class="field-grid-compact">
                 @foreach($card['metrics'] as $metric)
                     <div style="padding:14px;border:1px solid var(--bd);border-radius:16px;background:#fff">
                         <div style="font-size:12px;color:var(--tm);margin-bottom:6px">{{ $metric['label'] }}</div>

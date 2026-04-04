@@ -2,7 +2,7 @@
 @section('title', 'إدارة المتاجر')
 
 @section('content')
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+<div class="header-wrap" style="margin-bottom:24px">
     <h1 style="font-size:24px;font-weight:800;color:var(--tx);margin:0">🏪 المتاجر</h1>
     <button type="button" class="btn btn-pr" data-modal-open="addStore">+ ربط متجر</button>
 </div>
@@ -12,10 +12,10 @@
     $platformNames = ['salla' => 'سلة', 'zid' => 'زد', 'shopify' => 'شوبيفاي', 'woocommerce' => 'ووكومرس'];
 @endphp
 
-<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px">
+<div class="grid-auto-320">
     @forelse($stores as $store)
         <x-card>
-            <div style="display:flex;justify-content:space-between;align-items:flex-start">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap">
                 <div style="display:flex;gap:14px;align-items:center">
                     <div style="width:48px;height:48px;border-radius:12px;background:var(--sf);display:flex;align-items:center;justify-content:center;font-size:24px">
                         {{ $platformIcons[$store->platform] ?? '🏪' }}
@@ -27,7 +27,7 @@
                 </div>
                 <x-badge :status="$store->status" />
             </div>
-            <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:center">
+            <div style="margin-top:14px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
                 <span style="font-size:12px;color:var(--tm)">
                     آخر مزامنة: {{ $store->last_sync_at ? $store->last_sync_at->diffForHumans() : 'لم تتم' }}
                 </span>

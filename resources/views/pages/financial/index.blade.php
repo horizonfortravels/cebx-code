@@ -2,7 +2,7 @@
 @section('title', 'المالية')
 
 @section('content')
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+<div class="header-wrap" style="margin-bottom:24px">
     <h1 style="font-size:24px;font-weight:700;color:var(--tx);margin:0">💳 المالية</h1>
     <div style="display:flex;gap:10px">
         <a href="{{ route('reports.export', 'financial') }}" class="btn btn-s">📥 تصدير</a>

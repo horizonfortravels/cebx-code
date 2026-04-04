@@ -1,10 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'تسجيل الدخول') — Shipping Gateway</title>
+    <title>@yield('title', 'تسجيل الدخول') - Shipping Gateway</title>
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     @include('components.pwa-meta')
@@ -15,12 +15,10 @@
 </head>
 <body>
 <div class="login-page">
-    {{-- لوحة العلامة التجارية (يسار) --}}
     <div class="login-brand" style="@yield('brand-bg', 'background:#1E3A5F')">
         @yield('brand-content')
     </div>
 
-    {{-- لوحة النموذج (يمين) --}}
     <div class="login-form-panel">
         <div class="login-form-card">
             <h1 class="login-form-title">@yield('form-title', 'تسجيل الدخول')</h1>
@@ -81,7 +79,7 @@
             </form>
 
             <div class="back-link" style="@yield('link-color')">
-                <a href="@yield('back-link-url', route('login'))">@yield('back-link-text', '← العودة لاختيار البوابة المناسبة لنوع الحساب')</a>
+                <a href="@yield('back-link-url', route('login'))">@yield('back-link-text', 'العودة إلى اختيار البوابة المناسبة لنوع الحساب')</a>
             </div>
 
             @if (app()->environment('local') && config('features.demo_data', false))
@@ -96,12 +94,12 @@
 <style>
         body {
             margin: 0;
-            min-height: 100dvh;
+            min-height: 100vh;
             overflow-x: hidden;
         }
         .login-page {
             width: 100%;
-            min-height: 100dvh;
+            min-height: 100vh;
             display: grid;
             grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr);
             font-family: 'Tajawal', sans-serif;
@@ -113,12 +111,12 @@
             .login-form-panel { padding: 28px 20px 36px; }
         }
         .login-brand {
-            min-height: 100dvh;
+            min-height: 100vh;
             display: flex;
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            padding: clamp(40px, 4vw, 72px) clamp(32px, 4vw, 64px);
+            padding: clamp(40px, 4vw, 76px) clamp(32px, 4vw, 68px);
             color: #fff;
             text-align: center;
         }
@@ -139,21 +137,21 @@
     margin-bottom: 16px;
 }
 .login-brand .brand-title { font-size: 22px; font-weight: 800; margin: 0 0 8px; }
-.login-brand .brand-desc { font-size: 14px; opacity: .9; line-height: 1.6; margin: 0 0 24px; max-width: 420px; }
+.login-brand .brand-desc { font-size: 14px; opacity: .9; line-height: 1.6; margin: 0 0 24px; max-width: 440px; }
 .login-brand .brand-features { list-style: none; margin: 0; padding: 0; text-align: right; }
 .login-brand .brand-features li { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 13px; opacity: .95; }
 .login-brand .brand-features li span { font-size: 18px; }
         .login-form-panel {
-            min-height: 100dvh;
+            min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: clamp(32px, 4vw, 72px);
+            padding: clamp(36px, 4vw, 80px);
             background: var(--bg, #F8FAFC);
         }
         .login-form-card {
             width: 100%;
-            max-width: clamp(480px, 31vw, 560px);
+            max-width: clamp(480px, 34vw, 560px);
             background: #fff;
             border-radius: 16px;
             padding: 36px 32px;

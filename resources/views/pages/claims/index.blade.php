@@ -2,7 +2,7 @@
 @section('title', 'المطالبات')
 
 @section('content')
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+<div class="header-wrap" style="margin-bottom:24px">
     <h1 style="font-size:24px;font-weight:700;color:var(--tx);margin:0">📋 المطالبات</h1>
     <button class="btn btn-pr" data-modal-open="new-claim">+ مطالبة جديدة</button>
 </div>
@@ -58,12 +58,12 @@
 <x-modal id="new-claim" title="تقديم مطالبة جديدة" wide>
     <form method="POST" action="{{ route('claims.index') }}">
         @csrf
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="form-grid-2">
             <div><label class="form-label">رقم الشحنة</label><input type="text" name="shipment_reference" class="form-input" placeholder="SHP-XXXXX" required></div>
             <div><label class="form-label">نوع المطالبة</label><select name="type" class="form-input"><option value="damage">تلف</option><option value="loss">فقدان</option><option value="delay">تأخير</option><option value="overcharge">مبالغة في الرسوم</option></select></div>
             <div><label class="form-label">المبلغ المطلوب (SAR)</label><input type="number" name="amount" class="form-input" step="0.01" required></div>
             <div><label class="form-label">المرفقات</label><input type="file" name="attachments[]" class="form-input" multiple></div>
-            <div style="grid-column:span 2"><label class="form-label">الوصف</label><textarea name="description" class="form-input" rows="3" placeholder="وصف تفصيلي للمطالبة..."></textarea></div>
+            <div style="grid-column:1 / -1"><label class="form-label">الوصف</label><textarea name="description" class="form-input" rows="3" placeholder="وصف تفصيلي للمطالبة..."></textarea></div>
         </div>
         <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px">
             <button type="button" class="btn btn-s" data-modal-close>إلغاء</button>

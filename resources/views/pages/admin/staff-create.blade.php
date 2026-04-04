@@ -2,8 +2,8 @@
 @section('title', 'إضافة موظف داخلي')
 
 @section('content')
-<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:24px">
-    <div>
+<div class="header-wrap" style="margin-bottom:24px">
+    <div class="header-main">
         <div style="font-size:12px;color:var(--tm);margin-bottom:8px">
             <a href="{{ route('internal.home') }}" style="color:inherit;text-decoration:none">المساحة الداخلية</a>
             <span style="margin:0 6px">/</span>
@@ -16,7 +16,7 @@
             أنشئ حسابًا داخليًا جديدًا مع دور معتمد واحد فقط. يمكنك إنشاء كلمة المرور مباشرة، أو دعوة الموظف عبر رابط إعداد كلمة المرور باستخدام المسار الآمن نفسه المستخدم في المنصة.
         </p>
     </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <div class="header-actions">
         <a href="{{ route('internal.staff.index') }}" class="btn btn-s">العودة إلى الدليل</a>
     </div>
 </div>
@@ -25,11 +25,11 @@
     <x-toast type="error" :message="$errors->first()" />
 @endif
 
-<form method="POST" action="{{ route('internal.staff.store') }}" class="grid-2" data-testid="internal-staff-create-form">
+<form method="POST" action="{{ route('internal.staff.store') }}" class="grid-main-sidebar" data-testid="internal-staff-create-form">
     @csrf
 
     <x-card title="الملف الأساسي">
-        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+        <div class="form-grid-2">
             <div>
                 <label for="name" style="display:block;font-size:12px;color:var(--tm);margin-bottom:6px">الاسم</label>
                 <input id="name" name="name" type="text" class="input" value="{{ old('name') }}" required>
@@ -50,7 +50,7 @@
     </x-card>
 
     <x-card title="الدور المعتمد">
-        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+        <div class="form-grid-2">
             <div style="grid-column:1 / -1">
                 <label for="role" style="display:block;font-size:12px;color:var(--tm);margin-bottom:6px">الدور الداخلي</label>
                 <select id="role" name="role" class="input" data-testid="staff-role-select">
@@ -66,7 +66,7 @@
     </x-card>
 
     <x-card title="إنشاء مباشر بكلمة مرور" style="grid-column:1 / -1">
-        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+        <div class="form-grid-2">
             <div>
                 <label for="password" style="display:block;font-size:12px;color:var(--tm);margin-bottom:6px">كلمة المرور</label>
                 <input id="password" name="password" type="password" class="input" autocomplete="new-password">

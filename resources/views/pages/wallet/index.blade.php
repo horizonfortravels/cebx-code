@@ -2,7 +2,7 @@
 @section('title', 'المحفظة')
 
 @section('content')
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+<div class="header-wrap" style="margin-bottom:24px">
     <h1 style="font-size:24px;font-weight:800;color:var(--tx);margin:0">💰 المحفظة</h1>
     <button type="button" class="btn btn-pr" data-modal-open="topup">+ شحن الرصيد</button>
 </div>

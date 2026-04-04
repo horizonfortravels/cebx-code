@@ -2,7 +2,7 @@
 @section('title', 'البضائع الخطرة (DG)')
 
 @section('content')
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+<div class="header-wrap" style="margin-bottom:24px">
     <h1 style="font-size:24px;font-weight:700;color:var(--tx);margin:0">☣️ البضائع الخطرة (DG)</h1>
     <button class="btn btn-pr" data-modal-open="add-dg">+ تصنيف جديد</button>
 </div>
@@ -82,10 +82,10 @@
 <x-modal id="add-dg" title="إضافة تصنيف DG">
     <form method="POST" action="{{ route('dg.index') }}">
         @csrf
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="form-grid-2">
             <div><label class="form-label">رقم الفئة</label><input type="number" name="class_number" class="form-input" min="1" max="9" required></div>
             <div><label class="form-label">القسم</label><input type="text" name="division" class="form-input" placeholder="مثال: 1"></div>
-            <div style="grid-column:span 2"><label class="form-label">الوصف</label><input type="text" name="description" class="form-input" placeholder="وصف التصنيف"></div>
+            <div style="grid-column:1 / -1"><label class="form-label">الوصف</label><input type="text" name="description" class="form-input" placeholder="وصف التصنيف"></div>
             <div><label class="form-label">UN Number</label><input type="text" name="un_number" class="form-input" placeholder="UN1234"></div>
             <div><label class="form-label">مجموعة التعبئة</label><select name="packing_group" class="form-input"><option value="">—</option><option>I</option><option>II</option><option>III</option></select></div>
         </div>

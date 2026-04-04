@@ -2,12 +2,12 @@
 @section('title', 'دفتر العناوين')
 
 @section('content')
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+<div class="header-wrap" style="margin-bottom:24px">
     <h1 style="font-size:24px;font-weight:800;color:var(--tx);margin:0">📒 دفتر العناوين</h1>
     <button type="button" class="btn btn-pr" data-modal-open="addAddress">+ عنوان جديد</button>
 </div>
 
-<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:16px">
+<div class="grid-auto-320">
     @forelse($addresses as $addr)
         <x-card>
             <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
@@ -45,15 +45,15 @@
 <x-modal id="addAddress" title="إضافة عنوان جديد">
     <form method="POST" action="{{ route('addresses.store') }}">
         @csrf
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div class="form-grid-2" style="margin-bottom:12px">
             <div><label class="form-label">التسمية</label><input type="text" name="label" class="form-input" placeholder="المنزل, المكتب"></div>
             <div><label class="form-label">الاسم</label><input type="text" name="name" class="form-input" required></div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div class="form-grid-2" style="margin-bottom:12px">
             <div><label class="form-label">الهاتف</label><input type="text" name="phone" class="form-input" required></div>
             <div><label class="form-label">المدينة</label><input type="text" name="city" class="form-input" required></div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+        <div class="form-grid-2" style="margin-bottom:12px">
             <div><label class="form-label">الحي</label><input type="text" name="district" class="form-input"></div>
             <div><label class="form-label">الرمز البريدي</label><input type="text" name="postal_code" class="form-input"></div>
         </div>

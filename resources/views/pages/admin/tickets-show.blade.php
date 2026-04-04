@@ -100,7 +100,7 @@
     </section>
 </div>
 
-<div class="grid-2">
+<div class="grid-2" style="margin-bottom:24px">
     <section class="card" data-testid="internal-ticket-request-card">
         <div class="card-title">Request summary</div>
         <div style="font-size:14px;line-height:1.8;color:var(--tx)">{{ $detail['description'] }}</div>
@@ -123,6 +123,52 @@
                 </article>
             @endforeach
         </div>
+
+        @if($canManageThread)
+            <form method="POST" action="{{ route('internal.tickets.reply.store', $detail['route_key']) }}" style="margin-top:18px;border-top:1px solid var(--bd);padding-top:16px" data-testid="internal-ticket-reply-form">
+                @csrf
+                <label class="form-label" for="internal-ticket-reply-body">Add customer-visible support reply</label>
+                <textarea id="internal-ticket-reply-body" name="body" class="form-input" rows="4" required data-testid="internal-ticket-reply-body" placeholder="Write the next customer-visible reply.">{{ old('body') }}</textarea>
+                <div style="display:flex;justify-content:flex-end;margin-top:12px">
+                    <button type="submit" class="btn btn-pr" data-testid="internal-ticket-reply-submit">Send reply</button>
+                </div>
+            </form>
+        @endif
     </section>
 </div>
+
+<section class="card" data-testid="internal-ticket-notes-card">
+    <div class="card-title">Internal notes</div>
+    <div style="font-size:13px;color:var(--td);margin-bottom:12px">{{ $detail['internal_notes_summary'] }}</div>
+
+    @if($detail['internal_notes_count'] > 0)
+        <div style="display:flex;flex-direction:column;gap:12px">
+            @foreach($detail['internal_notes'] as $note)
+                <article style="padding:12px;border:1px solid var(--bd);border-radius:12px;background:rgba(15,23,42,.02)" data-testid="internal-ticket-note-entry">
+                    <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap">
+                        <div>
+                            <div style="font-weight:700;color:var(--tx)">{{ $note['actor_label'] }}</div>
+                            <div style="font-size:12px;color:var(--td)">{{ $note['actor_name'] }}</div>
+                        </div>
+                        <div style="font-size:12px;color:var(--td)">{{ $note['created_at_label'] }}</div>
+                    </div>
+                    <div style="font-size:13px;color:var(--tx);margin-top:8px">{{ $note['body'] }}</div>
+                </article>
+            @endforeach
+        </div>
+    @else
+        <div style="font-size:13px;color:var(--td)">No internal notes recorded yet.</div>
+    @endif
+
+    @if($canManageThread)
+        <form method="POST" action="{{ route('internal.tickets.notes.store', $detail['route_key']) }}" style="margin-top:18px;border-top:1px solid var(--bd);padding-top:16px" data-testid="internal-ticket-note-form">
+            @csrf
+            <label class="form-label" for="internal-ticket-note-body">Add internal note</label>
+            <textarea id="internal-ticket-note-body" name="body" class="form-input" rows="4" required data-testid="internal-ticket-note-body" placeholder="Write internal-only context for support and operations.">{{ old('body') }}</textarea>
+            <div style="display:flex;justify-content:flex-end;margin-top:12px">
+                <button type="submit" class="btn btn-s" data-testid="internal-ticket-note-submit">Save internal note</button>
+            </div>
+        </form>
+    @endif
+</section>
 @endsection

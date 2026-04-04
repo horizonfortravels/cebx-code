@@ -54,6 +54,10 @@ class InternalTicketReadService
         'closed' => 'Closed',
     ];
 
+    public function __construct(
+        private readonly SupportTicketConversationService $conversationService,
+    ) {}
+
     /**
      * @param array{q: string, status: string, priority: string, category: string, account_id: string, shipment_scope: string, assignee_id: string} $filters
      */
@@ -438,77 +442,7 @@ class InternalTicketReadService
      */
     private function activityByTicket(Collection $tickets): Collection
     {
-        $ticketIds = $tickets->pluck('id')
-            ->map(static fn ($id): string => (string) $id)
-            ->values()
-            ->all();
-
-        if ($ticketIds === []) {
-            return collect();
-        }
-
-        $items = collect();
-
-        if (Schema::hasTable('ticket_replies')) {
-            $legacyReplies = TicketReply::query()
-                ->withoutGlobalScopes()
-                ->with('user')
-                ->whereIn('support_ticket_id', $ticketIds)
-                ->get()
-                ->map(function (TicketReply $reply): array {
-                    return [
-                        'ticket_id' => (string) $reply->support_ticket_id,
-                        'actor_label' => (bool) $reply->is_agent ? 'Support reply' : 'Requester reply',
-                        'actor_name' => $reply->user?->name ? (string) $reply->user->name : 'Unknown user',
-                        'body' => $this->safeText((string) ($reply->body ?? '')),
-                        'created_at' => $reply->created_at,
-                        'created_at_label' => $this->displayDateTime($reply->created_at) ?? 'N/A',
-                    ];
-                });
-
-            $items = $items->concat($legacyReplies);
-        }
-
-        if (Schema::hasTable('support_ticket_replies')) {
-            $modernReplies = SupportTicketReply::query()
-                ->withoutGlobalScopes()
-                ->with('user')
-                ->whereIn('ticket_id', $ticketIds)
-                ->get()
-                ->filter(static fn (SupportTicketReply $reply): bool => ! (bool) $reply->is_internal_note)
-                ->map(function (SupportTicketReply $reply): array {
-                    $actorLabel = $reply->user?->user_type === 'internal'
-                        ? 'Internal reply'
-                        : 'Requester reply';
-
-                    return [
-                        'ticket_id' => (string) $reply->ticket_id,
-                        'actor_label' => $actorLabel,
-                        'actor_name' => $reply->user?->name ? (string) $reply->user->name : 'Unknown user',
-                        'body' => $this->safeText((string) ($reply->body ?? '')),
-                        'created_at' => $reply->created_at,
-                        'created_at_label' => $this->displayDateTime($reply->created_at) ?? 'N/A',
-                    ];
-                });
-
-            $items = $items->concat($modernReplies);
-        }
-
-        return $items
-            ->groupBy('ticket_id')
-            ->map(function (Collection $rows): array {
-                $latest = $rows->sortByDesc('created_at')->values()->first();
-                $thread = $rows->sortBy('created_at')->values();
-
-                return [
-                    'summary' => is_array($latest)
-                        ? sprintf('%s - %s', $latest['actor_label'], $latest['created_at_label'])
-                        : 'No reply activity recorded yet',
-                    'latest_at_label' => is_array($latest) ? $latest['created_at_label'] : 'N/A',
-                    'count' => $thread->count(),
-                    'items' => $thread,
-                ];
-            });
+        return $this->conversationService->summarizedCustomerVisibleThreadForTickets($tickets);
     }
 
     /**

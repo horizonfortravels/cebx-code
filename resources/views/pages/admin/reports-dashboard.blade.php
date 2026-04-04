@@ -2,8 +2,8 @@
 @section('title', $dashboard['title'])
 
 @section('content')
-<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:24px">
-    <div>
+<div class="header-wrap" style="margin-bottom:24px">
+    <div class="header-main">
         <div style="font-size:12px;color:var(--tm);margin-bottom:8px">
             <a href="{{ route('internal.home') }}" style="color:inherit;text-decoration:none">Internal workspace</a>
             <span style="margin:0 6px">/</span>
@@ -16,7 +16,7 @@
             {{ $dashboard['description'] }}
         </p>
     </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <div class="header-actions">
         <a href="{{ route('internal.reports.index') }}" class="btn btn-s">Back to reports hub</a>
         @if($canExport ?? false)
             <a href="{{ route('internal.reports.' . $dashboard['key'] . '.export', request()->query()) }}"
@@ -44,7 +44,7 @@
     @endforeach
 </div>
 
-<div class="grid-auto-300" style="margin-bottom:24px">
+<div class="grid-auto-240" style="margin-bottom:24px">
     @foreach($dashboard['breakdowns'] as $group)
         <div class="card" data-testid="internal-report-breakdown-card">
             <div class="card-title">{{ $group['title'] }}</div>
@@ -78,7 +78,7 @@
     </div>
 </div>
 
-<div class="grid-auto-300">
+<div class="grid-main-sidebar-tight">
     <div class="card" data-testid="internal-report-actions-card">
         <div class="card-title">Action-oriented summaries</div>
         <div style="display:grid;gap:12px">

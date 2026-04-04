@@ -2,8 +2,8 @@
 @section('title', 'Shipment Detail')
 
 @section('content')
-<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:24px">
-    <div>
+<div class="header-wrap" style="margin-bottom:24px">
+    <div class="header-main">
         <div style="font-size:12px;color:var(--tm);margin-bottom:8px">
             <a href="{{ route('internal.home') }}" style="color:inherit;text-decoration:none">Internal workspace</a>
             <span style="margin:0 6px">/</span>
@@ -16,7 +16,7 @@
             Read-only internal shipment visibility with normalized status, carrier artifacts, public tracking state, and linked KYC impact summaries. This page intentionally hides raw document storage paths, carrier payloads, private token values, and other unsafe metadata.
         </p>
     </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <div class="header-actions">
         <a href="{{ route('internal.shipments.index') }}" class="btn btn-s">Back to queue</a>
         <a href="{{ route('internal.shipments.show', $shipment) }}" class="btn btn-pr">Refresh detail</a>
     </div>
@@ -86,7 +86,7 @@
     </div>
 </section>
 
-<div class="grid-2" style="margin-bottom:24px">
+<div class="grid-main-sidebar-tight" style="margin-bottom:24px">
     <section class="card" data-testid="internal-shipment-summary-card">
         <div class="card-title">Shipment summary</div>
         <dl style="display:grid;grid-template-columns:minmax(120px,170px) 1fr;gap:10px 14px;margin:0">
@@ -148,7 +148,7 @@
     </section>
 </div>
 
-<div class="grid-2" style="margin-bottom:24px">
+<div class="grid-main-sidebar-tight" style="margin-bottom:24px">
     <section class="card" data-testid="internal-shipment-operational-state-card">
         <div class="card-title">Carrier and tracking</div>
         <dl style="display:grid;grid-template-columns:minmax(120px,170px) 1fr;gap:10px 14px;margin:0">
@@ -212,7 +212,7 @@
     </section>
 </div>
 
-<div class="grid-2" style="margin-bottom:24px">
+<div class="grid-main-sidebar-tight" style="margin-bottom:24px">
     <section class="card" data-testid="internal-shipment-timeline-card">
         <div class="card-title">Timeline preview</div>
         <div style="font-size:13px;color:var(--td);margin-bottom:12px">
@@ -276,7 +276,7 @@
     @if(!$notifications['visible'])
         <div class="empty-state">Notification visibility is not enabled for this role.</div>
     @else
-        <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-bottom:14px">
+        <div class="grid-auto-200" style="margin-bottom:14px">
             <div>
                 <div style="font-size:12px;color:var(--tm)">Total projections</div>
                 <div style="font-weight:700;color:var(--tx)">{{ number_format($notifications['total_count']) }}</div>
@@ -331,7 +331,7 @@
 <section class="card" data-testid="internal-shipment-kyc-summary-card">
     <div class="card-title">KYC and restriction effect</div>
     @if($kycSummary)
-        <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px">
+        <div class="grid-auto-200">
             <div>
                 <div style="font-size:12px;color:var(--tm)">KYC status</div>
                 <div style="font-weight:700;color:var(--tx)">{{ $kycSummary['label'] }}</div>

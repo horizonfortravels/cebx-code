@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>غير متصل — Shipping Gateway</title>
+    <title>غير متصل - Shipping Gateway</title>
     <style>
         :root {
             --bg: #0B0F1A;
@@ -30,7 +30,7 @@
         .offline-container {
             text-align: center;
             padding: 40px 24px;
-            max-width: 480px;
+            max-width: 620px;
         }
         .offline-icon {
             width: 120px;
@@ -156,12 +156,12 @@
         </h1>
 
         <p>
-            يبدو أنك غير متصل بالإنترنت حالياً.
-            <br>تحقق من اتصالك وحاول مرة أخرى.
+            يبدو أنك غير متصل بالإنترنت حاليًا.
+            <br>تحقق من اتصالك ثم حاول مرة أخرى.
         </p>
 
         <button class="retry-btn" onclick="window.location.reload()">
-            ↻ إعادة المحاولة
+            إعادة المحاولة
         </button>
 
         <div class="cached-pages" id="cached-section" style="display:none">
@@ -171,7 +171,6 @@
     </div>
 
     <script>
-        // عرض الصفحات المخزنة مؤقتاً
         if ('caches' in window) {
             caches.open('dynamic-sg-v1.0.0').then(cache => {
                 cache.keys().then(keys => {
@@ -184,15 +183,15 @@
                         document.getElementById('cached-section').style.display = 'block';
                         const container = document.getElementById('cached-links');
                         const routeNames = {
-                            '/': '🏠 لوحة التحكم',
-                            '/shipments': '📦 الشحنات',
-                            '/orders': '🛒 الطلبات',
-                            '/stores': '🏪 المتاجر',
-                            '/wallet': '💰 المحفظة',
-                            '/users': '👥 المستخدمين',
-                            '/support': '🎧 الدعم',
-                            '/notifications': '🔔 الإشعارات',
-                            '/settings': '⚙ الإعدادات',
+                            '/': 'لوحة التحكم',
+                            '/shipments': 'الشحنات',
+                            '/orders': 'الطلبات',
+                            '/stores': 'المتاجر',
+                            '/wallet': 'المحفظة',
+                            '/users': 'المستخدمون',
+                            '/support': 'الدعم',
+                            '/notifications': 'الإشعارات',
+                            '/settings': 'الإعدادات',
                         };
                         htmlPages.forEach(req => {
                             const path = new URL(req.url).pathname;
@@ -206,7 +205,6 @@
             });
         }
 
-        // التحقق التلقائي من عودة الاتصال
         window.addEventListener('online', () => {
             window.location.reload();
         });

@@ -2,7 +2,7 @@
 @section('title', 'التقارير')
 
 @section('content')
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+<div class="header-wrap" style="margin-bottom:24px">
     <h1 style="font-size:24px;font-weight:800;color:var(--tx);margin:0">📊 التقارير</h1>
     <a href="{{ route('reports.export', 'pdf') }}" class="btn btn-s">📥 تصدير PDF</a>
 </div>
@@ -14,7 +14,7 @@
     <x-stat-card icon="💰" label="إجمالي التكاليف" :value="number_format($totalCost)" />
 </div>
 
-<div class="grid-2">
+<div class="grid-main-sidebar-tight">
     <x-card title="🚚 توزيع الناقلين">
         @php
             $carriers = \App\Models\Shipment::where('account_id', auth()->user()->account_id)
@@ -45,16 +45,18 @@
                 ->whereNotNull('recipient_city')
                 ->groupBy('recipient_city')->orderByDesc('total')->take(5)->get();
         @endphp
-        <table style="width:100%">
-            <tbody>
-                @foreach($cities as $i => $city)
-                    <tr style="border-bottom:1px solid var(--sf)">
-                        <td style="padding:10px 8px;font-size:13px;font-weight:600">{{ $i + 1 }}. {{ $city->recipient_city }}</td>
-                        <td style="padding:10px 8px;font-size:13px;color:var(--pr);font-weight:700;text-align:left">{{ $city->total }}</td>
-                    </tr>
-                @endforeach
-            </tbody>
-        </table>
+        <div class="table-wrap">
+            <table style="width:100%">
+                <tbody>
+                    @foreach($cities as $i => $city)
+                        <tr style="border-bottom:1px solid var(--sf)">
+                            <td style="padding:10px 8px;font-size:13px;font-weight:600">{{ $i + 1 }}. {{ $city->recipient_city }}</td>
+                            <td style="padding:10px 8px;font-size:13px;color:var(--pr);font-weight:700;text-align:left">{{ $city->total }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        </div>
     </x-card>
 </div>
 @endsection

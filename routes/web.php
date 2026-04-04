@@ -26,6 +26,7 @@ use App\Http\Controllers\Web\InternalShipmentReadCenterController;
 use App\Http\Controllers\Web\InternalStaffManagementController;
 use App\Http\Controllers\Web\InternalStaffReadCenterController;
 use App\Http\Controllers\Web\InternalSmtpSettingsController;
+use App\Http\Controllers\Web\InternalTicketConversationController;
 use App\Http\Controllers\Web\InternalTicketManagementController;
 use App\Http\Controllers\Web\InternalTicketReadCenterController;
 use App\Http\Controllers\Web\InternalTicketWorkflowController;
@@ -371,6 +372,16 @@ Route::middleware(['auth:web', 'userType:internal'])->prefix('internal')->name('
 
     Route::middleware([
         'permission:tickets.manage',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_TICKETS_THREAD_ACTIONS,
+    ])->group(function (): void {
+        Route::post('/tickets/{ticket}/reply', [InternalTicketConversationController::class, 'storeReply'])
+            ->name('tickets.reply.store');
+        Route::post('/tickets/{ticket}/notes', [InternalTicketConversationController::class, 'storeInternalNote'])
+            ->name('tickets.notes.store');
+    });
+
+    Route::middleware([
+        'permission:tickets.manage',
         'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_TICKETS_ACTIONS,
     ])->group(function (): void {
         Route::post('/tickets/{ticket}/triage', [InternalTicketWorkflowController::class, 'updateTriage'])
@@ -379,8 +390,6 @@ Route::middleware(['auth:web', 'userType:internal'])->prefix('internal')->name('
             ->name('tickets.status');
         Route::post('/tickets/{ticket}/assignment', [InternalTicketWorkflowController::class, 'updateAssignment'])
             ->name('tickets.assignment');
-        Route::post('/tickets/{ticket}/notes', [InternalTicketWorkflowController::class, 'storeInternalNote'])
-            ->name('tickets.notes.store');
     });
 
     Route::middleware([

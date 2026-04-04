@@ -1,4 +1,4 @@
-﻿@extends('layouts.auth')
+@extends('layouts.auth')
 
 @section('title', 'تسجيل الدخول')
 
@@ -12,10 +12,10 @@
 @endsection
 
 @section('form-title', 'تسجيل الدخول')
-@section('form-subtitle', 'أدخل بياناتك للدخول')
+@section('form-subtitle', 'أدخل بياناتك للمتابعة')
 @section('form-action', route('login'))
 @section('email-placeholder', 'you@company.sa')
 @section('input-focus-style', '')
 @section('btn-text', 'تسجيل الدخول')
 @section('back-link-url', url('/'))
-@section('back-link-text', '← العودة لاختيار البوابة المناسبة')
+@section('back-link-text', 'العودة إلى صفحة اختيار البوابة')

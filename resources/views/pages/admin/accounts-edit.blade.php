@@ -2,8 +2,8 @@
 @section('title', 'تحرير حساب العميل')
 
 @section('content')
-<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:24px">
-    <div>
+<div class="header-wrap" style="margin-bottom:24px">
+    <div class="header-main">
         <div style="font-size:12px;color:var(--tm);margin-bottom:8px">
             <a href="{{ route('internal.home') }}" style="color:inherit;text-decoration:none">المساحة الداخلية</a>
             <span style="margin:0 6px">/</span>
@@ -18,7 +18,7 @@
             عدّل الحقول الأساسية للحساب الخارجي دون تغيير نوع الحساب أو الدخول في إدارة الأعضاء والدعوات في هذه الخطوة.
         </p>
     </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <div class="header-actions">
         <a href="{{ route('internal.accounts.show', $account) }}" class="btn btn-s">العودة إلى الملخص</a>
     </div>
 </div>
@@ -27,12 +27,12 @@
     <x-toast type="error" :message="$errors->first()" />
 @endif
 
-<form method="POST" action="{{ route('internal.accounts.update', $account) }}" class="grid-2">
+<form method="POST" action="{{ route('internal.accounts.update', $account) }}" class="grid-main-sidebar">
     @csrf
     @method('PUT')
 
     <x-card title="بيانات الحساب">
-        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+        <div class="form-grid-2">
             <div style="grid-column:1 / -1">
                 <label for="name" style="display:block;font-size:12px;color:var(--tm);margin-bottom:6px">اسم الحساب</label>
                 <input id="name" name="name" type="text" class="input" value="{{ old('name', $account->name) }}" required>
@@ -74,7 +74,7 @@
 
     <x-card title="المالك الأساسي">
         @if($owner)
-            <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+            <div class="form-grid-2">
                 <div>
                     <div style="font-size:12px;color:var(--tm);margin-bottom:6px">الاسم</div>
                     <div class="input" style="display:flex;align-items:center">{{ $owner->name }}</div>
@@ -98,7 +98,7 @@
     </x-card>
 
     <x-card title="العنوان" style="grid-column:1 / -1">
-        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">
+        <div class="field-grid-compact">
             <div style="grid-column:1 / -1">
                 <label for="address_line_1" style="display:block;font-size:12px;color:var(--tm);margin-bottom:6px">العنوان 1</label>
                 <input id="address_line_1" name="address_line_1" type="text" class="input" value="{{ old('address_line_1', $account->address_line_1) }}">
@@ -121,7 +121,7 @@
     @if($account->isOrganization())
         @php($organization = $account->organizationProfile)
         <x-card title="ملف المنظمة" style="grid-column:1 / -1">
-            <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">
+            <div class="field-grid-compact">
                 <div>
                     <label for="legal_name" style="display:block;font-size:12px;color:var(--tm);margin-bottom:6px">الاسم القانوني</label>
                     <input id="legal_name" name="legal_name" type="text" class="input" value="{{ old('legal_name', $organization?->legal_name ?? $account->name) }}" required>

@@ -142,7 +142,7 @@
 @if($publicTrackingUrl)
     <x-card title="{{ __('public_tracking.manage.card_title') }}" style="margin-bottom:24px">
         <div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap">
-            <div style="max-width:760px">
+            <div style="max-width:100%">
                 <div style="font-size:14px;color:var(--td);margin-bottom:10px">{{ __('public_tracking.manage.card_description') }}</div>
                 <div class="td-mono" style="padding:12px 14px;border-radius:14px;background:rgba(15,23,42,.04);border:1px solid var(--bd);word-break:break-all">
                     {{ $publicTrackingUrl }}
@@ -176,7 +176,7 @@
     </div>
 @endif
 
-<div class="grid-2" style="margin-bottom:24px">
+<div class="grid-2-1" style="margin-bottom:24px">
     <x-card title="الملخص الحالي">
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px">
             <div>
@@ -305,7 +305,7 @@
     </div>
 </x-card>
 
-<div class="grid-2">
+<div class="grid-2-1">
     <x-card title="التسلسل الزمني">
         @if($events === [])
             <div style="padding:16px;border:1px dashed var(--bd);border-radius:16px;background:rgba(15,23,42,.02)">
@@ -325,7 +325,7 @@
                                     <div style="font-size:17px;font-weight:800;color:var(--tx)">{{ $event['event_type_label'] ?? $event['description'] }}</div>
                                     <div style="color:var(--td);font-size:13px;margin-top:4px">{{ $event['description'] ?? '' }}</div>
                                 </div>
-                                <div style="text-align:left;min-width:170px">
+                                <div style="text-align:left;min-width:0;flex:0 0 auto">
                                     <div style="font-size:13px;color:var(--td);margin-top:4px">
                                         {{ !empty($event['event_time']) ? \Illuminate\Support\Carbon::parse($event['event_time'])->format('Y-m-d H:i') : 'غير محدد' }}
                                     </div>
@@ -401,7 +401,7 @@
             <div style="display:flex;flex-direction:column;gap:12px">
                 @foreach($shipmentNotifications as $notification)
                     <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px;border:1px solid var(--bd);border-radius:16px;background:white">
-                        <div style="max-width:720px">
+                        <div style="max-width:100%">
                             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
                                 <div style="font-weight:800;color:var(--tx)">{{ $notification['subject'] }}</div>
                                 @if(empty($notification['read_at']))
@@ -409,11 +409,11 @@
                                 @endif
                             </div>
                             @if(!empty($notification['body']))
-                                <div style="font-size:13px;color:var(--td);margin-top:6px">{{ $notification['body'] }}</div>
+                                <div style="font-size:13px;color:var(--td);margin-top:6px;max-width:100%">{{ $notification['body'] }}</div>
                             @endif
                             <div class="td-mono" style="font-size:12px;color:var(--tm);margin-top:8px">{{ $notification['event_type_label'] ?? $notification['event_type'] }}</div>
                         </div>
-                        <div style="text-align:left;min-width:150px">
+                        <div style="text-align:left;min-width:0;flex:0 0 auto">
                             <div style="font-size:13px;color:var(--td)">
                                 {{ !empty($notification['created_at']) ? \Illuminate\Support\Carbon::parse($notification['created_at'])->format('Y-m-d H:i') : 'غير محدد' }}
                             </div>

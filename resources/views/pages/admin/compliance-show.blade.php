@@ -2,8 +2,8 @@
 @section('title', 'Compliance Case')
 
 @section('content')
-<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:24px">
-    <div>
+<div class="header-wrap" style="margin-bottom:24px">
+    <div class="header-main">
         <div style="font-size:12px;color:var(--tm);margin-bottom:8px">
             <a href="{{ route('internal.home') }}" style="color:inherit;text-decoration:none">Internal workspace</a>
             <span style="margin:0 6px">/</span>
@@ -16,7 +16,7 @@
             Read-only operational visibility into declaration state, legal acknowledgement, dangerous-goods metadata, and recent compliance audit activity. This page intentionally hides raw waiver text, hashes, IP addresses, user agents, and raw audit payloads.
         </p>
     </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <div class="header-actions">
         @if($canViewShipment && $shipment)
             <a href="{{ route('internal.shipments.show', $shipment) }}" class="btn btn-s" data-testid="internal-compliance-shipment-link">Open linked shipment</a>
         @endif
@@ -77,7 +77,7 @@
     </section>
 @endif
 
-<div class="grid-2" style="margin-bottom:24px">
+<div class="grid-main-sidebar-tight" style="margin-bottom:24px">
     <section class="card" data-testid="internal-compliance-case-summary-card">
         <div class="card-title">Case summary</div>
         <dl style="display:grid;grid-template-columns:minmax(120px,170px) 1fr;gap:10px 14px;margin:0">
@@ -138,7 +138,7 @@
     </section>
 </div>
 
-<div class="grid-2" style="margin-bottom:24px">
+<div class="grid-main-sidebar-tight" style="margin-bottom:24px">
     <section class="card" data-testid="internal-compliance-account-card">
         <div class="card-title">Account and organization context</div>
         @if($accountSummary)
@@ -190,7 +190,7 @@
     </section>
 </div>
 
-<div class="grid-2" style="margin-bottom:24px">
+<div class="grid-main-sidebar-tight" style="margin-bottom:24px">
     <section class="card" data-testid="internal-compliance-workflow-card">
         <div class="card-title">Declaration workflow effect</div>
         <dl style="display:grid;grid-template-columns:minmax(120px,170px) 1fr;gap:10px 14px;margin:0">
@@ -229,7 +229,7 @@
 <section class="card" data-testid="internal-compliance-effects-card" style="margin-bottom:24px">
     <div class="card-title">Current restrictions and operational effect</div>
     @if($restrictionSummary)
-        <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px">
+        <div class="grid-auto-200">
             <div>
                 <div style="font-size:12px;color:var(--tm)">KYC status</div>
                 <div style="font-weight:700;color:var(--tx)">{{ $restrictionSummary['status_label'] }}</div>
@@ -250,7 +250,7 @@
             </div>
         </div>
 
-        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px">
+        <div class="grid-auto-240" style="margin-top:12px">
             <div style="padding:12px;border:1px solid var(--bd);border-radius:12px;background:rgba(15,23,42,.03)">
                 <div style="font-size:12px;color:var(--tm)">Further action</div>
                 <div style="font-weight:700;color:var(--tx)">{{ $restrictionSummary['action_label'] }}</div>
@@ -274,7 +274,7 @@
     @endif
 </section>
 
-<div class="grid-2" style="margin-bottom:24px">
+<div class="grid-main-sidebar-tight" style="margin-bottom:24px">
     <section class="card" data-testid="internal-compliance-dg-card">
         <div class="card-title">Dangerous-goods metadata</div>
         @if($dgMetadataSummary)

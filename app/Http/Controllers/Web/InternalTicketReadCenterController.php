@@ -55,6 +55,7 @@ class InternalTicketReadCenterController extends Controller
             'detail' => $detail,
             'canViewAccount' => $this->canViewAccount($request->user(), $controlPlane),
             'canViewShipment' => $this->canViewShipment($request->user(), $controlPlane),
+            'canManageThread' => $this->canManageThread($request->user(), $controlPlane),
         ]);
     }
 
@@ -87,5 +88,12 @@ class InternalTicketReadCenterController extends Controller
         return $user instanceof User
             && $user->hasPermission('tickets.manage')
             && $controlPlane->canSeeSurface($user, InternalControlPlane::SURFACE_INTERNAL_TICKETS_CREATE);
+    }
+
+    private function canManageThread(?User $user, InternalControlPlane $controlPlane): bool
+    {
+        return $user instanceof User
+            && $user->hasPermission('tickets.manage')
+            && $controlPlane->canSeeSurface($user, InternalControlPlane::SURFACE_INTERNAL_TICKETS_THREAD_ACTIONS);
     }
 }

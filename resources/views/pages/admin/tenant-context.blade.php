@@ -2,13 +2,13 @@
 @section('title', 'اختيار الحساب')
 
 @section('content')
-<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:24px">
-    <div>
+<div class="header-wrap" style="margin-bottom:24px">
+    <div class="header-main">
         <h1 style="font-size:24px;font-weight:700;color:var(--tx);margin:0">اختيار حساب للتصفح الداخلي</h1>
         <p style="color:var(--td);font-size:14px;margin:6px 0 0">هذا الاختيار مؤقت داخل الجلسة فقط. لن يتم ربط المستخدم الداخلي بالحساب بشكل دائم.</p>
     </div>
     @if($selectedAccount)
-        <form action="{{ route('admin.tenant-context.clear') }}" method="POST">
+    <form action="{{ route('admin.tenant-context.clear') }}" method="POST" class="header-actions">
             @csrf
             <button type="submit" class="btn btn-ghost">مسح السياق الحالي</button>
         </form>
@@ -27,8 +27,8 @@
 
 <div class="card" style="margin-bottom:20px">
     <div class="card-title">بحث</div>
-    <form method="GET" action="{{ route('admin.tenant-context') }}" style="display:flex;gap:12px;flex-wrap:wrap">
-        <input type="text" name="q" value="{{ $search }}" placeholder="ابحث باسم الحساب أو slug" class="input" style="max-width:360px">
+    <form method="GET" action="{{ route('admin.tenant-context') }}" class="quick-search-row">
+        <input type="text" name="q" value="{{ $search }}" placeholder="ابحث باسم الحساب أو slug" class="input quick-search-input">
         <input type="hidden" name="redirect" value="{{ $redirectTo }}">
         <button type="submit" class="btn btn-s">بحث</button>
     </form>

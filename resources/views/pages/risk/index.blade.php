@@ -2,7 +2,7 @@
 @section('title', 'إدارة المخاطر')
 
 @section('content')
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+<div class="header-wrap" style="margin-bottom:24px">
     <h1 style="font-size:24px;font-weight:700;color:var(--tx);margin:0">⚠️ إدارة المخاطر</h1>
     <button class="btn btn-pr" data-modal-open="add-rule">+ قاعدة جديدة</button>
 </div>
@@ -98,11 +98,11 @@
 <x-modal id="add-rule" title="إضافة قاعدة مخاطر" wide>
     <form method="POST" action="{{ route('risk.index') }}">
         @csrf
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
-            <div style="grid-column:span 2"><label class="form-label">اسم القاعدة</label><input type="text" name="name" class="form-input" required></div>
+        <div class="form-grid-2">
+            <div style="grid-column:1 / -1"><label class="form-label">اسم القاعدة</label><input type="text" name="name" class="form-input" required></div>
             <div><label class="form-label">مستوى المخاطرة</label><select name="risk_level" class="form-input"><option value="low">منخفض</option><option value="medium">متوسط</option><option value="high">عالي</option></select></div>
             <div><label class="form-label">الإجراء</label><select name="action" class="form-input"><option>إيقاف الشحنة</option><option>إشعار المدير</option><option>مراجعة يدوية</option><option>إيقاف + إشعار</option></select></div>
-            <div style="grid-column:span 2"><label class="form-label">وصف الشرط</label><textarea name="condition_description" class="form-input" rows="2" placeholder="مثال: إذا كانت قيمة الشحنة أكثر من 50,000 ريال"></textarea></div>
+            <div style="grid-column:1 / -1"><label class="form-label">وصف الشرط</label><textarea name="condition_description" class="form-input" rows="2" placeholder="مثال: إذا كانت قيمة الشحنة أكثر من 50,000 ريال"></textarea></div>
         </div>
         <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:20px">
             <button type="button" class="btn btn-s" data-modal-close>إلغاء</button>

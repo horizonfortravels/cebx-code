@@ -2,7 +2,7 @@
 @section('title', 'الفروع')
 
 @section('content')
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+<div class="header-wrap" style="margin-bottom:24px">
     <h1 style="font-size:24px;font-weight:700;color:var(--tx);margin:0">🏬 الفروع</h1>
     <button class="btn btn-pr" data-modal-open="add-branch">+ فرع جديد</button>
 </div>
@@ -47,7 +47,7 @@
 <x-modal id="add-branch" title="إضافة فرع جديد" wide>
     <form method="POST" action="{{ route('branches.index') }}">
         @csrf
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="field-grid">
             <div><label class="form-label">اسم الفرع</label><input type="text" name="name" class="form-input" required></div>
             <div><label class="form-label">الكود</label><input type="text" name="code" class="form-input" placeholder="مثال: RUH-01" required></div>
             <div><label class="form-label">المدينة</label><input type="text" name="city" class="form-input" required></div>

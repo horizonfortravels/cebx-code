@@ -2,8 +2,8 @@
 @section('title', 'تحرير موظف داخلي')
 
 @section('content')
-<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:24px">
-    <div>
+<div class="header-wrap" style="margin-bottom:24px">
+    <div class="header-main">
         <div style="font-size:12px;color:var(--tm);margin-bottom:8px">
             <a href="{{ route('internal.home') }}" style="color:inherit;text-decoration:none">المساحة الداخلية</a>
             <span style="margin:0 6px">/</span>
@@ -18,7 +18,7 @@
             عدّل البيانات الأساسية لموظف المنصة وأعد تعيين دوره المعتمد عند الحاجة، مع الإبقاء على دور واحد معتمد فقط في هذا التدفق.
         </p>
     </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <div class="header-actions">
         <a href="{{ route('internal.staff.show', $staffUser) }}" class="btn btn-s">العودة إلى الملف</a>
     </div>
 </div>
@@ -27,12 +27,12 @@
     <x-toast type="error" :message="$errors->first()" />
 @endif
 
-<form method="POST" action="{{ route('internal.staff.update', $staffUser) }}" class="grid-2" data-testid="internal-staff-edit-form">
+<form method="POST" action="{{ route('internal.staff.update', $staffUser) }}" class="grid-main-sidebar" data-testid="internal-staff-edit-form">
     @csrf
     @method('PUT')
 
     <x-card title="الملف الأساسي">
-        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+        <div class="form-grid-2">
             <div>
                 <label for="name" style="display:block;font-size:12px;color:var(--tm);margin-bottom:6px">الاسم</label>
                 <input id="name" name="name" type="text" class="input" value="{{ old('name', $staffUser->name) }}" required>
@@ -53,7 +53,7 @@
     </x-card>
 
     <x-card title="الحوكمة والدور">
-        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+        <div class="form-grid-2">
             <div>
                 <label style="display:block;font-size:12px;color:var(--tm);margin-bottom:6px">الحالة الحالية</label>
                 <div class="input" style="display:flex;align-items:center">{{ $staffUser->status ?? 'active' }}</div>

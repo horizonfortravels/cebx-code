@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shipping Gateway â€” ط§ط®طھط± ط§ظ„ط¨ظˆط§ط¨ط© ط§ظ„ظ…ظ†ط§ط³ط¨ط© ظ„ظ†ظˆط¹ ط§ظ„ط­ط³ط§ط¨</title>
+    <title>Shipping Gateway - اختر البوابة المناسبة لنوع الحساب</title>
     @include('components.pwa-meta')
     <meta name="pwa-sw-url" content="{{ asset('sw.js') }}">
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
@@ -212,7 +212,7 @@
         }
         @media (max-width: 768px) {
             .portal-shell { gap: 32px; }
-            .portals-grid { grid-template-columns: 1fr; max-width: 400px; }
+            .portals-grid { grid-template-columns: 1fr; max-width: 100%; }
             .portal-header h1 { font-size: 24px; }
         }
     </style>
@@ -222,48 +222,46 @@
     <div class="portal-shell">
         <div class="portal-header">
             <div class="logo">
-                <img src="{{ asset('images/logo-auth.png') }}" alt="ط´ط¹ط§ط± Shipping Gateway" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <img src="{{ asset('images/logo-auth.png') }}" alt="شعار Shipping Gateway" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
                 <span class="logo-fallback" style="display:none;">SG</span>
             </div>
             <h1>Shipping Gateway</h1>
-            <p>ط§ط®طھط± ط§ظ„ط¨ظˆط§ط¨ط© ط§ظ„ظ…ظ†ط§ط³ط¨ط© ظ„ظ†ظˆط¹ ط§ظ„ط­ط³ط§ط¨: ط§ظ„ط£ظپط±ط§ط¯ ظ„ظ„ط­ط³ط§ط¨ط§طھ ط§ظ„ظپط±ط¯ظٹط©طŒ ظˆط§ظ„ط£ط¹ظ…ط§ظ„ ظ„ط­ط³ط§ط¨ط§طھ ط§ظ„ظ…ظ†ط¸ظ…ط§طھطŒ ظˆط§ظ„ط¯ط§ط®ظ„ظٹط© ظ„ظ…ظˆط¸ظپظٹ ط§ظ„ظ…ظ†طµط©.</p>
+            <p>اختر البوابة المناسبة لنوع الحساب: بوابة الأفراد للحسابات الفردية، وبوابة الأعمال للحسابات المنظمة، والبوابة الداخلية لموظفي المنصة.</p>
         </div>
 
         <div class="portals-grid">
             <a href="{{ route('b2c.login') }}" class="portal-door b2c">
-                <div class="door-icon">ًں‘¤</div>
+                <div class="door-icon">👤</div>
                 <span class="door-badge">B2C</span>
-                <div class="door-title">ط¨ظˆط§ط¨ط© ط§ظ„ط£ظپط±ط§ط¯</div>
-                <div class="door-subtitle">ط§ظ„ط­ط³ط§ط¨ط§طھ ط§ظ„ظپط±ط¯ظٹط©</div>
-                <div class="door-desc">ظ„ظ„ط­ط³ط§ط¨ط§طھ ط§ظ„ظپط±ط¯ظٹط© ط§ظ„ط®ط§ط±ط¬ظٹط© ظپظ‚ط·: ط´ط­ظ†ط§طھظƒ ط§ظ„ط´ط®طµظٹط©طŒ ط§ظ„طھطھط¨ط¹طŒ ط§ظ„ظ…ط­ظپط¸ط©طŒ ظˆط§ظ„ط¹ظ†ط§ظˆظٹظ† ط¹ط¨ط± ط´ط¨ظƒط© ط§ظ„ظ†ط§ظ‚ظ„ظٹظ† ط§ظ„طھط§ط¨ط¹ط© ظ„ظ„ظ…ظ†طµط©.</div>
-                <div class="door-cta">ط¯ط®ظˆظ„ ط§ظ„ط­ط³ط§ط¨ ط§ظ„ظپط±ط¯ظٹ â†گ</div>
+                <div class="door-title">بوابة الأفراد</div>
+                <div class="door-subtitle">الحسابات الفردية</div>
+                <div class="door-desc">للحسابات الفردية الخارجية فقط: إدارة الشحنات الشخصية، تتبع الطلبات، وإدارة العناوين والمحفظة ضمن التجربة المخصصة للأفراد.</div>
+                <div class="door-cta">دخول حساب الأفراد</div>
             </a>
 
             <a href="{{ route('b2b.login') }}" class="portal-door b2b">
-                <div class="door-icon">ًںڈ¢</div>
+                <div class="door-icon">🏢</div>
                 <span class="door-badge">B2B</span>
-                <div class="door-title">ط¨ظˆط§ط¨ط© ط§ظ„ط£ط¹ظ…ط§ظ„</div>
-                <div class="door-subtitle">ط­ط³ط§ط¨ط§طھ ط§ظ„ظ…ظ†ط¸ظ…ط§طھ</div>
-                <div class="door-desc">ظ„ط­ط³ط§ط¨ط§طھ ط§ظ„ظ…ظ†ط¸ظ…ط§طھ ط§ظ„ط®ط§ط±ط¬ظٹط© ظپظ‚ط·: ط¥ط¯ط§ط±ط© ط´ط­ظ†ط§طھ ط§ظ„ظ…ظ†ط¸ظ…ط© ظˆظپط±ظٹظ‚ظ‡ط§ ظˆطھظ‚ط§ط±ظٹط±ظ‡ط§ ط¹ط¨ط± ط´ط¨ظƒط© ط§ظ„ظ†ط§ظ‚ظ„ظٹظ† ط§ظ„طھط§ط¨ط¹ط© ظ„ظ„ظ…ظ†طµط©.</div>
-                <div class="door-cta">ط¯ط®ظˆظ„ ط­ط³ط§ط¨ ط§ظ„ظ…ظ†ط¸ظ…ط© â†گ</div>
+                <div class="door-title">بوابة الأعمال</div>
+                <div class="door-subtitle">حسابات المنظمات</div>
+                <div class="door-desc">لحسابات المنظمات الخارجية فقط: إدارة شحنات المنظمة، فرق العمل، والتكاملات عبر شبكة الناقلين التابعة للمنصة.</div>
+                <div class="door-cta">دخول حساب الأعمال</div>
             </a>
 
             <a href="{{ route('admin.login') }}" class="portal-door admin">
-                <div class="door-icon">ًں›،ï¸ڈ</div>
+                <div class="door-icon">🛡️</div>
                 <span class="door-badge">Admin</span>
-                <div class="door-title">ط§ظ„ط¨ظˆط§ط¨ط© ط§ظ„ط¯ط§ط®ظ„ظٹط©</div>
-                <div class="door-subtitle">ظ…ظˆط¸ظپظˆ ط§ظ„ظ…ظ†طµط©</div>
-                <div class="door-desc">ظ…ط³ط§ط­ط© ظ…ظ†ظپطµظ„ط© ظ„ظ…ظˆط¸ظپظٹ ط§ظ„ظ…ظ†طµط© ظˆط§ظ„ط¥ط¯ط§ط±ط© ط§ظ„ط¯ط§ط®ظ„ظٹط©طŒ ظˆظ„ظٹط³طھ ط¨ظˆط§ط¨ط© ظ„ظ„ط¹ظ…ظ„ط§ط، ط§ظ„ط®ط§ط±ط¬ظٹظٹظ†.</div>
-                <div class="door-cta">ط¯ط®ظˆظ„ ط§ظ„ط¨ظˆط§ط¨ط© ط§ظ„ط¯ط§ط®ظ„ظٹط© â†گ</div>
+                <div class="door-title">البوابة الداخلية</div>
+                <div class="door-subtitle">موظفو المنصة</div>
+                <div class="door-desc">مساحة مخصصة لموظفي المنصة وإدارة العمليات الداخلية، مع رؤية أوسع للحسابات الخارجية ومتابعة سياقات التشغيل.</div>
+                <div class="door-cta">دخول البوابة الداخلية</div>
             </a>
         </div>
 
         <div class="portal-footer">
-            <p>آ© {{ date('Y') }} Shipping Gateway â€” ط¨ظˆط§ط¨ط© ط¥ط¯ط§ط±ط© ط§ظ„ط´ط­ظ† ظ„ظ„ط­ط³ط§ط¨ط§طھ ط§ظ„ظپط±ط¯ظٹط© ظˆط§ظ„ظ…ظ†ظ¸ظ…ط§طھ ظˆط§ظ„ظپط±ظ‚ ط§ظ„ط¯ط§ط®ظ„ظٹط©</p>
+            <a href="{{ url('/') }}">CBEX Shipping Gateway</a>
         </div>
     </div>
 </div>
-<script>window.PWA={swUrl:'{{ asset("sw.js") }}',scope:'{{ rtrim(url("/"), "/") }}/'};</script>
-<script src="{{ asset('js/pwa.js') }}" defer></script>
 </body>
 </html>

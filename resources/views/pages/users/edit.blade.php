@@ -2,19 +2,19 @@
 @section('title', 'تعديل مستخدم — ' . ($user->name ?? ''))
 
 @section('content')
-<div style="margin-bottom:24px">
+<div class="header-wrap" style="margin-bottom:24px">
     <a href="{{ route('users.index') }}" style="font-size:13px;color:var(--td);text-decoration:none">← العودة للمستخدمين</a>
     <h1 style="font-size:22px;font-weight:700;color:var(--tx);margin:8px 0 0">✏️ تعديل مستخدم — {{ $user->name ?? '' }}</h1>
 </div>
 
-<div style="display:grid;grid-template-columns:1fr 300px;gap:20px">
+<div class="grid-main-sidebar-tight">
     {{-- Main Form --}}
     <div>
         <x-card title="👤 المعلومات الأساسية">
             <form method="POST" action="{{ route('users.update', $user) }}">
                 @csrf @method('PATCH')
 
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+                <div class="form-grid-2" style="margin-bottom:16px">
                     <div>
                         <label class="form-label">الاسم الكامل</label>
                         <input type="text" name="name" value="{{ old('name', $user->name) }}" class="form-input" required>
@@ -35,7 +35,7 @@
                     </div>
                 </div>
 
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+                <div class="form-grid-2" style="margin-bottom:20px">
                     <div>
                         <label class="form-label">الدور</label>
                         <select name="role_name" class="form-input">
@@ -54,7 +54,7 @@
                 </div>
 
                 @if($portalType === 'admin')
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px">
+                    <div class="form-grid-2" style="margin-bottom:20px">
                         <div>
                             <label class="form-label">المنظمة</label>
                             <select name="organization_id" class="form-input">
@@ -86,7 +86,7 @@
         <x-card title="🔑 إعادة تعيين كلمة المرور">
             <form method="POST" action="{{ route('users.update', $user) }}">
                 @csrf @method('PATCH')
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+                <div class="form-grid-2" style="margin-bottom:16px">
                     <div>
                         <label class="form-label">كلمة المرور الجديدة</label>
                         <input type="password" name="password" class="form-input" placeholder="••••••••">

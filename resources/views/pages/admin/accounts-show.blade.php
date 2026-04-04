@@ -2,8 +2,8 @@
 @section('title', 'تفاصيل الحساب')
 
 @section('content')
-<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:24px">
-    <div>
+<div class="header-wrap" style="margin-bottom:24px">
+    <div class="header-main">
         <div style="font-size:12px;color:var(--tm);margin-bottom:8px">
             <a href="{{ route('internal.home') }}" style="color:inherit;text-decoration:none">المساحة الداخلية</a>
             <span style="margin:0 6px">/</span>
@@ -16,7 +16,7 @@
             هذه الواجهة الداخلية تجمع ملخص الحساب مع إجراءات الدعم الآمنة المتاحة في هذه المرحلة، مثل إرسال رابط إعادة تعيين كلمة المرور وإعادة إرسال الدعوات الناضجة عندما تكون متاحة.
         </p>
     </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <div class="header-actions">
         @if($canUpdateAccount)
             <a href="{{ route('internal.accounts.edit', $account) }}" class="btn btn-pr">تحرير الحساب</a>
         @endif
@@ -82,7 +82,7 @@
     </x-card>
 @endif
 
-<div class="grid-2" style="margin-bottom:24px">
+<div class="grid-main-sidebar-tight" style="margin-bottom:24px">
     <x-card title="المالك الأساسي">
         @if($owner)
             <div style="display:flex;flex-direction:column;gap:10px">
@@ -111,7 +111,7 @@
                 <div style="font-weight:700;color:var(--tx)">{{ $kyc['label'] }}</div>
             </div>
             <div style="color:var(--td);font-size:13px">{{ $kyc['description'] }}</div>
-            <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">
+            <div class="field-grid-compact">
                 <div>
                     <div style="font-size:12px;color:var(--tm)">تاريخ الإرسال</div>
                     <div style="color:var(--tx)">{{ $kyc['submitted_at'] ?? '—' }}</div>
@@ -137,7 +137,7 @@
     </x-card>
 </div>
 
-<div class="grid-2" style="margin-bottom:24px">
+<div class="grid-main-sidebar-tight" style="margin-bottom:24px">
     <x-card title="الأثر التشغيلي للتحقق" data-testid="account-kyc-operational-effect-card">
         <div style="display:flex;flex-direction:column;gap:12px">
             <div data-testid="account-kyc-shipping-operability">
@@ -155,7 +155,7 @@
                 <div style="font-weight:700;color:var(--tx)">{{ $kycOperationalEffect['action_label'] }}</div>
                 <div style="font-size:13px;color:var(--td)">{{ $kycOperationalEffect['action_detail'] }}</div>
             </div>
-            <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">
+            <div class="field-grid-compact">
                 <div data-testid="account-kyc-shipping-limit-value">
                     <div style="font-size:12px;color:var(--tm)">حد الشحن الكلي</div>
                     <div style="color:var(--tx)">{{ $kycOperationalEffect['shipping_limit'] !== null ? number_format($kycOperationalEffect['shipping_limit']) : 'غير محدد' }}</div>
@@ -193,7 +193,7 @@
     </x-card>
 </div>
 
-<div class="grid-2" style="margin-bottom:24px">
+<div class="grid-main-sidebar-tight" style="margin-bottom:24px">
     <x-card title="القيود الحالية">
         @forelse($restrictions as $restriction)
             <div style="padding-bottom:12px;margin-bottom:12px;border-bottom:1px solid var(--bd)">
@@ -221,10 +221,10 @@
 </div>
 
 @if($account->isOrganization())
-    <div class="grid-2" style="margin-bottom:24px">
+    <div class="grid-main-sidebar-tight" style="margin-bottom:24px">
         <x-card title="ملخص المؤسسة">
             @if($organizationProfile)
-                <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+                <div class="field-grid-compact">
                     <div>
                         <div style="font-size:12px;color:var(--tm)">الاسم القانوني</div>
                         <div style="font-weight:700;color:var(--tx)">{{ $organizationProfile->legal_name }}</div>
@@ -302,7 +302,7 @@
     @if($canManageMembers)
         <x-card title="إضافة / دعوة عضو" style="margin-bottom:24px" data-testid="organization-member-invite-card">
             @if($memberRoleOptions->isNotEmpty())
-                <form method="POST" action="{{ route('internal.accounts.members.invite', $account) }}" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px" data-testid="organization-member-invite-form">
+                <form method="POST" action="{{ route('internal.accounts.members.invite', $account) }}" class="field-grid" data-testid="organization-member-invite-form">
                     @csrf
                     <div>
                         <label class="input-label">الاسم</label>

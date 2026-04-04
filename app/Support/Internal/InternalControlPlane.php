@@ -59,6 +59,7 @@ class InternalControlPlane
     public const SURFACE_INTERNAL_TICKETS_INDEX = 'internal_tickets_index';
     public const SURFACE_INTERNAL_TICKETS_CREATE = 'internal_tickets_create';
     public const SURFACE_INTERNAL_TICKETS_DETAIL = 'internal_tickets_detail';
+    public const SURFACE_INTERNAL_TICKETS_THREAD_ACTIONS = 'internal_tickets_thread_actions';
     public const SURFACE_INTERNAL_TICKETS_ACTIONS = 'internal_tickets_actions';
     public const SURFACE_INTERNAL_SHIPMENTS_INDEX = 'internal_shipments_index';
     public const SURFACE_INTERNAL_SHIPMENTS_DETAIL = 'internal_shipments_detail';
@@ -166,6 +167,7 @@ class InternalControlPlane
             self::SURFACE_INTERNAL_REPORTS_EXPORTS,
             self::SURFACE_INTERNAL_TICKETS_INDEX,
             self::SURFACE_INTERNAL_TICKETS_DETAIL,
+            self::SURFACE_INTERNAL_TICKETS_THREAD_ACTIONS,
             self::SURFACE_INTERNAL_SHIPMENTS_INDEX,
             self::SURFACE_INTERNAL_SHIPMENTS_DETAIL,
             self::SURFACE_INTERNAL_SHIPMENTS_DOCUMENTS,
@@ -205,6 +207,7 @@ class InternalControlPlane
             self::SURFACE_INTERNAL_REPORTS_EXPORTS,
             self::SURFACE_INTERNAL_TICKETS_INDEX,
             self::SURFACE_INTERNAL_TICKETS_DETAIL,
+            self::SURFACE_INTERNAL_TICKETS_THREAD_ACTIONS,
             self::SURFACE_INTERNAL_SHIPMENTS_INDEX,
             self::SURFACE_INTERNAL_SHIPMENTS_DETAIL,
             self::SURFACE_INTERNAL_SHIPMENTS_DOCUMENTS,
@@ -303,6 +306,7 @@ class InternalControlPlane
         self::SURFACE_INTERNAL_TICKETS_INDEX,
         self::SURFACE_INTERNAL_TICKETS_CREATE,
         self::SURFACE_INTERNAL_TICKETS_DETAIL,
+        self::SURFACE_INTERNAL_TICKETS_THREAD_ACTIONS,
         self::SURFACE_INTERNAL_TICKETS_ACTIONS,
         self::SURFACE_INTERNAL_SHIPMENTS_INDEX,
         self::SURFACE_INTERNAL_SHIPMENTS_DETAIL,

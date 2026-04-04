@@ -17,4 +17,5 @@ class SupportTicket extends Model {
     public function assignee(): BelongsTo { return $this->belongsTo(User::class, 'assigned_to'); }
     public function shipment(): BelongsTo { return $this->belongsTo(Shipment::class); }
     public function replies(): HasMany { return $this->hasMany(TicketReply::class)->oldest(); }
+    public function supportReplies(): HasMany { return $this->hasMany(SupportTicketReply::class, 'ticket_id')->oldest(); }
 }

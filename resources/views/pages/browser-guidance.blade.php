@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
@@ -22,7 +22,7 @@
 
         body {
             margin: 0;
-            min-height: 100vh;
+            min-height: 100dvh;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -32,11 +32,11 @@
                 radial-gradient(circle at bottom left, rgba(15, 118, 110, 0.10), transparent 34%),
                 var(--bg);
             color: var(--text);
-            font-family: "Tajawal", sans-serif;
+            font-family: 'Tajawal', sans-serif;
         }
 
         .panel {
-            width: min(100%, 860px);
+            width: min(100%, 1120px);
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 24px;
@@ -158,7 +158,7 @@
 
         <div class="body">
             <ul class="next-steps">
-                <li>إذا كنت تتوقع رؤية صفحة مختلفة، ارجع إلى البوابة المخصصة لنوع حسابك أولًا: بوابة الأفراد للحسابات الفردية أو بوابة الأعمال لحسابات المنظمات.</li>
+                <li>إذا كنت تتوقع صفحة مختلفة، ارجع إلى البوابة المخصصة لنوع حسابك أولًا: بوابة الأفراد للحسابات الفردية أو بوابة الأعمال للحسابات المنظمة.</li>
                 <li>إذا كان دورك الحالي أقل من المطلوب، اطلب الصلاحية المناسبة بدل المحاولة عبر مسار غير مخصص لك.</li>
                 <li>في حال كنت مستخدمًا داخليًا، اختر سياق الحساب فقط عند الحاجة إلى تصفح بيانات عميل محدد.</li>
             </ul>

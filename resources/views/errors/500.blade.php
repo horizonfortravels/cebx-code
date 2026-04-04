@@ -35,7 +35,7 @@
         }
 
         .card {
-            width: min(100%, 860px);
+            width: min(100%, 1120px);
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 24px;

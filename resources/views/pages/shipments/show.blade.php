@@ -2,9 +2,9 @@
 @section('title', 'تفاصيل الشحنة')
 
 @section('content')
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
+<div class="header-wrap" style="margin-bottom:24px;align-items:center">
     <h1 style="font-size:24px;font-weight:700;color:var(--tx);margin:0">تفاصيل الشحنة {{ $portalType === 'b2b' ? '#' . $shipment->reference_number : '' }}</h1>
-    <div style="display:flex;gap:10px">
+    <div class="header-actions">
         @if($portalType === 'b2b' && $shipment->label_url)
             <a href="{{ route('shipments.label', $shipment) }}" class="btn btn-s">🖨️ طباعة البوليصة</a>
         @endif
@@ -37,10 +37,10 @@
     </div>
 </div>
 
-<div class="grid-2-1">
+<div class="grid-main-sidebar-tight">
     <div>
         {{-- ═══ SENDER & RECIPIENT ═══ --}}
-        <div class="grid-2" style="margin-bottom:20px">
+        <div class="grid-auto-320" style="margin-bottom:20px">
             <x-card title="📤 المرسل">
                 <div style="font-weight:600;color:var(--tx);margin-bottom:8px">{{ $shipment->sender_name }}</div>
                 <div style="font-size:13px;color:var(--tm);line-height:2">
@@ -61,7 +61,7 @@
 
         {{-- ═══ PARCEL DETAILS ═══ --}}
         <x-card title="📦 تفاصيل الطرد">
-            <div class="grid-4" style="gap:12px">
+            <div class="grid-auto-240" style="gap:12px">
                 @foreach([
                     ['الوزن', ($shipment->total_weight ?? '—') . ' كغ'],
                     ['الأبعاد', ($shipment->parcels->first()?->length ?? '—') . '×' . ($shipment->parcels->first()?->width ?? '—') . '×' . ($shipment->parcels->first()?->height ?? '—')],

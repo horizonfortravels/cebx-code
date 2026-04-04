@@ -2,8 +2,8 @@
 @section('title', 'ملف التحقق')
 
 @section('content')
-<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:24px">
-    <div>
+<div class="header-wrap" style="margin-bottom:24px">
+    <div class="header-main">
         <div style="font-size:12px;color:var(--tm);margin-bottom:8px">
             <a href="{{ route('internal.home') }}" style="color:inherit;text-decoration:none">المساحة الداخلية</a>
             <span style="margin:0 6px">/</span>
@@ -17,7 +17,7 @@
             صفحة قراءة تشغيلية توحد ملخص الحساب، حالة التحقق، الوثائق المرسلة، القيود الحالية، وآخر المراجعات المسجلة دون إظهار مسارات التخزين أو المحتوى الخام للوثائق.
         </p>
     </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <div class="header-actions">
         @if($canViewAccount)
             <a href="{{ route('internal.accounts.show', $account) }}" class="btn btn-s" data-testid="kyc-account-summary-link">Account Summary</a>
         @endif
@@ -44,7 +44,7 @@
             <p style="margin:0 0 14px;color:var(--td);font-size:14px">
                 تعتمد هذه المرحلة على قرار صريح ومُدقَّق. يمكن إضافة ملاحظة داخلية مع الاعتماد، بينما يتطلب الرفض سببًا واضحًا وملاحظة داخلية اختيارية.
             </p>
-            <div class="grid-2">
+            <div class="grid-main-sidebar-tight">
                 <form method="POST" action="{{ route('internal.kyc.approve', $account) }}" data-testid="kyc-approve-form" style="display:flex;flex-direction:column;gap:12px">
                     @csrf
                     <div style="font-weight:700;color:var(--tx)">اعتماد الحالة</div>
@@ -77,7 +77,7 @@
     </section>
 @endif
 
-<div class="grid-2" style="margin-bottom:24px">
+<div class="grid-main-sidebar-tight" style="margin-bottom:24px">
     <section class="card" data-testid="kyc-account-summary-card">
         <div class="card-title">ملخص الحساب</div>
         <dl style="display:grid;grid-template-columns:minmax(110px,150px) 1fr;gap:10px 14px;margin:0">
@@ -114,7 +114,7 @@
         <div style="display:flex;flex-direction:column;gap:10px">
             <div style="font-weight:700;color:var(--tx)" data-testid="kyc-current-status-label">{{ $kyc['label'] }}</div>
             <div style="font-size:13px;color:var(--td)">{{ $kyc['description'] }}</div>
-            <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+            <div class="field-grid-compact">
                 <div>
                     <div style="font-size:12px;color:var(--tm)">نوع التحقق</div>
                     <div style="color:var(--tx)">{{ $kyc['verification_type'] }}</div>
@@ -154,7 +154,7 @@
     </section>
 </div>
 
-<div class="grid-2" style="margin-bottom:24px">
+<div class="grid-main-sidebar-tight" style="margin-bottom:24px">
     <section class="card" data-testid="kyc-documents-card">
         <div class="card-title">ملخص الوثائق</div>
         <div style="display:flex;flex-direction:column;gap:12px">
@@ -208,7 +208,7 @@
             </div>
 
             <div data-testid="kyc-operational-effects-card" style="padding:12px;border:1px solid var(--bd);border-radius:12px">
-                <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">
+                <div class="field-grid-compact">
                     <div data-testid="kyc-shipping-operability">
                         <div style="font-size:12px;color:var(--tm)">وضع الشحن الآن</div>
                         <div style="font-weight:700;color:var(--tx)">{{ $operationalEffect['shipping_label'] }}</div>
@@ -226,7 +226,7 @@
                     </div>
                 </div>
 
-                <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px">
+                <div class="field-grid-compact" style="margin-top:12px">
                     <div data-testid="kyc-shipping-limit-value">
                         <div style="font-size:12px;color:var(--tm)">حد الشحن الكلي</div>
                         <div style="color:var(--tx)">{{ $operationalEffect['shipping_limit'] !== null ? number_format($operationalEffect['shipping_limit']) : 'غير محدد' }}</div>
@@ -278,7 +278,7 @@
         <p style="margin:0 0 14px;color:var(--td);font-size:14px">
             تتحكم هذه النماذج في سجلات القيود المطبقة على حالة التحقق الحالية فقط. لا تغير هذه الواجهة محتوى الوثائق الخام ولا تعيد كتابة منطق الشحن العميق خارج نموذج القيود الحالي.
         </p>
-        <div class="grid-2">
+        <div class="grid-main-sidebar-tight">
             @foreach($restrictionControls as $control)
                 <section style="padding:14px;border:1px solid var(--bd);border-radius:14px;display:flex;flex-direction:column;gap:12px">
                     <div>
