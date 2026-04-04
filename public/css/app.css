@@ -69,6 +69,12 @@ a { color: var(--pr); text-decoration: none; }
     display: flex; align-items: center; justify-content: center;
     color: #fff; font-weight: 800; font-size: 13px; flex-shrink: 0;
 }
+.sidebar-logo-img {
+    width: 40px;
+    height: 40px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
 
 .sidebar-title { font-weight: 800; font-size: 15px; color: var(--tx); display: block; letter-spacing: -.3px; }
 .sidebar-subtitle { font-size: 11px; color: var(--tm); display: block; }
@@ -389,10 +395,16 @@ select.form-input { cursor: pointer; }
 /* ═══ GRIDS ═══ */
 .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
 .grid-2-1 { display: grid; grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr); gap: 18px; }
+.grid-main-sidebar { display: grid; grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr); gap: 18px; }
+.grid-main-sidebar-tight { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(280px, .95fr); gap: 18px; }
 .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .grid-4 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; }
 .grid-auto-160 { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; }
+.grid-auto-200 { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
 .grid-auto-220 { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+.grid-auto-240 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.grid-auto-280 { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.grid-auto-320 { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; }
 .grid-auto-300 { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
 .filter-grid { display: grid; grid-template-columns: minmax(0, 2fr) repeat(2, minmax(0, 1fr)); gap: 12px; align-items: end; }
 .filter-grid-fluid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; align-items: end; }
@@ -401,11 +413,24 @@ select.form-input { cursor: pointer; }
 .filter-actions > * { flex: 0 0 auto; }
 .content-wide { width: min(100%, 1440px); margin-inline: auto; }
 .form-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.field-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.field-grid-compact { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+.header-wrap { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.header-main { flex: 1 1 420px; min-width: 0; }
+.header-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .quick-search-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
 .quick-search-input { flex: 1 1 360px; min-width: min(100%, 280px); }
 .quick-search-row > input.form-input { flex: 1 1 360px; min-width: min(100%, 280px); max-width: none !important; }
 .content-narrow { width: min(100%, 760px); margin-inline: auto; }
 .content-medium { width: min(100%, 1040px); margin-inline: auto; }
+
+.grid-main-sidebar > *,
+.grid-main-sidebar-tight > *,
+.field-grid > *,
+.field-grid-compact > *,
+.header-wrap > * {
+    min-width: 0;
+}
 
 .entity-card {
     background: #fff;
@@ -482,6 +507,13 @@ nav[aria-label="Pagination Navigation"] span {
 }
 
 /* ═══ RESPONSIVE ═══ */
+@media (max-width: 1280px) {
+    .grid-main-sidebar,
+    .grid-main-sidebar-tight {
+        grid-template-columns: 1fr;
+    }
+}
+
 @media (max-width: 1024px) {
     .stats-grid { grid-template-columns: repeat(2, 1fr); }
     .filter-grid,
@@ -489,6 +521,8 @@ nav[aria-label="Pagination Navigation"] span {
     .grid-3 { grid-template-columns: 1fr; }
     .grid-4 { grid-template-columns: repeat(2, 1fr); }
     .grid-2-1 { grid-template-columns: 1fr; }
+    .grid-main-sidebar,
+    .grid-main-sidebar-tight,
     .grid-2 { grid-template-columns: 1fr; }
     .form-grid-2 { grid-template-columns: 1fr; }
     .filter-field-wide { grid-column: auto; }

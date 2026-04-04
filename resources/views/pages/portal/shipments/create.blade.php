@@ -233,7 +233,7 @@
     </div>
 @endif
 
-<div class="grid-2">
+<div class="grid-2-1">
     <x-card title="بيانات طلب الشحنة">
         <form method="POST" action="{{ route($portalConfig['store_route']) }}" style="display:flex;flex-direction:column;gap:18px">
             @csrf

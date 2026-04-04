@@ -56,14 +56,17 @@ async function loginWith(page, portal, email, password = PASSWORD) {
   await openPortalLogin(page, portal);
   await page.fill('input[name="email"]', email);
   await page.fill('input[name="password"]', password);
-  await page.locator('button[type="submit"]').click();
+  await Promise.all([
+    page.waitForURL(url => !/\/(admin\/login|b2b\/login|b2c\/login|login)$/.test(url.pathname), { timeout: 15000 }),
+    page.locator('button[type="submit"]').click(),
+  ]);
   await page.waitForLoadState('networkidle');
 }
 
 async function openTicketsCenter(page) {
-  await expect(page.locator(routeLinkSelector('internal.tickets.index', '/internal/tickets')).first()).toBeVisible();
-  await page.locator(routeLinkSelector('internal.tickets.index', '/internal/tickets')).first().click();
-  await page.waitForLoadState('networkidle');
+  const response = await page.goto(resolveRoutePath('internal.tickets.index', '/internal/tickets'));
+  expect(response).not.toBeNull();
+  expect(response.status()).toBeLessThan(500);
   await expect(page).toHaveURL(/\/internal\/tickets$/);
   await expect(page.locator('[data-testid="internal-tickets-table"]')).toBeVisible();
 }

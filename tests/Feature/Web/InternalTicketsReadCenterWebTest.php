@@ -5,7 +5,7 @@ namespace Tests\Feature\Web;
 use App\Models\SupportTicket;
 use App\Models\User;
 use Database\Seeders\E2EUserMatrixSeeder;
-use Illuminate\Support\Facades\Artisan;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Testing\TestResponse;
 use PHPUnit\Framework\Attributes\Test;
@@ -13,7 +13,7 @@ use Tests\TestCase;
 
 class InternalTicketsReadCenterWebTest extends TestCase
 {
-    private static bool $databasePrepared = false;
+    use RefreshDatabase;
 
     private SupportTicket $shippingTicket;
 
@@ -21,11 +21,7 @@ class InternalTicketsReadCenterWebTest extends TestCase
     {
         parent::setUp();
 
-        if (! self::$databasePrepared) {
-            Artisan::call('migrate:fresh');
-            $this->seed(E2EUserMatrixSeeder::class);
-            self::$databasePrepared = true;
-        }
+        $this->seed(E2EUserMatrixSeeder::class);
 
         $this->shippingTicket = $this->ticketByNumber('TKT-I9A-C-001');
     }

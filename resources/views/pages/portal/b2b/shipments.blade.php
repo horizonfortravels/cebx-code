@@ -49,10 +49,10 @@
     @endforeach
 </div>
 
-<div class="grid-2">
+<div class="grid-2-1">
     <x-card :title="$copy['table_title']">
-        <form method="GET" action="{{ $indexRoute }}" style="display:flex;gap:12px;flex-wrap:wrap;align-items:end;margin-bottom:18px;padding-bottom:16px;border-bottom:1px solid var(--bd)">
-            <div style="flex:1 1 260px;min-width:220px">
+        <form method="GET" action="{{ $indexRoute }}" class="filter-grid-fluid" style="margin-bottom:18px;padding-bottom:16px;border-bottom:1px solid var(--bd)">
+            <div class="filter-field-wide">
                 <label for="shipment-search-b2b" style="display:block;color:var(--td);font-size:12px;margin-bottom:6px">{{ __('portal_shipments.common.search') }}</label>
                 <input
                     id="shipment-search-b2b"
@@ -65,7 +65,7 @@
                 >
             </div>
 
-            <div style="flex:0 1 180px;min-width:160px">
+            <div>
                 <label for="shipment-status-b2b" style="display:block;color:var(--td);font-size:12px;margin-bottom:6px">{{ __('portal_shipments.common.status') }}</label>
                 <select id="shipment-status-b2b" name="status" class="form-input" data-testid="shipment-status-filter">
                     <option value="">{{ __('portal_shipments.common.all_statuses') }}</option>
@@ -75,7 +75,7 @@
                 </select>
             </div>
 
-            <div style="flex:0 1 180px;min-width:160px">
+            <div>
                 <label for="shipment-carrier-b2b" style="display:block;color:var(--td);font-size:12px;margin-bottom:6px">{{ __('portal_shipments.common.carrier') }}</label>
                 <select id="shipment-carrier-b2b" name="carrier" class="form-input" data-testid="shipment-carrier-filter">
                     <option value="">{{ __('portal_shipments.common.all_carriers') }}</option>
@@ -85,17 +85,17 @@
                 </select>
             </div>
 
-            <div style="flex:0 1 160px;min-width:150px">
+            <div>
                 <label for="shipment-from-b2b" style="display:block;color:var(--td);font-size:12px;margin-bottom:6px">{{ __('portal_shipments.common.from_date') }}</label>
                 <input id="shipment-from-b2b" type="date" name="from" value="{{ $filters['from'] ?? '' }}" class="form-input">
             </div>
 
-            <div style="flex:0 1 160px;min-width:150px">
+            <div>
                 <label for="shipment-to-b2b" style="display:block;color:var(--td);font-size:12px;margin-bottom:6px">{{ __('portal_shipments.common.to_date') }}</label>
                 <input id="shipment-to-b2b" type="date" name="to" value="{{ $filters['to'] ?? '' }}" class="form-input">
             </div>
 
-            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-end;margin-inline-start:auto">
+            <div class="filter-actions" style="grid-column:1 / -1;justify-content:flex-end">
                 <button type="submit" class="btn btn-s" data-testid="shipment-filter-submit">{{ __('portal_shipments.common.apply_filters') }}</button>
                 @if($hasActiveFilters)
                     <a href="{{ $indexRoute }}" class="btn btn-s" data-testid="shipment-filter-reset">{{ __('portal_shipments.common.clear_filters') }}</a>

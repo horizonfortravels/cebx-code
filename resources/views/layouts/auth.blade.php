@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
@@ -96,14 +96,14 @@
 <style>
         body {
             margin: 0;
-            min-height: 100vh;
+            min-height: 100dvh;
             overflow-x: hidden;
         }
         .login-page {
             width: 100%;
-            min-height: 100vh;
+            min-height: 100dvh;
             display: grid;
-            grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+            grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr);
             font-family: 'Tajawal', sans-serif;
             direction: rtl;
         }
@@ -113,7 +113,7 @@
             .login-form-panel { padding: 28px 20px 36px; }
         }
         .login-brand {
-            min-height: 100vh;
+            min-height: 100dvh;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -139,12 +139,12 @@
     margin-bottom: 16px;
 }
 .login-brand .brand-title { font-size: 22px; font-weight: 800; margin: 0 0 8px; }
-.login-brand .brand-desc { font-size: 14px; opacity: .9; line-height: 1.6; margin: 0 0 24px; max-width: 380px; }
+.login-brand .brand-desc { font-size: 14px; opacity: .9; line-height: 1.6; margin: 0 0 24px; max-width: 420px; }
 .login-brand .brand-features { list-style: none; margin: 0; padding: 0; text-align: right; }
 .login-brand .brand-features li { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 13px; opacity: .95; }
 .login-brand .brand-features li span { font-size: 18px; }
         .login-form-panel {
-            min-height: 100vh;
+            min-height: 100dvh;
             display: flex;
             align-items: center;
             justify-content: center;
@@ -153,7 +153,7 @@
         }
         .login-form-card {
             width: 100%;
-            max-width: clamp(460px, 33vw, 520px);
+            max-width: clamp(480px, 31vw, 560px);
             background: #fff;
             border-radius: 16px;
             padding: 36px 32px;

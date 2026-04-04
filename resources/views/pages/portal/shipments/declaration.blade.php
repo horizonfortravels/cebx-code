@@ -101,7 +101,7 @@
     </div>
 @endif
 
-<div class="grid-2" style="margin-bottom:24px">
+<div class="grid-2-1" style="margin-bottom:24px">
     <x-card title="ملخص الشحنة والعرض المختار">
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
             <div>
@@ -220,7 +220,7 @@
         </div>
     </x-card>
 @else
-    <div class="grid-2">
+    <div class="grid-2-1">
         <x-card title="التصريح الإلزامي">
             <form method="POST" action="{{ route($portalConfig['declaration_submit_route'], ['id' => $shipment->id]) }}" style="display:flex;flex-direction:column;gap:16px">
                 @csrf

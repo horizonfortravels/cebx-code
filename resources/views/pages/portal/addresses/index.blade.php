@@ -33,7 +33,7 @@
     @endforeach
 </div>
 
-<div class="grid-2">
+<div class="grid-2-1">
     <x-card :title="__('portal_addresses.common.address_book')">
         <div style="overflow:auto">
             <table class="table">

@@ -19,7 +19,7 @@
     </div>
 </div>
 
-<div class="grid-2">
+<div class="grid-2-1">
     <x-card :title="$copy['title']">
         <form method="POST" action="{{ $formRoute }}" style="display:flex;flex-direction:column;gap:18px">
             @csrf
