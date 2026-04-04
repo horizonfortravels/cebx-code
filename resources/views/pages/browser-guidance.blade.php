@@ -16,6 +16,8 @@
             --secondary: #e2e8f0;
             --border: #e2e8f0;
             --accent: #dc2626;
+            --page-max: 1600px;
+            --page-gutter: clamp(24px, 2vw, 40px);
         }
 
         * { box-sizing: border-box; }
@@ -26,7 +28,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 24px;
+            padding: clamp(24px, 2vw, 40px);
             background:
                 radial-gradient(circle at top right, rgba(37, 99, 235, 0.12), transparent 38%),
                 radial-gradient(circle at bottom left, rgba(15, 118, 110, 0.10), transparent 34%),
@@ -36,7 +38,7 @@
         }
 
         .panel {
-            width: min(100%, 1560px);
+            width: min(var(--page-max), calc(100% - (var(--page-gutter) * 2)));
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 24px;

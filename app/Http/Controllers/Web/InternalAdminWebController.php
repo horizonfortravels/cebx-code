@@ -10,6 +10,7 @@ use App\Models\Shipment;
 use App\Models\Store;
 use App\Models\User;
 use App\Models\Wallet;
+use App\Services\InternalLandingDashboardService;
 use App\Support\Internal\InternalControlPlane;
 use App\Support\Tenancy\WebTenantContext;
 use Illuminate\Http\RedirectResponse;
@@ -18,16 +19,29 @@ use Illuminate\View\View;
 
 class InternalAdminWebController extends Controller
 {
+    public function __construct(
+        private readonly InternalLandingDashboardService $landingDashboardService,
+    ) {}
+
     public function home(Request $request): View
     {
         $user = $request->user();
         $selectedAccount = $this->selectedAccount($request);
         $controlPlane = app(InternalControlPlane::class);
+        $roleProfile = $controlPlane->roleProfile($user);
+        $hasDeprecatedRoleAssignments = $controlPlane->hasDeprecatedAssignments($user);
+        $dashboard = $this->landingDashboardService->buildForInternal(
+            $user,
+            $selectedAccount,
+            $roleProfile,
+            $hasDeprecatedRoleAssignments,
+        );
 
         return view('pages.admin.internal-home', [
+            'dashboard' => $dashboard,
             'selectedAccount' => $selectedAccount,
-            'roleProfile' => $controlPlane->roleProfile($user),
-            'hasDeprecatedRoleAssignments' => $controlPlane->hasDeprecatedAssignments($user),
+            'roleProfile' => $roleProfile,
+            'hasDeprecatedRoleAssignments' => $hasDeprecatedRoleAssignments,
             'capabilities' => [
                 'adminAccess' => $user->hasPermission('admin.access'),
                 'tenantContext' => $user->hasPermission('tenancy.context.select'),
@@ -49,9 +63,11 @@ class InternalAdminWebController extends Controller
 
     public function index(Request $request): View
     {
+        $user = $request->user();
         $selectedAccount = $this->selectedAccount($request);
 
         return view('pages.admin.index', [
+            'dashboard' => $this->landingDashboardService->buildForAdmin($user, $selectedAccount),
             'selectedAccount' => $selectedAccount,
             'orgCount' => Account::query()->withoutGlobalScopes()->where('type', 'organization')->count(),
             'usersCount' => User::query()->count(),
@@ -73,9 +89,9 @@ class InternalAdminWebController extends Controller
             ->withoutGlobalScopes()
             ->when($query !== '', function ($builder) use ($query): void {
                 $builder->where(function ($inner) use ($query): void {
-                    $inner->where('name', 'like', '%' . $query . '%')
-                        ->orWhere('slug', 'like', '%' . $query . '%')
-                        ->orWhere('type', 'like', '%' . $query . '%');
+                    $inner->where('name', 'like', '%'.$query.'%')
+                        ->orWhere('slug', 'like', '%'.$query.'%')
+                        ->orWhere('type', 'like', '%'.$query.'%');
                 });
             })
             ->orderBy('name')
@@ -106,7 +122,7 @@ class InternalAdminWebController extends Controller
             $redirectTo = route($this->defaultInternalRouteName($request));
         }
 
-        return redirect()->to($redirectTo)->with('success', 'تم اختيار الحساب: ' . $account->name);
+        return redirect()->to($redirectTo)->with('success', 'تم اختيار الحساب: '.$account->name);
     }
 
     public function clearTenantContext(Request $request): RedirectResponse

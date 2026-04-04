@@ -19,7 +19,7 @@
             --accent: #0f172a;
             --warning: #b45309;
             --page-max: 1600px;
-            --page-gutter: clamp(16px, 1.25vw, 20px);
+            --page-gutter: clamp(20px, 1.6vw, 36px);
         }
 
         * { box-sizing: border-box; }
@@ -211,7 +211,7 @@
 
             .hero-inner,
             .content-inner {
-                width: min(100%, calc(100% - 20px));
+                width: min(var(--page-max), calc(100% - 20px));
             }
 
             .hero,

@@ -15,6 +15,8 @@
             --tm: #94A3B8;
             --td: #64748B;
             --radius: 14px;
+            --page-max: 1600px;
+            --page-gutter: clamp(24px, 2vw, 40px);
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -26,11 +28,12 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: clamp(24px, 2vw, 40px);
         }
         .offline-container {
-            width: min(100%, 1560px);
+            width: min(var(--page-max), calc(100% - (var(--page-gutter) * 2)));
             text-align: center;
-            padding: 40px 24px;
+            padding: clamp(40px, 3vw, 56px) clamp(24px, 2.4vw, 40px);
         }
         h1,
         p,

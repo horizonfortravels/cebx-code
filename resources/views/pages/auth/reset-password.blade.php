@@ -10,6 +10,10 @@
     @include('components.pwa-meta')
     <meta name="pwa-sw-url" content="{{ asset('sw.js') }}">
     <style>
+        :root {
+            --page-max: 1600px;
+            --page-gutter: clamp(24px, 2vw, 40px);
+        }
         body {
             margin: 0;
             min-height: 100vh;
@@ -27,7 +31,7 @@
         .reset-hero {
             background: #0f3a5f;
             color: #fff;
-            padding: clamp(40px, 4vw, 76px) clamp(32px, 4vw, 60px);
+            padding: clamp(44px, 4.2vw, 88px) clamp(32px, 4vw, 68px);
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -35,7 +39,7 @@
             min-height: 100vh;
         }
         .reset-main {
-            padding: clamp(36px, 4vw, 80px) clamp(24px, 3vw, 52px);
+            padding: clamp(40px, 4.2vw, 88px) clamp(24px, 3vw, 56px);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -43,12 +47,12 @@
         }
         .reset-card {
             width: 100%;
-            max-width: 560px;
+            max-width: clamp(500px, 34vw, 620px);
             background: #fff;
             border: 1px solid #e2e8f0;
             border-radius: 24px;
             box-shadow: 0 20px 45px rgba(15,23,42,.08);
-            padding: 32px;
+            padding: clamp(30px, 2.4vw, 38px);
         }
         .reset-card h2 {
             margin: 0 0 8px;

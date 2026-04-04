@@ -10,6 +10,10 @@
         @include('components.pwa-meta')
     @endif
     <style>
+        :root {
+            --page-max: 1600px;
+            --page-gutter: clamp(24px, 2vw, 40px);
+        }
         .gateway-page {
             width: 100%;
             min-height: 100vh;
@@ -18,12 +22,12 @@
             align-items: center;
             justify-content: center;
             background: linear-gradient(160deg, #0B0F1A 0%, #0F172A 40%, #131B2E 100%);
-            padding: clamp(32px, 4vw, 64px) 20px;
+            padding: clamp(32px, 4vw, 64px) var(--page-gutter);
             text-align: center;
         }
 
         .gateway-shell {
-            width: min(1600px, 100%);
+            width: min(var(--page-max), calc(100% - (var(--page-gutter) * 2)));
             display: flex;
             flex-direction: column;
             align-items: center;

@@ -6,6 +6,10 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>لوحة الحساب — بوابة الأفراد للحسابات الفردية</title>
     <style>
+        :root {
+            --page-max: 1600px;
+            --page-gutter: clamp(24px, 2vw, 40px);
+        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', Tahoma, sans-serif;
@@ -19,7 +23,7 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.08);
         }
         .header-inner {
-            width: min(1600px, calc(100% - 40px));
+            width: min(var(--page-max), calc(100% - (var(--page-gutter) * 2)));
             min-height: 64px;
             margin: 0 auto;
             padding: 14px 0;
@@ -56,7 +60,7 @@
         }
         .btn-logout:hover { background: #d1d5db; }
         .container {
-            width: min(1600px, calc(100% - 40px));
+            width: min(var(--page-max), calc(100% - (var(--page-gutter) * 2)));
             margin: 0 auto;
             padding: clamp(28px, 3vw, 40px) 0 40px;
         }
@@ -103,7 +107,7 @@
         @media (max-width: 768px) {
             .header-inner,
             .container {
-                width: min(100%, calc(100% - 24px));
+                width: min(var(--page-max), calc(100% - 24px));
             }
             .header-inner {
                 flex-wrap: wrap;

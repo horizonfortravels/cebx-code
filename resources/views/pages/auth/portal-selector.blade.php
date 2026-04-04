@@ -8,6 +8,10 @@
     <meta name="pwa-sw-url" content="{{ asset('sw.js') }}">
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
     <style>
+        :root {
+            --page-max: 1600px;
+            --page-gutter: clamp(24px, 2vw, 40px);
+        }
         .portal-page {
             width: 100%;
             min-height: 100vh;
@@ -16,7 +20,7 @@
             align-items: center;
             justify-content: center;
             background: linear-gradient(145deg, #0F172A 0%, #1E293B 50%, #0F172A 100%);
-            padding: clamp(28px, 3vw, 56px) 20px;
+            padding: clamp(28px, 3vw, 56px) var(--page-gutter);
             position: relative;
             overflow: hidden;
         }
@@ -37,7 +41,7 @@
             pointer-events: none;
         }
         .portal-shell {
-            width: min(1600px, 100%);
+            width: min(var(--page-max), calc(100% - (var(--page-gutter) * 2)));
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -48,7 +52,7 @@
         .portal-header {
             text-align: center;
             width: 100%;
-            max-width: 1600px;
+            max-width: var(--page-max);
             position: relative;
             z-index: 1;
         }
@@ -94,7 +98,7 @@
             display: grid;
             grid-template-columns: repeat(3, minmax(280px, 1fr));
             gap: clamp(20px, 2vw, 28px);
-            max-width: 1600px;
+            max-width: var(--page-max);
             width: 100%;
             position: relative;
             z-index: 1;
@@ -198,7 +202,7 @@
 
         .portal-footer {
             width: 100%;
-            max-width: 1600px;
+            max-width: var(--page-max);
             text-align: center;
             color: #475569;
             font-size: 13px;

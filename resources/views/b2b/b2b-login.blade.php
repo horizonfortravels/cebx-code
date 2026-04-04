@@ -5,6 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>تسجيل الدخول — بوابة الأعمال</title>
     <style>
+        :root {
+            --page-max: 1600px;
+            --page-gutter: clamp(24px, 2vw, 40px);
+        }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Segoe UI', Tahoma, sans-serif;
@@ -13,14 +17,21 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: clamp(20px, 3vw, 40px);
             color: #333;
+        }
+        .login-shell {
+            width: min(var(--page-max), calc(100% - (var(--page-gutter) * 2)));
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         .login-card {
             background: #fff;
             border-radius: 16px;
-            padding: 40px;
+            padding: clamp(32px, 2.4vw, 40px);
             width: 100%;
-            max-width: 470px;
+            max-width: clamp(500px, 34vw, 620px);
             box-shadow: 0 20px 60px rgba(0,0,0,0.15);
         }
         .login-card h1 {
@@ -112,9 +123,15 @@
             margin-top: -14px;
             margin-bottom: 16px;
         }
+        @media (max-width: 768px) {
+            body { padding: 16px; }
+            .login-shell { width: 100%; }
+            .login-card { max-width: 100%; }
+        }
     </style>
 </head>
 <body>
+    <div class="login-shell">
     <div class="login-card">
         <span class="badge-b2b">بوابة الأعمال</span>
         <h1>تسجيل دخول المنظمات</h1>
@@ -161,6 +178,7 @@
             حساب شخصي؟
             <a href="{{ route('b2c.login') }}">سجّل دخول من بوابة الأفراد</a>
         </div>
+    </div>
     </div>
 </body>
 </html>
