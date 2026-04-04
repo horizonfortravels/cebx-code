@@ -46,8 +46,8 @@ class SupportTicketConversationService
                 return [
                     'summary' => is_array($latest)
                         ? sprintf('%s - %s', (string) $latest['actor_label'], (string) $latest['created_at_label'])
-                        : 'No reply activity recorded yet',
-                    'latest_at_label' => is_array($latest) ? (string) $latest['created_at_label'] : 'N/A',
+                        : 'لا توجد أي ردود مسجلة بعد',
+                    'latest_at_label' => is_array($latest) ? (string) $latest['created_at_label'] : 'غير متاح',
                     'count' => $thread->count(),
                     'items' => $thread,
                 ];
@@ -80,7 +80,7 @@ class SupportTicketConversationService
         if (! $this->isInternalUser($actor)) {
             throw BusinessException::make(
                 'ERR_TICKET_REPLY_FORBIDDEN',
-                'Only internal staff can add support replies from the internal helpdesk thread.',
+                'يمكن للموظفين الداخليين فقط إضافة ردود الدعم من مسار التذاكر الداخلي.',
                 ['ticket_id' => (string) $ticket->id],
                 403,
             );
@@ -168,7 +168,7 @@ class SupportTicketConversationService
         if (! Schema::hasTable('support_ticket_replies')) {
             throw BusinessException::make(
                 'ERR_TICKET_THREAD_UNAVAILABLE',
-                'The current helpdesk schema does not support customer-visible ticket replies yet.',
+                'البنية الحالية لنظام الدعم لا تدعم بعد الردود المرئية للعميل.',
                 [],
                 422,
             );
@@ -185,7 +185,7 @@ class SupportTicketConversationService
         if ($normalized === '') {
             throw BusinessException::make(
                 'ERR_TICKET_REPLY_REQUIRED',
-                'A reply body is required before the helpdesk thread can be updated.',
+                'يجب إدخال نص الرد قبل تحديث مسار الدعم.',
                 [],
                 422,
             );
@@ -211,11 +211,11 @@ class SupportTicketConversationService
                 ->map(function (TicketReply $reply): array {
                     return [
                         'ticket_id' => (string) $reply->support_ticket_id,
-                        'actor_label' => (bool) $reply->is_agent ? 'Support reply' : 'Requester reply',
-                        'actor_name' => $reply->user?->name ? (string) $reply->user->name : 'Unknown user',
+                        'actor_label' => (bool) $reply->is_agent ? 'رد الدعم' : 'رد مقدم الطلب',
+                        'actor_name' => $reply->user?->name ? (string) $reply->user->name : 'مستخدم غير معروف',
                         'body' => $this->safeText((string) ($reply->body ?? '')),
                         'created_at' => $reply->created_at,
-                        'created_at_label' => $this->displayDateTime($reply->created_at) ?? 'N/A',
+                        'created_at_label' => $this->displayDateTime($reply->created_at) ?? 'غير متاح',
                         'is_support_reply' => (bool) $reply->is_agent,
                     ];
                 });
@@ -235,11 +235,11 @@ class SupportTicketConversationService
 
                     return [
                         'ticket_id' => (string) $reply->ticket_id,
-                        'actor_label' => $isSupportReply ? 'Support reply' : 'Requester reply',
-                        'actor_name' => $reply->user?->name ? (string) $reply->user->name : 'Unknown user',
+                        'actor_label' => $isSupportReply ? 'رد الدعم' : 'رد مقدم الطلب',
+                        'actor_name' => $reply->user?->name ? (string) $reply->user->name : 'مستخدم غير معروف',
                         'body' => $this->safeText((string) ($reply->body ?? '')),
                         'created_at' => $reply->created_at,
-                        'created_at_label' => $this->displayDateTime($reply->created_at) ?? 'N/A',
+                        'created_at_label' => $this->displayDateTime($reply->created_at) ?? 'غير متاح',
                         'is_support_reply' => $isSupportReply,
                     ];
                 });
@@ -274,7 +274,7 @@ class SupportTicketConversationService
     {
         $value = trim(preg_replace('/\s+/u', ' ', $value) ?? '');
 
-        return $value !== '' ? $value : 'N/A';
+        return $value !== '' ? $value : 'غير متاح';
     }
 
     private function displayDateTime(mixed $value): ?string

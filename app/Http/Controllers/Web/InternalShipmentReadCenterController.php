@@ -258,11 +258,11 @@ class InternalShipmentReadCenterController extends Controller
             'recipient_city' => (string) ($shipment->recipient_city ?? ''),
             'recipient_country' => (string) ($shipment->recipient_country ?? ''),
             'flags' => array_values(array_filter([
-                $shipment->is_international ? 'International' : null,
+                $shipment->is_international ? 'دولي' : null,
                 $shipment->is_cod ? 'COD' : null,
-                $shipment->has_dangerous_goods ? 'DG' : null,
-                $shipment->status === Shipment::STATUS_KYC_BLOCKED ? 'KYC blocked' : null,
-                $shipment->status === Shipment::STATUS_REQUIRES_ACTION ? 'Requires action' : null,
+                $shipment->has_dangerous_goods ? 'مواد خطرة' : null,
+                $shipment->status === Shipment::STATUS_KYC_BLOCKED ? 'محجوبة بسبب KYC' : null,
+                $shipment->status === Shipment::STATUS_REQUIRES_ACTION ? 'تحتاج إجراء' : null,
             ])),
         ];
     }
@@ -276,10 +276,10 @@ class InternalShipmentReadCenterController extends Controller
 
         if (! $account instanceof Account) {
             return [
-                'name' => 'Unknown account',
+                'name' => 'حساب غير معروف',
                 'slug' => '—',
-                'type_label' => 'Unknown',
-                'owner_label' => 'No linked account',
+                'type_label' => 'غير معروف',
+                'owner_label' => 'لا يوجد حساب مرتبط',
             ];
         }
 
@@ -291,13 +291,13 @@ class InternalShipmentReadCenterController extends Controller
             'account' => $account,
             'name' => (string) $account->name,
             'slug' => (string) ($account->slug ?? '—'),
-            'type_label' => $account->isOrganization() ? 'Organization' : 'Individual',
+            'type_label' => $account->isOrganization() ? 'منظمة' : 'فردي',
             'owner_label' => $account->isOrganization()
-                ? ($organizationName !== '' ? $organizationName : 'Organization profile incomplete')
-                : ($ownerName !== '' ? $ownerName : 'Owner not visible'),
+                ? ($organizationName !== '' ? $organizationName : 'ملف المنظمة غير مكتمل')
+                : ($ownerName !== '' ? $ownerName : 'المالك غير ظاهر'),
             'owner_secondary' => $account->isOrganization()
-                ? ($ownerName !== '' ? $ownerName . ($ownerEmail !== '' ? ' • ' . $ownerEmail : '') : 'Owner not visible')
-                : ($ownerEmail !== '' ? $ownerEmail : 'No visible email'),
+                ? ($ownerName !== '' ? $ownerName . ($ownerEmail !== '' ? ' • ' . $ownerEmail : '') : 'المالك غير ظاهر')
+                : ($ownerEmail !== '' ? $ownerEmail : 'لا يوجد بريد ظاهر'),
         ];
     }
 
@@ -347,8 +347,8 @@ class InternalShipmentReadCenterController extends Controller
         return [
             'label' => PortalShipmentLabeler::status($normalizedStatus, CanonicalShipmentStatus::label($normalizedStatus)),
             'detail' => $eventsCount > 0
-                ? 'Timeline events: ' . number_format($eventsCount)
-                : 'No recorded timeline events yet',
+                ? 'أحداث المخطط الزمني: ' . number_format($eventsCount)
+                : 'لا توجد أحداث مسجلة في المخطط الزمني بعد',
             'last_updated' => $lastUpdated,
             'events_count' => $eventsCount,
         ];
@@ -363,7 +363,7 @@ class InternalShipmentReadCenterController extends Controller
 
         return [
             'count' => $count,
-            'label' => $count > 0 ? number_format($count) . ' available document(s)' : 'No available documents',
+            'label' => $count > 0 ? number_format($count) . ' مستند متاح' : 'لا توجد مستندات متاحة',
         ];
     }
 
@@ -388,10 +388,10 @@ class InternalShipmentReadCenterController extends Controller
 
         return [
             'available' => $enabled,
-            'label' => $enabled ? 'Public tracking is enabled' : 'Public tracking is not enabled',
+            'label' => $enabled ? 'التتبع العام مفعّل' : 'التتبع العام غير مفعّل',
             'detail' => $enabled
-                ? 'An existing public tracking link is already active for this shipment.'
-                : 'No active public tracking link is exposed from this internal surface.',
+                ? 'يوجد رابط تتبع عام نشط بالفعل لهذه الشحنة.'
+                : 'لا يوجد رابط تتبع عام نشط ظاهر من هذه الواجهة الداخلية.',
             'enabled_at' => $enabledAt,
             'expires_at' => $expiresAt,
             'url' => $enabled ? $this->existingPublicTrackingUrl($shipment) : null,
@@ -424,7 +424,7 @@ class InternalShipmentReadCenterController extends Controller
                 'total_count' => 0,
                 'delivered_count' => 0,
                 'issue_count' => 0,
-                'latest_created_at' => '-',
+                'latest_created_at' => '—',
                 'channels' => [],
                 'items' => collect(),
             ];
@@ -448,7 +448,7 @@ class InternalShipmentReadCenterController extends Controller
                 Notification::STATUS_DLQ,
             ])
             ->count();
-        $latestCreatedAt = $this->displayDateTime((clone $baseQuery)->latest('created_at')->value('created_at')) ?? '-';
+        $latestCreatedAt = $this->displayDateTime((clone $baseQuery)->latest('created_at')->value('created_at')) ?? '—';
 
         $channels = (clone $baseQuery)
             ->select('channel')
@@ -468,19 +468,19 @@ class InternalShipmentReadCenterController extends Controller
                     $notification->subject
                     ?? data_get($notification->event_data, 'title')
                     ?? $notification->event_type
-                    ?? 'Shipment notification'
+                    ?? 'إشعار شحنة'
                 ));
 
                 return [
-                    'subject' => $subject !== '' ? $subject : 'Shipment notification',
+                    'subject' => $subject !== '' ? $subject : 'إشعار شحنة',
                     'event_type_label' => PortalShipmentLabeler::event(
                         (string) $notification->event_type,
                         $subject
                     ),
                     'channel_label' => $this->notificationChannelLabel((string) $notification->channel),
                     'status_label' => $this->notificationStatusLabel((string) $notification->status),
-                    'created_at_display' => optional($notification->created_at)->format('Y-m-d H:i') ?? '-',
-                    'sent_at_display' => optional($notification->sent_at)->format('Y-m-d H:i') ?? '-',
+                    'created_at_display' => optional($notification->created_at)->format('Y-m-d H:i') ?? '—',
+                    'sent_at_display' => optional($notification->sent_at)->format('Y-m-d H:i') ?? '—',
                 ];
             })
             ->values();
@@ -618,8 +618,8 @@ class InternalShipmentReadCenterController extends Controller
     private function documentHeadline(Collection $documents): string
     {
         return $documents->isEmpty()
-            ? 'No carrier artifacts are currently available on this shipment.'
-            : number_format($documents->count()) . ' safe carrier document summary item(s)';
+            ? 'لا توجد مستندات أو مخرجات متاحة من شركة الشحن لهذه الشحنة حاليًا.'
+            : number_format($documents->count()) . ' عنصرًا في ملخص مستندات شركة الشحن';
     }
 
     private function canViewAccount(?User $user, InternalControlPlane $controlPlane): bool
@@ -671,15 +671,15 @@ class InternalShipmentReadCenterController extends Controller
     private function statusOptions(): array
     {
         return [
-            Shipment::STATUS_KYC_BLOCKED => 'KYC blocked',
-            Shipment::STATUS_REQUIRES_ACTION => 'Requires action',
-            Shipment::STATUS_PURCHASED => 'Purchased',
-            Shipment::STATUS_IN_TRANSIT => 'In transit',
-            Shipment::STATUS_OUT_FOR_DELIVERY => 'Out for delivery',
-            Shipment::STATUS_DELIVERED => 'Delivered',
-            Shipment::STATUS_EXCEPTION => 'Exception',
-            Shipment::STATUS_CANCELLED => 'Cancelled',
-            Shipment::STATUS_RETURNED => 'Returned',
+            Shipment::STATUS_KYC_BLOCKED => 'محجوبة بسبب KYC',
+            Shipment::STATUS_REQUIRES_ACTION => 'تحتاج إجراء',
+            Shipment::STATUS_PURCHASED => 'تم الشراء',
+            Shipment::STATUS_IN_TRANSIT => 'في الطريق',
+            Shipment::STATUS_OUT_FOR_DELIVERY => 'خرجت للتسليم',
+            Shipment::STATUS_DELIVERED => 'تم التسليم',
+            Shipment::STATUS_EXCEPTION => 'استثناء',
+            Shipment::STATUS_CANCELLED => 'أُلغيت',
+            Shipment::STATUS_RETURNED => 'تمت الإعادة',
         ];
     }
 
@@ -702,10 +702,10 @@ class InternalShipmentReadCenterController extends Controller
     private function sourceLabels(): array
     {
         return [
-            Shipment::SOURCE_DIRECT => 'Direct',
-            Shipment::SOURCE_ORDER => 'Order',
-            Shipment::SOURCE_BULK => 'Bulk',
-            Shipment::SOURCE_RETURN => 'Return',
+            Shipment::SOURCE_DIRECT => 'مباشر',
+            Shipment::SOURCE_ORDER => 'طلب',
+            Shipment::SOURCE_BULK => 'مجمع',
+            Shipment::SOURCE_RETURN => 'إرجاع',
         ];
     }
 
@@ -756,10 +756,10 @@ class InternalShipmentReadCenterController extends Controller
     private function notificationChannelLabel(string $channel): string
     {
         return match (strtolower(trim($channel))) {
-            Notification::CHANNEL_IN_APP => 'In app',
-            Notification::CHANNEL_EMAIL => 'Email',
+            Notification::CHANNEL_IN_APP => 'داخل النظام',
+            Notification::CHANNEL_EMAIL => 'بريد إلكتروني',
             Notification::CHANNEL_SMS => 'SMS',
-            Notification::CHANNEL_WEBHOOK => 'Webhook',
+            Notification::CHANNEL_WEBHOOK => 'ويبهوك',
             Notification::CHANNEL_SLACK => 'Slack',
             default => $this->headline($channel),
         };
@@ -768,15 +768,15 @@ class InternalShipmentReadCenterController extends Controller
     private function notificationStatusLabel(string $status): string
     {
         return match (strtolower(trim($status))) {
-            Notification::STATUS_PENDING => 'Pending',
-            Notification::STATUS_QUEUED => 'Queued',
-            Notification::STATUS_SENDING => 'Sending',
-            Notification::STATUS_SENT => 'Sent',
-            Notification::STATUS_DELIVERED => 'Delivered',
-            Notification::STATUS_FAILED => 'Failed',
-            Notification::STATUS_BOUNCED => 'Bounced',
-            Notification::STATUS_RETRYING => 'Retrying',
-            Notification::STATUS_DLQ => 'Dead letter',
+            Notification::STATUS_PENDING => 'قيد الانتظار',
+            Notification::STATUS_QUEUED => 'في الطابور',
+            Notification::STATUS_SENDING => 'قيد الإرسال',
+            Notification::STATUS_SENT => 'تم الإرسال',
+            Notification::STATUS_DELIVERED => 'تم التسليم',
+            Notification::STATUS_FAILED => 'فشل',
+            Notification::STATUS_BOUNCED => 'مرتد',
+            Notification::STATUS_RETRYING => 'إعادة محاولة',
+            Notification::STATUS_DLQ => 'رسالة متعذرة',
             default => $this->headline($status),
         };
     }
@@ -786,7 +786,48 @@ class InternalShipmentReadCenterController extends Controller
         $normalized = trim($value);
 
         if ($normalized === '') {
-            return 'Not available';
+            return 'غير متاح';
+        }
+
+        $map = [
+            'active' => 'نشط',
+            'cancelled' => 'أُلغي',
+            'connected' => 'متصل',
+            'delivered' => 'تم التسليم',
+            'direct' => 'مباشر',
+            'disabled' => 'معطّل',
+            'disconnected' => 'غير متصل',
+            'dlq' => 'رسالة متعذرة',
+            'email' => 'بريد إلكتروني',
+            'exception' => 'استثناء',
+            'failed' => 'فشل',
+            'in_app' => 'داخل النظام',
+            'in_transit' => 'في الطريق',
+            'individual' => 'فردي',
+            'kyc_blocked' => 'محجوبة بسبب KYC',
+            'organization' => 'منظمة',
+            'out_for_delivery' => 'خرجت للتسليم',
+            'pending' => 'قيد الانتظار',
+            'purchased' => 'تم الشراء',
+            'queued' => 'في الطابور',
+            'requires_action' => 'تحتاج إجراء',
+            'return' => 'إرجاع',
+            'returned' => 'تمت الإعادة',
+            'sending' => 'قيد الإرسال',
+            'sent' => 'تم الإرسال',
+            'slack' => 'Slack',
+            'sms' => 'SMS',
+            'webhook' => 'ويبهوك',
+        ];
+
+        $key = Str::of($normalized)
+            ->replace(['.', '-', ' '], '_')
+            ->squish()
+            ->lower()
+            ->value();
+
+        if (isset($map[$key])) {
+            return $map[$key];
         }
 
         return Str::of($normalized)

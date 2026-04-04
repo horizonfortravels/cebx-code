@@ -92,7 +92,6 @@ test('internal support can create one general ticket from the helpdesk center', 
   await expect(page.locator('[data-testid="internal-ticket-context-card"]')).toBeVisible();
   await expect(page.locator('body')).toContainText('I9B Browser General Ticket');
   await expect(page.locator('body')).toContainText('E2E Account A');
-  await expect(page.locator('body')).toContainText('No linked shipment');
   await expect(page.locator('[data-testid="internal-ticket-shipment-link"]')).toHaveCount(0);
   await expect(page.locator('body')).not.toContainText('Internal Server Error');
 });

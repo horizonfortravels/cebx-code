@@ -50,7 +50,7 @@
     @endforelse
 </div>
 
-{{-- Add Store Modal --}}
+{{-- نافذة ربط متجر جديد --}}
 <x-modal id="addStore" title="ربط متجر جديد">
     <form method="POST" action="{{ route('stores.store') }}">
         @csrf
@@ -67,11 +67,11 @@
         </div>
         <div style="margin-bottom:16px">
             <label class="form-label">رابط المتجر</label>
-            <input type="url" name="store_url" class="form-input" placeholder="https://mystore.com">
+            <input type="url" name="store_url" class="form-input" placeholder="https://متجري.example">
         </div>
         <div style="margin-bottom:16px">
-            <label class="form-label">API Key</label>
-            <input type="text" name="api_key" class="form-input" placeholder="sk_live_...">
+            <label class="form-label">مفتاح واجهة البرمجة</label>
+            <input type="text" name="api_key" class="form-input" placeholder="أدخل مفتاح واجهة البرمجة">
         </div>
         <button type="submit" class="btn btn-pr" style="width:100%">ربط المتجر</button>
     </form>

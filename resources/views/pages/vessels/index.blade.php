@@ -7,6 +7,19 @@
     <button class="btn btn-pr" data-modal-open="add-vessel">+ سفينة جديدة</button>
 </div>
 
+@php
+    $vesselTypeLabels = [
+        'container' => 'سفينة حاويات',
+        'bulk' => 'ناقلة بضائع سائبة',
+        'tanker' => 'ناقلة نفط',
+        'roro' => 'رول أون/رول أوف',
+        'سفينة حاويات' => 'سفينة حاويات',
+        'ناقلة بضائع سائبة' => 'ناقلة بضائع سائبة',
+        'ناقلة نفط' => 'ناقلة نفط',
+        'رول أون/رول أوف' => 'رول أون/رول أوف',
+    ];
+@endphp
+
 <div class="stats-grid" style="margin-bottom:24px">
     <x-stat-card icon="⛴️" label="إجمالي السفن" :value="$totalVessels ?? 0" />
     <x-stat-card icon="🌊" label="في البحر" :value="$atSeaCount ?? 0" />
@@ -18,19 +31,21 @@
     <div class="table-wrap">
         <table>
             <thead>
-                <tr><th>اسم السفينة</th><th>IMO</th><th>النوع</th><th>الحمولة</th><th>العلم</th><th>الموقع الحالي</th><th>الحالة</th><th></th></tr>
+                <tr><th>اسم السفينة</th><th>الرقم الدولي</th><th>النوع</th><th>الحمولة بوحدة 20 قدم</th><th>العلم</th><th>الموقع الحالي</th><th>الحالة</th><th></th></tr>
             </thead>
             <tbody>
                 @forelse($vessels ?? [] as $vessel)
                     @php
+                        $vesselType = trim((string) $vessel->type);
+                        $vesselTypeKey = mb_strtolower($vesselType);
                         $stMap = ['at_sea' => ['🌊 في البحر', 'badge-in'], 'docked' => ['⚓ في الميناء', 'badge-ac'], 'maintenance' => ['🔧 صيانة', 'badge-wn'], 'idle' => ['⏸️ متوقفة', 'badge-td']];
                         $st = $stMap[$vessel->status] ?? ['—', 'badge-td'];
                     @endphp
                     <tr>
                         <td style="font-weight:600">{{ $vessel->name }}</td>
                         <td class="td-mono">{{ $vessel->imo_number }}</td>
-                        <td>{{ $vessel->type }}</td>
-                        <td>{{ number_format($vessel->capacity_teu ?? 0) }} TEU</td>
+                        <td>{{ $vesselTypeLabels[$vesselTypeKey] ?? ($vesselType !== '' ? $vesselType : 'غير معروف') }}</td>
+                        <td>{{ number_format($vessel->capacity_teu ?? 0) }} وحدة 20 قدم</td>
                         <td>{{ $vessel->flag ?? '—' }}</td>
                         <td>{{ $vessel->current_location ?? '—' }}</td>
                         <td><span class="badge {{ $st[1] }}">{{ $st[0] }}</span></td>
@@ -52,9 +67,9 @@
         @csrf
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
             <div><label class="form-label">اسم السفينة</label><input type="text" name="name" class="form-input" required></div>
-            <div><label class="form-label">رقم IMO</label><input type="text" name="imo_number" class="form-input" required></div>
-            <div><label class="form-label">النوع</label><select name="type" class="form-input"><option>Container Ship</option><option>Bulk Carrier</option><option>Tanker</option><option>RoRo</option></select></div>
-            <div><label class="form-label">السعة (TEU)</label><input type="number" name="capacity_teu" class="form-input"></div>
+            <div><label class="form-label">الرقم الدولي للسفينة</label><input type="text" name="imo_number" class="form-input" required></div>
+            <div><label class="form-label">النوع</label><select name="type" class="form-input"><option>سفينة حاويات</option><option>ناقلة بضائع سائبة</option><option>ناقلة نفط</option><option>رول أون/رول أوف</option></select></div>
+            <div><label class="form-label">السعة بوحدة 20 قدم</label><input type="number" name="capacity_teu" class="form-input"></div>
             <div><label class="form-label">العلم</label><input type="text" name="flag" class="form-input" placeholder="مثال: SA"></div>
             <div><label class="form-label">الشركة المالكة</label><input type="text" name="owner_company" class="form-input"></div>
         </div>

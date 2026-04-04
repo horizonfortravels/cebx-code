@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تسجيل الدخول — بوابة الأعمال (B2B)</title>
+    <title>تسجيل الدخول — بوابة الأعمال</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -116,7 +116,7 @@
 </head>
 <body>
     <div class="login-card">
-        <span class="badge-b2b">B2B — بوابة الأعمال</span>
+        <span class="badge-b2b">بوابة الأعمال</span>
         <h1>تسجيل دخول المنظمات</h1>
         <p class="subtitle">أدخل معرّف المنظمة والبريد الإلكتروني لتسجيل الدخول</p>
 
@@ -131,17 +131,17 @@
         <form method="POST" action="{{ route('b2b.login.submit') }}">
             @csrf
 
-            <label for="account_slug">معرّف المنظمة (Slug)</label>
+            <label for="account_slug">معرّف المنظمة</label>
             <input type="text" id="account_slug" name="account_slug"
                    value="{{ old('account_slug') }}"
-                   placeholder="مثال: my-company"
+                   placeholder="مثال: شركتي"
                    required autofocus>
             <p class="field-hint">المعرّف الفريد لحساب منظمتك</p>
 
             <label for="email">البريد الإلكتروني</label>
             <input type="email" id="email" name="email"
                    value="{{ old('email') }}"
-                   placeholder="user@company.com"
+                   placeholder="أدخل بريدك الإلكتروني"
                    required>
 
             <label for="password">كلمة المرور</label>
@@ -159,7 +159,7 @@
 
         <div class="switch-portal">
             حساب شخصي؟
-            <a href="{{ route('b2c.login') }}">سجّل دخول من بوابة B2C</a>
+            <a href="{{ route('b2c.login') }}">سجّل دخول من بوابة الأفراد</a>
         </div>
     </div>
 </body>

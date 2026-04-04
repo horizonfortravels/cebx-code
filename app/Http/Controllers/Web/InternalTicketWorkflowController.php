@@ -100,7 +100,7 @@ class InternalTicketWorkflowController extends Controller
 
         return redirect()
             ->route('internal.tickets.show', $ticketModel)
-            ->with('success', 'The ticket triage details were updated successfully.');
+            ->with('success', 'تم تحديث تفاصيل فرز التذكرة بنجاح.');
     }
 
     public function storeInternalNote(Request $request, string $ticket): RedirectResponse
@@ -126,7 +126,7 @@ class InternalTicketWorkflowController extends Controller
 
         return redirect()
             ->route('internal.tickets.show', $ticketModel)
-            ->with('success', 'The internal ticket note was added successfully.');
+            ->with('success', 'تمت إضافة الملاحظة الداخلية للتذكرة بنجاح.');
     }
 
     private function findTicketOrFail(string $ticket): SupportTicket

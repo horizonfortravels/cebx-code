@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title', 'بوابة الأعمال | مفاتيح API')
+@section('title', 'بوابة الأعمال | المفاتيح البرمجية')
 
 @section('content')
 <div style="display:grid;gap:24px">
@@ -10,9 +10,9 @@
                 <span style="margin:0 6px">/</span>
                 <a href="{{ route('b2b.developer.index') }}" style="color:inherit;text-decoration:none">واجهة المطور</a>
                 <span style="margin:0 6px">/</span>
-                <span>مفاتيح API</span>
+                <span>المفاتيح البرمجية</span>
             </div>
-            <h1 style="font-size:28px;font-weight:800;color:var(--tx);margin:0">مفاتيح API الخاصة بك</h1>
+            <h1 style="font-size:28px;font-weight:800;color:var(--tx);margin:0">مفاتيحك البرمجية</h1>
             <p style="color:var(--td);font-size:14px;margin:8px 0 0;max-width:760px">
                 أنشئ مفاتيحك الخاصة للتكامل مع أنظمة منظمتك عبر واجهات المنصة، وراجع المفاتيح النشطة لهذا المستخدم.
                 المفتاح الكامل يظهر مرة واحدة فقط بعد الإنشاء، لذلك احفظه مباشرة في بيئة آمنة.
@@ -38,7 +38,7 @@
                     <thead>
                     <tr>
                         <th>الاسم</th>
-                        <th>المقدمة</th>
+                        <th>البادئة</th>
                         <th>الصلاحيات</th>
                         <th>الحالة</th>
                         <th>إجراء</th>
@@ -79,7 +79,7 @@
                     @csrf
                     <div>
                         <label class="form-label">اسم المفتاح</label>
-                        <input type="text" name="name" class="form-input" value="{{ old('name') }}" placeholder="مثال: ERP Sync Key" required>
+                        <input type="text" name="name" class="form-input" value="{{ old('name') }}" placeholder="مثال: مفتاح مزامنة النظام الداخلي" required>
                     </div>
 
                     <div>

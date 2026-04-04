@@ -41,7 +41,7 @@ class InternalTicketConversationController extends Controller
 
         return redirect()
             ->route('internal.tickets.show', $ticketModel)
-            ->with('success', 'The customer-visible support reply was added successfully.');
+            ->with('success', 'تمت إضافة رد الدعم الظاهر للعميل بنجاح.');
     }
 
     public function storeInternalNote(Request $request, string $ticket): RedirectResponse
@@ -67,7 +67,7 @@ class InternalTicketConversationController extends Controller
 
         return redirect()
             ->route('internal.tickets.show', $ticketModel)
-            ->with('success', 'The internal ticket note was added successfully.');
+            ->with('success', 'تمت إضافة الملاحظة الداخلية للتذكرة بنجاح.');
     }
 
     private function findTicketOrFail(string $ticket): SupportTicket

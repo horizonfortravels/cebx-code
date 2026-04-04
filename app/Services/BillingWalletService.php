@@ -297,7 +297,7 @@ class BillingWalletService
                 'amount'           => $amount,
                 'reference_type'   => 'refund',
                 'reference_id'     => $refund->id,
-                'notes'            => "Refund for shipment {$shipmentId}: {$reason}",
+                'notes'            => "استرداد للشحنة {$shipmentId}: {$reason}",
                 'created_by'       => $options['initiated_by_id'] ?? 'system',
             ]);
 

@@ -35,15 +35,15 @@ class FeatureFlagController extends WebController
         $flags = $this->resolvedFlags();
 
         $categories = [
-            'الناقلات — Carriers'          => $this->filterKeys($flags, 'carrier_'),
-            'بوابات الدفع — Payments'       => $this->filterKeys($flags, 'payment_'),
-            'الجمارك — Customs'            => $this->filterKeys($flags, 'customs_'),
-            'التجارة الإلكترونية — E-com'    => $this->filterKeys($flags, 'ecommerce_'),
-            'الإشعارات — Notifications'     => $this->filterKeys($flags, 'notify_'),
-            'الوحدات — Modules'            => $this->filterKeys($flags, 'module_'),
-            'الذكاء الاصطناعي — AI'          => $this->filterKeys($flags, 'ai_'),
-            'المالية — Financial'           => array_intersect_key($flags, array_flip(['auto_invoice', 'credit_limit', 'refund_workflow'])),
-            'البيئة — Environment'          => array_intersect_key($flags, array_flip(['sandbox_mode', 'demo_data', 'maintenance'])),
+            'الناقلات' => $this->filterKeys($flags, 'carrier_'),
+            'بوابات الدفع' => $this->filterKeys($flags, 'payment_'),
+            'الجمارك' => $this->filterKeys($flags, 'customs_'),
+            'التجارة الإلكترونية' => $this->filterKeys($flags, 'ecommerce_'),
+            'الإشعارات' => $this->filterKeys($flags, 'notify_'),
+            'الوحدات' => $this->filterKeys($flags, 'module_'),
+            'الذكاء الاصطناعي' => $this->filterKeys($flags, 'ai_'),
+            'المالية' => array_intersect_key($flags, array_flip(['auto_invoice', 'credit_limit', 'refund_workflow'])),
+            'البيئة' => array_intersect_key($flags, array_flip(['sandbox_mode', 'demo_data', 'maintenance'])),
         ];
 
         $overrides = $this->loadOverrides();
@@ -51,7 +51,7 @@ class FeatureFlagController extends WebController
         $html = $this->renderPage($categories, $overrides);
 
         return view('pages.admin.index', [
-            'subtitle' => 'إدارة Feature Flags',
+            'subtitle' => 'إدارة أعلام الميزات',
             'content'  => $html,
         ]);
     }
@@ -85,7 +85,7 @@ class FeatureFlagController extends WebController
         ]);
 
         return redirect()->route('admin.features')
-            ->with('success', 'تم تحديث Feature Flags بنجاح (' . count($overrides) . ' override)');
+            ->with('success', 'تم تحديث أعلام الميزات بنجاح (' . count($overrides) . ' تجاوز)');
     }
 
     // ═════════════════════════════════════════════════════════
@@ -159,7 +159,7 @@ class FeatureFlagController extends WebController
         $html .= '<div style="margin-bottom:16px;padding:12px 16px;background:#f0f7ff;border:1px solid #c3dafe;border-radius:10px;font-size:13px">';
         $html .= '💡 التغييرات تُحفظ كـ overrides. القيم الافتراضية تبقى في <code>config/features.php</code>.';
         if (!empty($overrides)) {
-            $html .= ' <span style="color:#e67e22">(' . count($overrides) . ' override نشط)</span>';
+            $html .= ' <span style="color:#e67e22">(' . count($overrides) . ' تجاوز نشط)</span>';
         }
         $html .= '</div>';
 
@@ -177,7 +177,7 @@ class FeatureFlagController extends WebController
                 $badgeColor   = $enabled ? '#22c55e' : '#94a3b8';
                 $badgeText    = $enabled ? 'مفعّل' : 'معطّل';
                 $overrideBadge = $isOverridden
-                    ? '<span style="font-size:9px;color:#e67e22;margin-right:4px">● override</span>'
+                    ? '<span style="font-size:9px;color:#e67e22;margin-right:4px">● تجاوز</span>'
                     : '';
 
                 $html .= '<label style="display:flex;align-items:center;gap:10px;padding:10px 14px;background:#fff;border:1px solid #e2e8f0;border-radius:10px;cursor:pointer;transition:all .15s">';
@@ -205,40 +205,40 @@ class FeatureFlagController extends WebController
     private function flagLabel(string $key): string
     {
         return match ($key) {
-            'carrier_aramex'     => 'Aramex — أرامكس',
-            'carrier_dhl'        => 'DHL Express',
-            'carrier_smsa'       => 'SMSA Express',
-            'carrier_fedex'      => 'FedEx',
-            'carrier_jnt'        => 'J&T Express',
+            'carrier_aramex'     => 'أرامكس',
+            'carrier_dhl'        => 'دي إتش إل إكسبريس',
+            'carrier_smsa'       => 'سمسا إكسبريس',
+            'carrier_fedex'      => 'فيدكس',
+            'carrier_jnt'        => 'جي آند تي إكسبريس',
             'carrier_spl'        => 'البريد السعودي SPL',
-            'carrier_ups'        => 'UPS',
-            'payment_moyasar'    => 'Moyasar — بوابة الدفع',
-            'payment_stripe'     => 'Stripe',
-            'payment_stcpay'     => 'STC Pay',
-            'payment_applepay'   => 'Apple Pay',
+            'carrier_ups'        => 'يو بي إس',
+            'payment_moyasar'    => 'موياسر — بوابة الدفع',
+            'payment_stripe'     => 'سترايب',
+            'payment_stcpay'     => 'إس تي سي باي',
+            'payment_applepay'   => 'آبل باي',
             'customs_fasah'      => 'فسح — الجمارك السعودية',
-            'customs_zatca'      => 'ZATCA — هيئة الزكاة',
+            'customs_zatca'      => 'زاتكا — هيئة الزكاة',
             'ecommerce_salla'    => 'سلة — تكامل المتاجر',
             'ecommerce_zid'      => 'زد — تكامل المتاجر',
-            'ecommerce_shopify'  => 'Shopify',
+            'ecommerce_shopify'  => 'شوبيفاي',
             'notify_email'       => 'إشعارات البريد',
-            'notify_sms'         => 'إشعارات SMS',
-            'notify_push'        => 'إشعارات Push',
+            'notify_sms'         => 'إشعارات الرسائل النصية',
+            'notify_push'        => 'إشعارات فورية',
             'module_sea_freight'       => 'الشحن البحري',
             'module_air_freight'       => 'الشحن الجوي',
             'module_land_transport'    => 'النقل البري',
             'module_customs_clearance' => 'التخليص الجمركي',
-            'module_phase2_crud'       => 'وحدات Phase 2',
+            'module_phase2_crud'       => 'وحدات المرحلة الثانية',
             'ai_anomaly_detection' => 'كشف الشذوذ بالذكاء الاصطناعي',
             'ai_delay_prediction'  => 'توقع التأخير',
             'ai_risk_scoring'      => 'تسجيل المخاطر',
             'auto_invoice'     => 'الفوترة التلقائية',
             'credit_limit'     => 'حد الائتمان',
             'refund_workflow'   => 'سير عمل الاسترداد',
-            'sandbox_mode'     => 'وضع Sandbox',
+            'sandbox_mode'     => 'وضع الاختبار',
             'demo_data'        => 'بيانات تجريبية',
             'maintenance'      => 'وضع الصيانة',
-            default => str_replace('_', ' ', $key),
+            default => 'ميزة غير معروفة',
         };
     }
 }

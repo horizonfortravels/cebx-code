@@ -14,7 +14,7 @@
             </div>
             <h1 style="font-size:28px;font-weight:800;color:var(--tx);margin:0">مركز الويبهوكات</h1>
             <p style="color:var(--td);font-size:14px;margin:8px 0 0;max-width:760px">
-                راجع نقاط الاستقبال الثابتة وسجل الأحداث الواردة للحساب. تسجيل الويبهوكات على مستوى المتجر ما زال API-only،
+                راجع نقاط الاستقبال الثابتة وسجل الأحداث الواردة للحساب. تسجيل الويبهوكات على مستوى المتجر ما زال عبر الواجهة البرمجية فقط،
                 لكن هذه الصفحة تشرح مكان التنفيذ وتعرض ما يصل فعليًا إلى المنصة. هذه الويبهوكات تخص أحداث المنصة ولا تمنح ملكية لتكاملات الناقلين.
             </p>
         </div>
@@ -26,35 +26,35 @@
             <div class="card-title">نقاط الاستقبال العامة</div>
             <div style="display:grid;gap:12px">
                 <div style="padding:12px;border:1px solid var(--bd);border-radius:14px">
-                    <div style="font-weight:700;color:var(--tx)">Store events</div>
+                    <div style="font-weight:700;color:var(--tx)">أحداث المتجر</div>
                     <code style="display:block;margin-top:8px;direction:ltr;text-align:left">{{ $baseWebhookUrl }}/{platform}/{storeId}</code>
                 </div>
                 <div style="padding:12px;border:1px solid var(--bd);border-radius:14px">
-                    <div style="font-weight:700;color:var(--tx)">DHL tracking</div>
+                    <div style="font-weight:700;color:var(--tx)">تتبع DHL</div>
                     <code style="display:block;margin-top:8px;direction:ltr;text-align:left">{{ $baseWebhookUrl }}/dhl/tracking</code>
                 </div>
                 <div style="padding:12px;border:1px solid var(--bd);border-radius:14px">
-                    <div style="font-weight:700;color:var(--tx)">Tracking fallback</div>
+                    <div style="font-weight:700;color:var(--tx)">مسار التتبع الاحتياطي</div>
                     <code style="display:block;margin-top:8px;direction:ltr;text-align:left">{{ $baseWebhookUrl }}/track/{trackingNumber}</code>
                 </div>
             </div>
         </article>
 
         <article class="card">
-            <div class="card-title">ما الذي ما زال API-only؟</div>
+            <div class="card-title">ما الذي ما زال برمجيًا فقط؟</div>
             <div style="display:grid;gap:12px">
                 <div style="padding:12px;border:1px solid var(--bd);border-radius:14px;background:#f8fafc">
-                    <strong>تسجيل ويبهوكات متجر جديد</strong>
+                    <strong>تسجيل إشعارات متجر جديد</strong>
                     <p style="margin:8px 0 0;color:var(--td);line-height:1.8">
                         يتم حاليًا عبر المسار البرمجي:
                         <code>/api/v1/stores/{storeId}/register-webhooks</code>.
-                        الهدف من هذه الصفحة هو إعطاء فريق المطورين نقطة انطلاق واضحة بدل البحث في الـAPI يدويًا.
+                        الهدف من هذه الصفحة هو إعطاء فريق المطورين نقطة انطلاق واضحة بدل البحث في الواجهات البرمجية يدويًا.
                     </p>
                 </div>
                 <div style="padding:12px;border:1px solid var(--bd);border-radius:14px;background:#f8fafc">
                     <strong>اختبار التوقيع والتحقق</strong>
                     <p style="margin:8px 0 0;color:var(--td);line-height:1.8">
-                        تفاصيل التوقيع والتجارب المتقدمة تبقى API-first حاليًا، لكن سجل الأحداث الظاهر هنا يساعد على التأكد من أن الربط يعمل فعليًا.
+                        تفاصيل التوقيع والتجارب المتقدمة تبقى موجّهة نحو الواجهة البرمجية حاليًا، لكن سجل الأحداث الظاهر هنا يساعد على التأكد من أن الربط يعمل فعليًا.
                     </p>
                 </div>
             </div>
@@ -70,7 +70,7 @@
                 @foreach($stores as $store)
                     <div style="padding:14px;border:1px solid var(--bd);border-radius:16px;background:#fff">
                         <div style="font-weight:700;color:var(--tx)">{{ $store->name }}</div>
-                        <div style="font-size:12px;color:var(--td);margin-top:6px">استخدم API store registration لتسجيل ويبهوكات هذا المتجر.</div>
+                        <div style="font-size:12px;color:var(--td);margin-top:6px">استخدم مسار تسجيل المتجر عبر الواجهة البرمجية لتسجيل ويبهوكات هذا المتجر.</div>
                     </div>
                 @endforeach
             </div>

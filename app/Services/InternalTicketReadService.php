@@ -23,35 +23,35 @@ class InternalTicketReadService
      * @var array<string, string>
      */
     private const CATEGORY_LABELS = [
-        'shipping' => 'Shipping',
-        'shipment' => 'Shipping',
-        'billing' => 'Billing',
-        'technical' => 'Technical',
-        'account' => 'Account',
-        'carrier' => 'Carrier',
-        'general' => 'General',
+        'shipping' => 'الشحن',
+        'shipment' => 'الشحن',
+        'billing' => 'الفوترة',
+        'technical' => 'تقنية',
+        'account' => 'الحساب',
+        'carrier' => 'شركة الشحن',
+        'general' => 'عام',
     ];
 
     /**
      * @var array<string, string>
      */
     private const PRIORITY_LABELS = [
-        'low' => 'Low',
-        'medium' => 'Medium',
-        'high' => 'High',
-        'urgent' => 'Urgent',
+        'low' => 'منخفضة',
+        'medium' => 'متوسطة',
+        'high' => 'مرتفعة',
+        'urgent' => 'عاجلة',
     ];
 
     /**
      * @var array<string, string>
      */
     private const STATUS_LABELS = [
-        'open' => 'Open',
-        'in_progress' => 'In progress',
-        'waiting_customer' => 'Waiting on customer',
-        'waiting_agent' => 'Waiting agent',
-        'resolved' => 'Resolved',
-        'closed' => 'Closed',
+        'open' => 'مفتوحة',
+        'in_progress' => 'قيد المعالجة',
+        'waiting_customer' => 'بانتظار العميل',
+        'waiting_agent' => 'بانتظار الفريق',
+        'resolved' => 'محلولة',
+        'closed' => 'مغلقة',
     ];
 
     public function __construct(
@@ -196,12 +196,12 @@ class InternalTicketReadService
     public function categoryOptions(): array
     {
         return [
-            'shipping' => 'Shipping',
-            'billing' => 'Billing',
-            'technical' => 'Technical',
-            'account' => 'Account',
-            'carrier' => 'Carrier',
-            'general' => 'General',
+            'shipping' => 'الشحن',
+            'billing' => 'الفوترة',
+            'technical' => 'تقنية',
+            'account' => 'الحساب',
+            'carrier' => 'شركة الشحن',
+            'general' => 'عام',
         ];
     }
 
@@ -211,8 +211,8 @@ class InternalTicketReadService
     public function shipmentScopeOptions(): array
     {
         return [
-            'linked' => 'Linked shipment',
-            'unlinked' => 'No linked shipment',
+            'linked' => 'شحنة مرتبطة',
+            'unlinked' => 'بدون شحنة مرتبطة',
         ];
     }
 
@@ -225,9 +225,9 @@ class InternalTicketReadService
             ->filter(static fn (array $row): bool => is_array($row['account_summary'] ?? null))
             ->map(function (array $row): array {
                 $id = (string) data_get($row, 'account_summary.account.id', '');
-                $name = (string) data_get($row, 'account_summary.name', 'Unknown account');
-                $type = (string) data_get($row, 'account_summary.type_label', 'Unknown');
-                $slug = (string) data_get($row, 'account_summary.slug', 'N/A');
+                $name = (string) data_get($row, 'account_summary.name', 'حساب غير معروف');
+                $type = (string) data_get($row, 'account_summary.type_label', 'غير معروف');
+                $slug = (string) data_get($row, 'account_summary.slug', 'غير متاح');
 
                 return [
                     'id' => $id,
@@ -249,9 +249,9 @@ class InternalTicketReadService
             ->filter(static fn (array $row): bool => is_array($row['assignee'] ?? null))
             ->map(function (array $row): array {
                 $id = (string) data_get($row, 'assignee.id', '');
-                $name = (string) data_get($row, 'assignee.name', 'Unknown user');
+                $name = (string) data_get($row, 'assignee.name', 'مستخدم غير معروف');
                 $email = (string) data_get($row, 'assignee.email', '');
-                $team = (string) ($row['assigned_team'] ?? 'Assigned');
+                $team = (string) ($row['assigned_team'] ?? 'مسندة');
 
                 return [
                     'id' => $id,
@@ -327,16 +327,16 @@ class InternalTicketReadService
                 'account_summary' => $account instanceof Account ? [
                     'account' => $account,
                     'name' => (string) $account->name,
-                    'slug' => (string) ($account->slug ?? 'N/A'),
-                    'type_label' => $account->isOrganization() ? 'Organization' : 'Individual',
+                    'slug' => (string) ($account->slug ?? 'غير متاح'),
+                    'type_label' => $account->isOrganization() ? 'منظمة' : 'فردي',
                     'organization_label' => $account->isOrganization()
                         ? $this->safeText((string) ($account->organizationProfile?->legal_name ?: $account->organizationProfile?->trade_name ?: ''))
                         : null,
                 ] : null,
                     'shipment_summary' => $shipment,
-                    'created_at_label' => $this->displayDateTime($ticket->created_at) ?? 'N/A',
-                    'updated_at_label' => $this->displayDateTime($ticket->updated_at) ?? 'N/A',
-                    'resolved_at_label' => $this->displayDateTime($ticket->getAttribute('resolved_at')) ?? 'N/A',
+                    'created_at_label' => $this->displayDateTime($ticket->created_at) ?? 'غير متاح',
+                    'updated_at_label' => $this->displayDateTime($ticket->updated_at) ?? 'غير متاح',
+                    'resolved_at_label' => $this->displayDateTime($ticket->getAttribute('resolved_at')) ?? 'غير متاح',
                     'recent_activity_summary' => $activitySummary['summary'],
                     'recent_activity_at' => $activitySummary['latest_at_label'],
                     'recent_activity' => $activitySummary['items'],
@@ -430,7 +430,7 @@ class InternalTicketReadService
                     'shipment' => $shipment,
                     'reference' => $reference,
                     'status_label' => $this->headline((string) $shipment->status),
-                    'tracking_summary' => $tracking !== '' ? 'Tracking/AWB recorded' : 'No tracking summary recorded',
+                    'tracking_summary' => $tracking !== '' ? 'تم تسجيل رقم التتبع أو بوليصة الشحن' : 'لا يوجد ملخص تتبع مسجل',
                 ],
             ];
         });
@@ -451,15 +451,15 @@ class InternalTicketReadService
     private function emptyActivitySummary(SupportTicket $ticket): array
     {
         return [
-            'summary' => 'No reply activity recorded yet',
-            'latest_at_label' => $this->displayDateTime($ticket->updated_at ?: $ticket->created_at) ?? 'N/A',
+            'summary' => 'لا يوجد نشاط ردود مسجل بعد',
+            'latest_at_label' => $this->displayDateTime($ticket->updated_at ?: $ticket->created_at) ?? 'غير متاح',
             'count' => 0,
             'items' => collect([
                 [
-                    'actor_label' => 'Ticket created',
-                    'actor_name' => $ticket->user?->name ? (string) $ticket->user->name : 'Unknown user',
+                    'actor_label' => 'تم إنشاء التذكرة',
+                    'actor_name' => $ticket->user?->name ? (string) $ticket->user->name : 'مستخدم غير معروف',
                     'body' => $this->ticketBody($ticket),
-                    'created_at_label' => $this->displayDateTime($ticket->created_at) ?? 'N/A',
+                    'created_at_label' => $this->displayDateTime($ticket->created_at) ?? 'غير متاح',
                 ],
             ]),
         ];
@@ -492,18 +492,18 @@ class InternalTicketReadService
                 $items = $rows
                     ->map(function (SupportTicketReply $reply): array {
                         return [
-                            'actor_label' => 'Internal note',
-                            'actor_name' => $reply->user?->name ? (string) $reply->user->name : 'Unknown user',
+                            'actor_label' => 'ملاحظة داخلية',
+                            'actor_name' => $reply->user?->name ? (string) $reply->user->name : 'مستخدم غير معروف',
                             'body' => $this->safeText((string) ($reply->body ?? '')),
-                            'created_at_label' => $this->displayDateTime($reply->created_at) ?? 'N/A',
+                            'created_at_label' => $this->displayDateTime($reply->created_at) ?? 'غير متاح',
                         ];
                     })
                     ->values();
 
                 return [
                     'summary' => $items->count() > 0
-                        ? sprintf('%d internal note%s', $items->count(), $items->count() === 1 ? '' : 's')
-                        : 'No internal notes recorded yet',
+                        ? sprintf('%d ملاحظة داخلية', $items->count())
+                        : 'لا توجد ملاحظات داخلية مسجلة بعد',
                     'count' => $items->count(),
                     'items' => $items,
                 ];
@@ -571,8 +571,8 @@ class InternalTicketReadService
                 return [
                     'summary' => is_array($latest)
                         ? sprintf('%s - %s', $latest['headline'], $latest['created_at_label'])
-                        : 'No workflow activity recorded yet',
-                    'latest_at_label' => is_array($latest) ? $latest['created_at_label'] : 'N/A',
+                        : 'لا يوجد نشاط سير عمل مسجل بعد',
+                    'latest_at_label' => is_array($latest) ? $latest['created_at_label'] : 'غير متاح',
                     'items' => $items,
                 ];
             });
@@ -590,43 +590,43 @@ class InternalTicketReadService
 
         return match ($action) {
             'support.ticket_status_changed' => [
-                'headline' => 'Status changed',
-                'actor_name' => $log->performer?->name ? (string) $log->performer->name : 'Unknown user',
+                'headline' => 'تم تغيير الحالة',
+                'actor_name' => $log->performer?->name ? (string) $log->performer->name : 'مستخدم غير معروف',
                 'detail' => $this->statusChangeSummary($oldValues, $newValues, $metadata),
-                'created_at_label' => $this->displayDateTime($log->created_at) ?? 'N/A',
+                'created_at_label' => $this->displayDateTime($log->created_at) ?? 'غير متاح',
             ],
             'support.ticket_triaged' => [
-                'headline' => 'Triage updated',
-                'actor_name' => $log->performer?->name ? (string) $log->performer->name : 'Unknown user',
+                'headline' => 'تم تحديث الفرز',
+                'actor_name' => $log->performer?->name ? (string) $log->performer->name : 'مستخدم غير معروف',
                 'detail' => $this->triageChangeSummary($oldValues, $newValues, $metadata),
-                'created_at_label' => $this->displayDateTime($log->created_at) ?? 'N/A',
+                'created_at_label' => $this->displayDateTime($log->created_at) ?? 'غير متاح',
             ],
             'support.ticket_assigned' => [
-                'headline' => 'Assignment updated',
-                'actor_name' => $log->performer?->name ? (string) $log->performer->name : 'Unknown user',
+                'headline' => 'تم تحديث الإسناد',
+                'actor_name' => $log->performer?->name ? (string) $log->performer->name : 'مستخدم غير معروف',
                 'detail' => $this->assignmentChangeSummary($oldValues, $newValues, $metadata),
-                'created_at_label' => $this->displayDateTime($log->created_at) ?? 'N/A',
+                'created_at_label' => $this->displayDateTime($log->created_at) ?? 'غير متاح',
             ],
             'support.ticket_note_added' => [
-                'headline' => 'Internal note added',
-                'actor_name' => $log->performer?->name ? (string) $log->performer->name : 'Unknown user',
+                'headline' => 'تمت إضافة ملاحظة داخلية',
+                'actor_name' => $log->performer?->name ? (string) $log->performer->name : 'مستخدم غير معروف',
                 'detail' => sprintf(
-                    'Internal note recorded%s.',
-                    isset($newValues['note_length']) ? ' (' . (int) $newValues['note_length'] . ' characters)' : ''
+                    'تم تسجيل ملاحظة داخلية%s.',
+                    isset($newValues['note_length']) ? ' (' . (int) $newValues['note_length'] . ' حرفًا)' : ''
                 ),
-                'created_at_label' => $this->displayDateTime($log->created_at) ?? 'N/A',
+                'created_at_label' => $this->displayDateTime($log->created_at) ?? 'غير متاح',
             ],
             'support.ticket_resolved' => [
-                'headline' => 'Ticket resolved',
-                'actor_name' => $log->performer?->name ? (string) $log->performer->name : 'Unknown user',
-                'detail' => $this->safeText((string) ($metadata['resolution_notes'] ?? 'Ticket was resolved.')),
-                'created_at_label' => $this->displayDateTime($log->created_at) ?? 'N/A',
+                'headline' => 'تم حل التذكرة',
+                'actor_name' => $log->performer?->name ? (string) $log->performer->name : 'مستخدم غير معروف',
+                'detail' => $this->safeText((string) ($metadata['resolution_notes'] ?? 'تم حل التذكرة.')),
+                'created_at_label' => $this->displayDateTime($log->created_at) ?? 'غير متاح',
             ],
             default => [
-                'headline' => 'Ticket created',
-                'actor_name' => $log->performer?->name ? (string) $log->performer->name : 'Unknown user',
-                'detail' => $this->safeText((string) ($newValues['subject'] ?? 'Ticket record created')),
-                'created_at_label' => $this->displayDateTime($log->created_at) ?? 'N/A',
+                'headline' => 'تم إنشاء التذكرة',
+                'actor_name' => $log->performer?->name ? (string) $log->performer->name : 'مستخدم غير معروف',
+                'detail' => $this->safeText((string) ($newValues['subject'] ?? 'تم إنشاء سجل التذكرة')),
+                'created_at_label' => $this->displayDateTime($log->created_at) ?? 'غير متاح',
             ],
         };
     }
@@ -641,9 +641,9 @@ class InternalTicketReadService
         $before = $this->statusLabel((string) ($oldValues['status'] ?? ''));
         $after = $this->statusLabel((string) ($newValues['status'] ?? ''));
 
-        $summary = sprintf('Change summary: Status: %s -> %s', $before, $after);
+        $summary = sprintf('ملخص التغيير: الحالة: %s -> %s', $before, $after);
 
-        return ! empty($metadata['note_recorded']) ? $summary . ' - Internal note recorded' : $summary;
+        return ! empty($metadata['note_recorded']) ? $summary . ' - تم تسجيل ملاحظة داخلية' : $summary;
     }
 
     /**
@@ -653,12 +653,12 @@ class InternalTicketReadService
      */
     private function assignmentChangeSummary(array $oldValues, array $newValues, array $metadata): string
     {
-        $before = $this->safeText((string) ($oldValues['assigned_name'] ?? 'Unassigned'));
-        $after = $this->safeText((string) ($newValues['assigned_name'] ?? 'Unassigned'));
+        $before = $this->safeText((string) ($oldValues['assigned_name'] ?? 'غير مسندة'));
+        $after = $this->safeText((string) ($newValues['assigned_name'] ?? 'غير مسندة'));
 
-        $summary = sprintf('Change summary: Assignee: %s -> %s', $before, $after);
+        $summary = sprintf('ملخص التغيير: المسند إليه: %s -> %s', $before, $after);
 
-        return ! empty($metadata['note_recorded']) ? $summary . ' - Internal note recorded' : $summary;
+        return ! empty($metadata['note_recorded']) ? $summary . ' - تم تسجيل ملاحظة داخلية' : $summary;
     }
 
     /**
@@ -672,7 +672,7 @@ class InternalTicketReadService
 
         if (array_key_exists('priority', $newValues)) {
             $changes[] = sprintf(
-                'Priority: %s -> %s',
+                'الأولوية: %s -> %s',
                 $this->priorityLabel((string) ($oldValues['priority'] ?? '')),
                 $this->priorityLabel((string) ($newValues['priority'] ?? ''))
             );
@@ -680,15 +680,15 @@ class InternalTicketReadService
 
         if (array_key_exists('category', $newValues)) {
             $changes[] = sprintf(
-                'Category: %s -> %s',
+                'الفئة: %s -> %s',
                 $this->categoryLabel((string) ($oldValues['category'] ?? '')),
                 $this->categoryLabel((string) ($newValues['category'] ?? ''))
             );
         }
 
-        $summary = 'Change summary: ' . implode('; ', $changes);
+        $summary = 'ملخص التغيير: ' . implode('؛ ', $changes);
 
-        return ! empty($metadata['note_recorded']) ? $summary . ' - Internal note recorded' : $summary;
+        return ! empty($metadata['note_recorded']) ? $summary . ' - تم تسجيل ملاحظة داخلية' : $summary;
     }
 
     /**
@@ -697,7 +697,7 @@ class InternalTicketReadService
     private function emptyInternalNotesSummary(): array
     {
         return [
-            'summary' => 'No internal notes recorded yet',
+            'summary' => 'لا توجد ملاحظات داخلية مسجلة بعد',
             'count' => 0,
             'items' => collect(),
         ];
@@ -709,8 +709,8 @@ class InternalTicketReadService
     private function emptyWorkflowActivitySummary(SupportTicket $ticket): array
     {
         return [
-            'summary' => 'No workflow activity recorded yet',
-            'latest_at_label' => $this->displayDateTime($ticket->updated_at ?: $ticket->created_at) ?? 'N/A',
+            'summary' => 'لا يوجد نشاط سير عمل مسجل بعد',
+            'latest_at_label' => $this->displayDateTime($ticket->updated_at ?: $ticket->created_at) ?? 'غير متاح',
             'items' => collect(),
         ];
     }
@@ -738,7 +738,7 @@ class InternalTicketReadService
             }
         }
 
-        return 'No request summary is currently available.';
+        return 'لا يوجد ملخص طلب متاح حاليًا.';
     }
 
     private function linkedShipmentId(SupportTicket $ticket): ?string
@@ -774,10 +774,10 @@ class InternalTicketReadService
                 return $this->headline($role);
             }
 
-            return 'Assigned';
+            return 'مسندة';
         }
 
-        return 'Unassigned';
+        return 'غير مسندة';
     }
 
     private function categoryLabel(string $value): string
@@ -805,7 +805,7 @@ class InternalTicketReadService
     {
         $value = trim(preg_replace('/\s+/u', ' ', $value) ?? '');
 
-        return $value !== '' ? $value : 'N/A';
+        return $value !== '' ? $value : 'غير متاح';
     }
 
     private function displayDateTime(mixed $value): ?string
@@ -825,6 +825,6 @@ class InternalTicketReadService
     {
         $value = trim($value);
 
-        return $value === '' ? 'Unknown' : Str::headline($value);
+        return $value === '' ? 'غير معروف' : Str::headline($value);
     }
 }

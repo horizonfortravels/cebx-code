@@ -3,10 +3,10 @@
     <div class="form-grid">
         <div class="form-group">
             <label class="form-label">اسم السفينة *</label>
-            <input type="text" name="vessel_name" class="form-control" value="{{ old('vessel_name') }}" required placeholder="Ever Given">
+            <input type="text" name="vessel_name" class="form-control" value="{{ old('vessel_name') }}" required placeholder="اسم السفينة">
         </div>
         <div class="form-group">
-            <label class="form-label">رقم IMO</label>
+            <label class="form-label">الرقم الدولي للسفينة</label>
             <input type="text" name="imo_number" class="form-control" value="{{ old('imo_number') }}" placeholder="9811000">
         </div>
         <div class="form-group">
@@ -19,7 +19,7 @@
                 <option value="container">حاويات</option>
                 <option value="bulk">صب</option>
                 <option value="tanker">ناقلة</option>
-                <option value="roro">Ro-Ro</option>
+                <option value="roro">سفينة دحرجة</option>
             </select>
         </div>
     </div>

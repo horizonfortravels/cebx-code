@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CBEX Group — بوابة إدارة الشحن</title>
+    <title>مجموعة CBEX — بوابة إدارة الشحن</title>
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     @if(View::exists('components.pwa-meta'))
@@ -185,11 +185,11 @@
 
         {{-- ═══ Main CBEX Logo (from PWA icons) ═══ --}}
         <img src="{{ asset('images/gateway-icon-xl.png') }}"
-             alt="CBEX Group"
+             alt="مجموعة CBEX"
              class="gateway-main-logo"
              onerror="this.style.display='none'">
 
-        <h1 class="gateway-title">CBEX Shipping Gateway</h1>
+        <h1 class="gateway-title">بوابة الشحن CBEX</h1>
         <p class="gateway-subtitle">اختر بوابتك للدخول إلى نظام إدارة الشحن</p>
 
         {{-- ═══ Portal Cards ═══ --}}
@@ -200,7 +200,7 @@
                 <img src="{{ asset('images/portal-b2b-xl.png') }}"
                      alt="CBEX B2B"
                      class="portal-icon">
-                <div class="portal-badge">BUSINESS PORTAL</div>
+                <div class="portal-badge">بوابة الأعمال</div>
                 <div class="portal-name">بوابة الأعمال</div>
                 <div class="portal-desc">
                     منصة متكاملة لإدارة شحنات شركتك — ربط المتاجر، إدارة
@@ -213,7 +213,7 @@
                 <img src="{{ asset('images/portal-b2c-xl.png') }}"
                      alt="CBEX B2C"
                      class="portal-icon">
-                <div class="portal-badge">PERSONAL SHIPPING</div>
+                <div class="portal-badge">الشحن الشخصي</div>
                 <div class="portal-name">بوابة الأفراد</div>
                 <div class="portal-desc">
                     أرسل واستلم شحناتك الشخصية بكل سهولة — تتبع
@@ -226,7 +226,7 @@
                 <img src="{{ asset('images/portal-sys-xl.png') }}"
                      alt="CBEX Admin"
                      class="portal-icon">
-                <div class="portal-badge">SYSTEM ADMIN</div>
+                <div class="portal-badge">الإدارة الداخلية</div>
                 <div class="portal-name">لوحة الإدارة</div>
                 <div class="portal-desc">
                     التحكم الكامل بالنظام — إدارة المنظمات، اللوجستيات،

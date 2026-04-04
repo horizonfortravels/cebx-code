@@ -1,9 +1,9 @@
 @extends('layouts.app')
-@section('title', 'Support ticket')
+@section('title', 'تذكرة الدعم')
 
 @section('content')
 <div class="header-wrap" style="margin-bottom:24px;align-items:center">
-    <a href="{{ route('support.index') }}" class="btn btn-s">Back</a>
+    <a href="{{ route('support.index') }}" class="btn btn-s">العودة</a>
     <h1 style="font-size:20px;font-weight:800;color:var(--tx);margin:0">{{ $ticket->subject }}</h1>
     <x-badge :status="$ticket->status" />
 </div>
@@ -15,7 +15,7 @@
                 <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
                     <div class="user-avatar" style="background:var(--pr)20;color:var(--pr)">{{ mb_substr($ticket->user->name ?? 'U', 0, 1) }}</div>
                     <div>
-                        <div style="font-weight:600;font-size:13px">{{ $ticket->user->name ?? 'Requester' }}</div>
+                        <div style="font-weight:600;font-size:13px">{{ $ticket->user->name ?? 'مقدم الطلب' }}</div>
                         <div style="font-size:11px;color:var(--tm)">{{ $ticket->created_at?->format('d/m/Y H:i') }}</div>
                     </div>
                 </div>
@@ -35,7 +35,7 @@
                                 <div style="font-weight:600;font-size:13px">
                                     {{ $threadItem['actor_name'] }}
                                     @if(!empty($threadItem['is_support_reply']))
-                                        <span class="badge badge-in" style="margin-right:6px">Support</span>
+                                        <span class="badge badge-in" style="margin-right:6px">الدعم</span>
                                     @endif
                                 </div>
                                 <div style="font-size:11px;color:var(--tm)">{{ $threadItem['created_at_label'] }}</div>
@@ -52,10 +52,10 @@
                 <div class="card-body">
                     <form method="POST" action="{{ route('support.reply', $ticket) }}" data-testid="external-ticket-reply-form">
                         @csrf
-                        <label class="form-label">Add reply</label>
-                        <textarea name="body" class="form-input" rows="3" required data-testid="external-ticket-reply-body" placeholder="Share more detail with support."></textarea>
+                        <label class="form-label">أضف ردًا</label>
+                        <textarea name="body" class="form-input" rows="3" required data-testid="external-ticket-reply-body" placeholder="شارك مزيدًا من التفاصيل مع فريق الدعم."></textarea>
                         <div style="display:flex;gap:10px;margin-top:12px">
-                            <button type="submit" class="btn btn-pr" data-testid="external-ticket-reply-submit">Send reply</button>
+                            <button type="submit" class="btn btn-pr" data-testid="external-ticket-reply-submit">إرسال الرد</button>
                         </div>
                     </form>
                 </div>
@@ -64,13 +64,13 @@
     </div>
 
     <div>
-        <x-card title="Ticket info">
-            <x-info-row label="Ticket" :value="($ticket->ticket_number ?? $ticket->reference_number ?? '—')" />
-            <x-info-row label="Category" :value="['general' => 'General', 'shipment' => 'Shipment', 'shipping' => 'Shipment', 'billing' => 'Billing', 'technical' => 'Technical', 'account' => 'Account', 'carrier' => 'Carrier'][$ticket->category] ?? $ticket->category" />
-            <x-info-row label="Priority" :value="['low' => 'Low', 'medium' => 'Medium', 'high' => 'High', 'urgent' => 'Urgent'][$ticket->priority] ?? $ticket->priority" />
-            <x-info-row label="Created at" :value="$ticket->created_at?->format('d/m/Y')" />
+        <x-card title="معلومات التذكرة">
+            <x-info-row label="التذكرة" :value="($ticket->ticket_number ?? $ticket->reference_number ?? '—')" />
+            <x-info-row label="الفئة" :value="['general' => 'عامة', 'shipment' => 'شحنة', 'shipping' => 'شحنة', 'billing' => 'الفوترة', 'technical' => 'تقنية', 'account' => 'الحساب', 'carrier' => 'شركة الشحن'][$ticket->category] ?? $ticket->category" />
+            <x-info-row label="الأولوية" :value="['low' => 'منخفضة', 'medium' => 'متوسطة', 'high' => 'مرتفعة', 'urgent' => 'عاجلة'][$ticket->priority] ?? $ticket->priority" />
+            <x-info-row label="تاريخ الإنشاء" :value="$ticket->created_at?->format('d/m/Y')" />
             @if($ticket->assignee)
-                <x-info-row label="Assigned to" :value="$ticket->assignee->name" />
+                <x-info-row label="مسندة إلى" :value="$ticket->assignee->name" />
             @endif
         </x-card>
 
@@ -78,7 +78,7 @@
             <form method="POST" action="{{ route('support.resolve', $ticket) }}" style="margin-top:12px">
                 @csrf
                 @method('PATCH')
-                <button type="submit" class="btn btn-ac" style="width:100%;background:var(--ac);color:#fff;border-color:var(--ac)">Mark as resolved</button>
+                <button type="submit" class="btn btn-ac" style="width:100%;background:var(--ac);color:#fff;border-color:var(--ac)">وضعها كمحلولة</button>
             </form>
         @endif
     </div>

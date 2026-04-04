@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>تسجيل الدخول — بوابة الأفراد (B2C)</title>
+    <title>تسجيل الدخول — بوابة الأفراد</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -109,7 +109,7 @@
 </head>
 <body>
     <div class="login-card">
-        <span class="badge-b2c">B2C — بوابة الأفراد</span>
+        <span class="badge-b2c">بوابة الأفراد</span>
         <h1>تسجيل الدخول</h1>
         <p class="subtitle">أدخل بريدك الإلكتروني وكلمة المرور</p>
 
@@ -127,7 +127,7 @@
             <label for="email">البريد الإلكتروني</label>
             <input type="email" id="email" name="email"
                    value="{{ old('email') }}"
-                   placeholder="you@example.com"
+                   placeholder="أدخل بريدك الإلكتروني"
                    required autofocus>
 
             <label for="password">كلمة المرور</label>
@@ -145,7 +145,7 @@
 
         <div class="switch-portal">
             حساب منظمة؟
-            <a href="{{ route('b2b.login') }}">سجّل دخول من بوابة B2B</a>
+            <a href="{{ route('b2b.login') }}">سجّل دخول من بوابة الأعمال</a>
         </div>
     </div>
 </body>

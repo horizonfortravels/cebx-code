@@ -5,7 +5,7 @@
 <h1 style="font-size:24px;font-weight:800;color:var(--tx);margin:0 0 24px">⚙️ الإعدادات</h1>
 
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
-    {{-- Organization Info --}}
+    {{-- معلومات المنظمة --}}
     <x-card title="🏢 معلومات المنظمة">
         <form method="POST" action="{{ route('settings.update') }}">
             @csrf @method('PUT')
@@ -25,18 +25,18 @@
         </form>
     </x-card>
 
-    {{-- API Keys --}}
-    <x-card title="🔑 مفاتيح API">
+    {{-- مفاتيح واجهة البرمجة --}}
+    <x-card title="🔑 مفاتيح واجهة البرمجة">
         <div style="background:var(--sf);border-radius:10px;padding:14px;margin-bottom:14px">
             <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-                <span style="font-size:13px;font-weight:600">Production Key</span>
+                <span style="font-size:13px;font-weight:600">مفتاح الإنتاج</span>
                 <span style="color:var(--ac);font-size:12px">● نشط</span>
             </div>
             <code style="font-size:12px;color:var(--td);background:var(--bd);padding:4px 8px;border-radius:6px">sk_live_****...a8f2</code>
         </div>
         <div style="background:var(--sf);border-radius:10px;padding:14px;margin-bottom:14px">
             <div style="display:flex;justify-content:space-between;margin-bottom:6px">
-                <span style="font-size:13px;font-weight:600">Test Key</span>
+                <span style="font-size:13px;font-weight:600">مفتاح الاختبار</span>
                 <span style="color:var(--wn);font-size:12px">● اختبار</span>
             </div>
             <code style="font-size:12px;color:var(--td);background:var(--bd);padding:4px 8px;border-radius:6px">sk_test_****...b3c1</code>

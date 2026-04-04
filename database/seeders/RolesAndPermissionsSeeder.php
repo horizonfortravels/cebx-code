@@ -418,6 +418,8 @@ class RolesAndPermissionsSeeder extends Seeder
                     'addresses.read',
                     'addresses.manage',
                     'stores.read',
+                    'tickets.read',
+                    'tickets.manage',
                     'shipments.read',
                     'shipments.create',
                     'shipments.update_draft',

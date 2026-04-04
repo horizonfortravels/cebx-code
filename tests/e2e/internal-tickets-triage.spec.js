@@ -68,7 +68,7 @@ test('internal support can triage the queue and update ticket priority and categ
 
   await page.locator('[data-testid="internal-ticket-filter-status"]').selectOption('waiting_agent');
   await page.locator('[data-testid="internal-ticket-filter-priority"]').selectOption('high');
-  await page.getByRole('button', { name: 'Apply' }).click();
+  await page.locator('[data-testid="internal-ticket-filter-submit"]').click();
   await page.waitForLoadState('networkidle');
 
   await expect(page.locator('[data-testid="internal-tickets-table"]')).toContainText('TKT-I9A-C-001');
@@ -102,7 +102,7 @@ test('internal ops_readonly sees queue triage filters but no ticket mutation con
   await expect(page.locator('[data-testid="internal-ticket-filter-assignee"]')).toBeVisible();
 
   await page.locator('[data-testid="internal-ticket-filter-status"]').selectOption('waiting_agent');
-  await page.getByRole('button', { name: 'Apply' }).click();
+  await page.locator('[data-testid="internal-ticket-filter-submit"]').click();
   await page.waitForLoadState('networkidle');
 
   await expect(page.locator('[data-testid="internal-tickets-table"]')).toContainText('TKT-I9A-C-001');

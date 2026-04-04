@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title', 'Carrier integrations')
+@section('title', 'تكاملات شركات الشحن')
 
 @section('content')
 <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:24px">
@@ -7,71 +7,71 @@
         <div style="font-size:12px;color:var(--tm);margin-bottom:8px">
             <a href="{{ route('internal.home') }}" style="color:inherit;text-decoration:none">المساحة الداخلية</a>
             <span style="margin:0 6px">/</span>
-            <span>Carrier integrations</span>
+            <span>تكاملات شركات الشحن</span>
         </div>
-        <h1 style="font-size:28px;font-weight:800;color:var(--tx);margin:0">Carrier integrations</h1>
+        <h1 style="font-size:28px;font-weight:800;color:var(--tx);margin:0">تكاملات شركات الشحن</h1>
         <p style="color:var(--td);font-size:14px;margin:8px 0 0;max-width:860px">
-            Read-only operational visibility for connected carrier APIs, with safe state, mode, health, shipper-account summaries, and masked credential indicators.
+            عرض تشغيلي للقراءة فقط لتكاملات شركات الشحن المتصلة، مع الحالة الآمنة ووضع الاتصال والصحة وملخصات حسابات الشحن ومؤشرات بيانات الاعتماد المقنّعة.
         </p>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <a href="{{ route('internal.carriers.index') }}" class="btn btn-s">Refresh</a>
-        <a href="{{ route('internal.integrations.index') }}" class="btn btn-s">Open full integrations center</a>
-        <a href="{{ route('internal.home') }}" class="btn btn-pr">Back to internal home</a>
+        <a href="{{ route('internal.carriers.index') }}" class="btn btn-s">تحديث</a>
+        <a href="{{ route('internal.integrations.index') }}" class="btn btn-s">فتح مركز التكاملات الكامل</a>
+        <a href="{{ route('internal.home') }}" class="btn btn-pr">العودة إلى الصفحة الداخلية الرئيسية</a>
     </div>
 </div>
 
 <div class="stats-grid" style="margin-bottom:24px">
-    <x-stat-card icon="CAR" label="Connected carriers" :value="number_format($stats['total'])" />
-    <x-stat-card icon="ON" label="Enabled" :value="number_format($stats['enabled'])" />
-    <x-stat-card icon="CFG" label="Configured" :value="number_format($stats['configured'])" />
-    <x-stat-card icon="ALT" label="Needs attention" :value="number_format($stats['attention'])" />
+    <x-stat-card icon="CAR" label="شركات الشحن المتصلة" :value="number_format($stats['total'])" />
+    <x-stat-card icon="ON" label="المفعّلة" :value="number_format($stats['enabled'])" />
+    <x-stat-card icon="CFG" label="المهيأة" :value="number_format($stats['configured'])" />
+    <x-stat-card icon="ALT" label="بحاجة إلى متابعة" :value="number_format($stats['attention'])" />
 </div>
 
 <div class="card" style="margin-bottom:24px">
-    <div class="card-title">Search and filters</div>
+    <div class="card-title">بحث وفلاتر أساسية</div>
     <form method="GET" action="{{ route('internal.carriers.index') }}" class="filter-grid-fluid">
         <div class="filter-field-wide">
-            <label for="carrier-search" style="display:block;font-size:12px;color:var(--tm);margin-bottom:6px">Search</label>
-            <input id="carrier-search" type="text" name="q" value="{{ $filters['q'] }}" class="input" placeholder="Carrier, provider key, or safe error summary">
+            <label for="carrier-search" style="display:block;font-size:12px;color:var(--tm);margin-bottom:6px">بحث</label>
+            <input id="carrier-search" type="text" name="q" value="{{ $filters['q'] }}" class="input" placeholder="ابحث باسم الناقل أو مفتاح المزود أو ملخص الخطأ">
         </div>
         <div>
-            <label for="carrier-state" style="display:block;font-size:12px;color:var(--tm);margin-bottom:6px">State</label>
+            <label for="carrier-state" style="display:block;font-size:12px;color:var(--tm);margin-bottom:6px">الحالة</label>
             <select id="carrier-state" name="state" class="input">
-                <option value="">All</option>
+                <option value="">كل الحالات</option>
                 @foreach($stateOptions as $key => $label)
-                    <option value="{{ $key }}" @selected($filters['state'] === $key)>{{ $label }}</option>
+                    <option value="{{ $key }}" @selected($filters['state'] === $key)>{{ ['enabled' => 'مفعلة', 'configured' => 'مهيأة', 'attention' => 'بحاجة إلى متابعة', 'disabled' => 'معطلة'][$key] ?? $label }}</option>
                 @endforeach
             </select>
         </div>
         <div>
-            <label for="carrier-health" style="display:block;font-size:12px;color:var(--tm);margin-bottom:6px">Health</label>
+            <label for="carrier-health" style="display:block;font-size:12px;color:var(--tm);margin-bottom:6px">الصحة التشغيلية</label>
             <select id="carrier-health" name="health" class="input">
-                <option value="">All</option>
+                <option value="">كل الحالات</option>
                 @foreach($healthOptions as $key => $label)
-                    <option value="{{ $key }}" @selected($filters['health'] === $key)>{{ $label }}</option>
+                    <option value="{{ $key }}" @selected($filters['health'] === $key)>{{ ['healthy' => 'سليمة', 'degraded' => 'متدهورة', 'down' => 'متوقفة', 'unknown' => 'غير معروفة'][$key] ?? $label }}</option>
                 @endforeach
             </select>
         </div>
         <div class="filter-actions">
-            <button type="submit" class="btn btn-pr">Apply</button>
-            <a href="{{ route('internal.carriers.index') }}" class="btn btn-s">Reset</a>
+            <button type="submit" class="btn btn-pr">تطبيق الفلاتر</button>
+            <a href="{{ route('internal.carriers.index') }}" class="btn btn-s">إعادة الضبط</a>
         </div>
     </form>
 </div>
 
 <div class="card" data-testid="internal-carriers-table">
-    <div class="card-title">Visible carrier integrations</div>
+    <div class="card-title">تكاملات شركات الشحن الظاهرة</div>
     <div style="overflow:auto">
         <table class="table">
             <thead>
             <tr>
-                <th>Carrier</th>
-                <th>Status</th>
-                <th>Connection and test status</th>
-                <th>Shipper account</th>
-                <th>Masked credentials</th>
-                <th>Last error summary</th>
+                <th>شركة الشحن</th>
+                <th>الحالة</th>
+                <th>حالة الاتصال والاختبار</th>
+                <th>حساب الشاحن</th>
+                <th>بيانات الاعتماد المقنّعة</th>
+                <th>ملخص آخر خطأ</th>
             </tr>
             </thead>
             <tbody>
@@ -105,7 +105,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="6" class="empty-state">No carrier integrations match the current filters.</td>
+                    <td colspan="6" class="empty-state">لا توجد تكاملات لشركات الشحن تطابق الفلاتر الحالية.</td>
                 </tr>
             @endforelse
             </tbody>

@@ -111,8 +111,8 @@ class InternalWebhookReadService
     public function typeOptions(): array
     {
         return [
-            'store' => 'Store endpoints',
-            'tracking' => 'Tracking endpoints',
+            'store' => 'نقاط نهاية المتاجر',
+            'tracking' => 'نقاط نهاية التتبع',
         ];
     }
 
@@ -122,9 +122,9 @@ class InternalWebhookReadService
     public function stateOptions(): array
     {
         return [
-            'operational' => 'Operational',
-            'attention' => 'Needs attention',
-            'retryable' => 'Retryable failures',
+            'operational' => 'تشغيلي',
+            'attention' => 'يحتاج إلى انتباه',
+            'retryable' => 'إخفاقات قابلة لإعادة المحاولة',
         ];
     }
 
@@ -207,11 +207,11 @@ class InternalWebhookReadService
                 'name' => (string) $store->name,
                 'provider_name' => $this->providerLabel((string) $store->platform),
                 'provider_key' => Str::lower((string) $store->platform),
-                'endpoint_label' => 'Store webhook endpoint',
+                'endpoint_label' => 'نقطة نهاية ويب هوك المتجر',
                 'state_key' => $stateKey,
                 'state_label' => $this->stateLabel($stateKey),
                 'is_enabled' => $isEnabled,
-                'enabled_label' => $isEnabled ? 'Receiving' : 'Attention needed',
+                'enabled_label' => $isEnabled ? 'يستقبل' : 'يحتاج إلى انتباه',
                 'has_failures' => $hasFailures,
                 'has_retryable_events' => $hasRetryableEvents,
                 'attempts_count' => $events->count(),
@@ -226,16 +226,16 @@ class InternalWebhookReadService
                         $this->headline((string) $lastEvent->event_type),
                         $this->headline((string) $lastEvent->status)
                     )
-                    : 'No webhook deliveries recorded yet',
+                    : 'لا توجد عمليات تسليم ويب هوك مسجلة حتى الآن',
                 'failure_summary' => $lastFailure instanceof WebhookEvent
-                    ? $this->safeFailureSummary((string) $lastFailure->error_message, 'A recent store delivery failed.')
-                    : 'No recent failures',
+                    ? $this->safeFailureSummary((string) $lastFailure->error_message, 'فشلت عملية تسليم حديثة للمتجر.')
+                    : 'لا توجد إخفاقات حديثة',
                 'security_summary' => $this->storeSecuritySummary($store),
                 'account_summary' => $account instanceof Account ? [
                     'account' => $account,
                     'name' => (string) $account->name,
                     'slug' => (string) ($account->slug ?? '—'),
-                    'type_label' => $account->isOrganization() ? 'Organization' : 'Individual',
+                    'type_label' => $account->isOrganization() ? 'منظمة' : 'فردي',
                 ] : null,
                 'recent_attempts' => $recentAttempts,
                 'recent_failures' => $recentFailures,
@@ -262,14 +262,14 @@ class InternalWebhookReadService
             return [
                 'route_key' => 'tracking~' . $carrierCode,
                 'kind' => 'tracking',
-                'name' => $providerName . ' inbound webhooks',
+                'name' => $providerName . ' ويب هوك وارد',
                 'provider_name' => $providerName,
                 'provider_key' => $carrierCode,
-                'endpoint_label' => 'Tracking webhook endpoint',
+                'endpoint_label' => 'نقطة نهاية ويب هوك التتبع',
                 'state_key' => $stateKey,
                 'state_label' => $this->stateLabel($stateKey),
                 'is_enabled' => true,
-                'enabled_label' => 'Receiving',
+                'enabled_label' => 'يستقبل',
                 'has_failures' => $hasFailures,
                 'has_retryable_events' => false,
                 'attempts_count' => $events->count(),
@@ -284,10 +284,10 @@ class InternalWebhookReadService
                         $this->headline((string) $lastEvent->event_type),
                         $this->headline((string) $lastEvent->status)
                     )
-                    : 'No webhook deliveries recorded yet',
+                    : 'لا توجد عمليات تسليم ويب هوك مسجلة حتى الآن',
                 'failure_summary' => $lastFailure instanceof TrackingWebhook
-                    ? $this->safeFailureSummary((string) $lastFailure->rejection_reason, 'A recent tracking delivery failed.')
-                    : 'No recent failures',
+                    ? $this->safeFailureSummary((string) $lastFailure->rejection_reason, 'فشلت عملية تسليم حديثة للتتبع.')
+                    : 'لا توجد إخفاقات حديثة',
                 'security_summary' => $this->trackingSecuritySummary($lastEvent),
                 'account_summary' => null,
                 'recent_attempts' => $recentAttempts,
@@ -383,17 +383,17 @@ class InternalWebhookReadService
             'headline' => $this->headline((string) $event->event_type),
             'status_label' => $this->headline((string) $event->status),
             'resource_summary' => trim((string) $event->external_resource_id) !== ''
-                ? 'External resource reference recorded'
-                : 'No external resource reference',
+                ? 'تم تسجيل مرجع المورد الخارجي'
+                : 'لا يوجد مرجع مورد خارجي',
             'received_at' => $this->displayDateTime($event->created_at) ?? '—',
             'processed_at' => $this->displayDateTime($event->processed_at) ?? '—',
             'attempt_summary' => sprintf(
-                '%s retry attempt(s)',
+                '%s محاولة إعادة',
                 number_format((int) $event->retry_count)
             ),
             'failure_summary' => (string) $event->status === WebhookEvent::STATUS_FAILED
-                ? $this->safeFailureSummary((string) $event->error_message, 'The stored delivery failed.')
-                : 'No active failure summary',
+                ? $this->safeFailureSummary((string) $event->error_message, 'فشلت عملية التسليم المخزنة.')
+                : 'لا يوجد ملخص فشل نشط',
             'is_failure' => (string) $event->status === WebhookEvent::STATUS_FAILED,
             'is_retryable' => $isRetryable,
         ];
@@ -411,17 +411,17 @@ class InternalWebhookReadService
             'headline' => $this->headline((string) $event->event_type),
             'status_label' => $this->headline((string) $event->status),
             'resource_summary' => trim((string) $event->message_reference) !== ''
-                ? 'Webhook reference recorded'
-                : 'No webhook reference recorded',
+                ? 'تم تسجيل مرجع ويب هوك'
+                : 'لم يتم تسجيل مرجع ويب هوك',
             'received_at' => $this->displayDateTime($event->created_at) ?? '—',
             'processed_at' => $this->displayDateTime($event->updated_at) ?? '—',
             'attempt_summary' => sprintf(
-                '%s extracted event(s)',
+                '%s حدثًا مستخرجًا',
                 number_format((int) $event->events_extracted)
             ),
             'failure_summary' => $isFailure
-                ? $this->safeFailureSummary((string) $event->rejection_reason, 'The stored delivery failed validation.')
-                : 'No active failure summary',
+                ? $this->safeFailureSummary((string) $event->rejection_reason, 'فشلت عملية التسليم المخزنة في التحقق.')
+                : 'لا يوجد ملخص فشل نشط',
             'is_failure' => $isFailure,
             'is_retryable' => false,
         ];
@@ -430,18 +430,18 @@ class InternalWebhookReadService
     private function providerLabel(string $providerKey): string
     {
         return match (Str::lower(trim($providerKey))) {
-            'shopify' => 'Shopify',
-            'woocommerce' => 'WooCommerce',
-            default => Str::headline($providerKey),
+            'shopify' => 'شوبيفاي',
+            'woocommerce' => 'ووكومرس',
+            default => 'مزوّد غير معروف',
         };
     }
 
     private function stateLabel(string $stateKey): string
     {
         return match ($stateKey) {
-            'retryable' => 'Retryable failures',
-            'attention' => 'Needs attention',
-            default => 'Operational',
+            'retryable' => 'إخفاقات قابلة لإعادة المحاولة',
+            'attention' => 'يحتاج إلى انتباه',
+            default => 'تشغيلي',
         };
     }
 
@@ -464,20 +464,20 @@ class InternalWebhookReadService
             || $this->hasVisibleValue($store->getAttribute('api_secret'));
 
         return $hasWebhookSecret
-            ? 'Inbound signing secret is configured and stays masked.'
-            : 'No masked signing-secret summary is currently available.';
+            ? 'تم إعداد سر التوقيع الوارد ويظل مخفيًا.'
+            : 'لا يتوفر حاليًا ملخص لسر التوقيع المقنّع.';
     }
 
     private function trackingSecuritySummary(?TrackingWebhook $event): string
     {
         if (! $event instanceof TrackingWebhook) {
-            return 'Inbound signature validation is logged when deliveries arrive.';
+            return 'يُسجَّل التحقق من التوقيع الوارد عند وصول التسليمات.';
         }
 
         return match (true) {
-            (bool) $event->signature_valid => 'Recent deliveries passed signature validation; raw signatures stay hidden.',
-            $event->signature_valid === false => 'Recent deliveries include signature validation failures; raw headers and signatures stay hidden.',
-            default => 'Inbound signature validation is logged when deliveries arrive.',
+            (bool) $event->signature_valid => 'اجتازت التسليمات الحديثة التحقق من التوقيع وتبقى التواقيع الخام مخفية.',
+            $event->signature_valid === false => 'تتضمن التسليمات الحديثة إخفاقات في التحقق من التوقيع وتبقى الرؤوس والتواقيع الخام مخفية.',
+            default => 'يُسجَّل التحقق من التوقيع الوارد عند وصول التسليمات.',
         };
     }
 
@@ -529,17 +529,17 @@ class InternalWebhookReadService
 
         return match (true) {
             str_contains($normalized, 'signature') && (str_contains($normalized, 'invalid') || str_contains($normalized, 'failed'))
-                => 'Signature validation failed for the stored delivery.',
+                => 'فشل التحقق من التوقيع لهذه العملية.',
             str_contains($normalized, 'timed out') || str_contains($normalized, 'timeout')
-                => 'A prior processing attempt timed out for the stored delivery.',
+                => 'انتهت مهلة محاولة معالجة سابقة لهذه العملية.',
             str_contains($normalized, 'duplicate')
-                => 'The stored delivery matched a duplicate-event guard.',
+                => 'طابقت العملية المخزنة حاجز حماية من التكرار.',
             str_contains($normalized, 'validation') || str_contains($normalized, 'invalid')
-                => 'The stored delivery failed validation checks.',
+                => 'فشلت العملية المخزنة في اجتياز التحقق.',
             str_contains($normalized, 'auth') || str_contains($normalized, 'unauthorized')
-                => 'Authentication failed for the stored delivery.',
+                => 'فشل التحقق من الهوية لهذه العملية.',
             str_contains($normalized, 'rate limit') || str_contains($normalized, '429')
-                => 'The stored delivery hit a rate limit during processing.',
+                => 'تعرّضت العملية لحدّ معدل أثناء المعالجة.',
             default => $fallback,
         };
     }
@@ -559,8 +559,31 @@ class InternalWebhookReadService
 
     private function headline(string $value): string
     {
-        $value = trim($value);
+        $value = Str::lower(trim($value));
 
-        return $value === '' ? 'Unknown' : Str::headline($value);
+        return match ($value) {
+            '', 'unknown' => 'غير معروف',
+            'processed' => 'تمت المعالجة',
+            'validated' => 'تم التحقق',
+            'failed' => 'فشل',
+            'rejected' => 'مرفوض',
+            'received' => 'تم الاستلام',
+            'delivered' => 'تم التسليم',
+            'enabled' => 'مفعّل',
+            'disabled' => 'معطّل',
+            'operational' => 'تشغيلي',
+            'attention' => 'يحتاج إلى انتباه',
+            'retryable' => 'قابل لإعادة المحاولة',
+            'created' => 'تم الإنشاء',
+            'updated' => 'تم التحديث',
+            'deleted' => 'تم الحذف',
+            'pending' => 'قيد الانتظار',
+            'success' => 'نجاح',
+            'warning' => 'تحذير',
+            'store' => 'المتجر',
+            'tracking' => 'التتبع',
+            'shipment_preflight' => 'حجز مسبق للشحنة',
+            default => 'غير معروف',
+        };
     }
 }

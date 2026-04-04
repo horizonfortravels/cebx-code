@@ -187,8 +187,8 @@ class InternalCarrierIntegrationReadService
 
             return [
                 'summary' => $lastFour !== false && $lastFour !== ''
-                    ? 'Configured ending ' . $lastFour
-                    : 'Configured',
+                    ? 'مهيأ وينتهي بـ ' . $lastFour
+                    : 'مهيأ',
                 'masked_value' => $lastFour !== false && $lastFour !== ''
                     ? '****' . $lastFour
                     : '********',
@@ -196,8 +196,8 @@ class InternalCarrierIntegrationReadService
         }
 
         return [
-            'summary' => 'No shipper account configured',
-            'masked_value' => 'Not configured',
+            'summary' => 'لا يوجد حساب شاحن مهيأ',
+            'masked_value' => 'غير مهيأ',
         ];
     }
 
@@ -208,7 +208,7 @@ class InternalCarrierIntegrationReadService
     {
         foreach (['is_sandbox', 'sandbox'] as $key) {
             if (array_key_exists($key, $config)) {
-                return (bool) $config[$key] ? 'Sandbox' : 'Live';
+                return (bool) $config[$key] ? 'اختباري' : 'حي';
             }
         }
 
@@ -220,13 +220,13 @@ class InternalCarrierIntegrationReadService
             }
 
             if (str_contains($value, 'sandbox') || str_contains($value, 'test') || str_contains($value, 'staging')) {
-                return 'Sandbox';
+                return 'اختباري';
             }
 
-            return 'Live';
+            return 'حي';
         }
 
-        return 'Not modeled';
+        return 'غير معرّف';
     }
 
     /**
@@ -234,19 +234,19 @@ class InternalCarrierIntegrationReadService
      */
     private function modeSummary(array $config, string $modeLabel): string
     {
-        if ($modeLabel === 'Not modeled') {
-            return 'This carrier does not expose an explicit sandbox or live mode in the current config contract.';
+        if ($modeLabel === 'غير معرّف') {
+            return 'شركة الشحن هذه لا تعرض وضعًا صريحًا للاختبار أو للوضع الحي داخل عقد الإعداد الحالي.';
         }
 
         $endpoint = trim((string) ($config['base_url'] ?? $config['oauth_url'] ?? ''));
 
         if ($endpoint === '') {
-            return $modeLabel . ' mode is modeled without a visible endpoint summary.';
+            return 'وضع ' . $modeLabel . ' معرّف دون ملخص ظاهر لنقطة النهاية.';
         }
 
         $host = parse_url($endpoint, PHP_URL_HOST);
 
-        return $modeLabel . ' mode' . ($host ? ' via ' . $host : '');
+        return 'وضع ' . $modeLabel . ($host ? ' عبر ' . $host : '');
     }
 
     /**
@@ -255,12 +255,12 @@ class InternalCarrierIntegrationReadService
      */
     private function connectionTestSummary(array $row): array
     {
-        $healthLabel = (string) ($row['health_label'] ?? 'Unknown');
+        $healthLabel = (string) ($row['health_label'] ?? 'غير معروفة');
         $checkedAt = (string) data_get($row, 'health_summary.checked_at', '—');
-        $requests = (string) data_get($row, 'health_summary.request_summary', 'No recent health check summary');
+        $requests = (string) data_get($row, 'health_summary.request_summary', 'لا يوجد ملخص حديث لفحص الصحة');
 
         return [
-            'headline' => 'Last health check: ' . $healthLabel,
+            'headline' => 'آخر فحص صحة: ' . $healthLabel,
             'detail' => implode(' • ', array_filter([$checkedAt, $requests])),
             'summary' => $healthLabel . ' • ' . $checkedAt,
         ];
@@ -275,17 +275,17 @@ class InternalCarrierIntegrationReadService
         $carrierError = $this->latestCarrierError($providerKey);
 
         if ($carrierError instanceof CarrierError) {
-            $headline = trim((string) ($carrierError->internal_message ?: 'Carrier error recorded'));
+            $headline = trim((string) ($carrierError->internal_message ?: 'تم تسجيل خطأ من شركة الشحن'));
             $detail = implode(' • ', array_filter([
                 $this->headline((string) $carrierError->operation),
                 $this->headline((string) $carrierError->internal_code),
-                $carrierError->is_retriable ? 'Retriable' : 'Not retriable',
+                $carrierError->is_retriable ? 'قابل لإعادة المحاولة' : 'غير قابل لإعادة المحاولة',
                 $this->displayDateTime($carrierError->updated_at ?: $carrierError->created_at),
             ]));
 
             return [
                 'headline' => $headline,
-                'detail' => $detail !== '' ? $detail : 'Safe carrier error summary recorded.',
+                'detail' => $detail !== '' ? $detail : 'تم تسجيل ملخص آمن لخطأ شركة الشحن.',
                 'summary' => $headline,
             ];
         }
@@ -293,7 +293,7 @@ class InternalCarrierIntegrationReadService
         $trackingFailure = $this->latestTrackingFailure($providerKey);
 
         if ($trackingFailure instanceof TrackingWebhook) {
-            $headline = 'Latest tracking webhook delivery needs review';
+            $headline = 'آخر تسليم ويبهوك للتتبع يحتاج مراجعة';
             $detail = implode(' • ', array_filter([
                 $this->headline((string) $trackingFailure->status),
                 $this->displayDateTime($trackingFailure->created_at),
@@ -301,7 +301,7 @@ class InternalCarrierIntegrationReadService
 
             return [
                 'headline' => $headline,
-                'detail' => $detail !== '' ? $detail : 'Safe tracking webhook failure summary recorded.',
+                'detail' => $detail !== '' ? $detail : 'تم تسجيل ملخص آمن لفشل ويبهوك التتبع.',
                 'summary' => $headline,
             ];
         }
@@ -310,20 +310,20 @@ class InternalCarrierIntegrationReadService
 
         if (in_array($healthStatus, ['degraded', 'down'], true)) {
             $headline = $healthStatus === 'down'
-                ? 'Carrier service is currently down'
-                : 'Carrier service is currently degraded';
+                ? 'خدمة شركة الشحن متوقفة حاليًا'
+                : 'خدمة شركة الشحن متدهورة حاليًا';
 
             return [
                 'headline' => $headline,
-                'detail' => (string) data_get($row, 'health_summary.request_summary', 'Recent requests show elevated failures.'),
+                'detail' => (string) data_get($row, 'health_summary.request_summary', 'تظهر الطلبات الحديثة ارتفاعًا في الإخفاقات.'),
                 'summary' => $headline,
             ];
         }
 
         return [
-            'headline' => 'No recent safe carrier error summary',
-            'detail' => 'No unresolved carrier or tracking failure summary is currently visible.',
-            'summary' => 'No recent safe carrier error summary',
+            'headline' => 'لا يوجد ملخص آمن حديث لأخطاء شركة الشحن',
+            'detail' => 'لا يوجد حاليًا ملخص ظاهر لإخفاقات شركة الشحن أو التتبع غير المحلولة.',
+            'summary' => 'لا يوجد ملخص آمن حديث لأخطاء شركة الشحن',
         ];
     }
 
@@ -367,7 +367,18 @@ class InternalCarrierIntegrationReadService
     {
         $value = trim($value);
 
-        return $value === '' ? 'Unknown' : Str::headline($value);
+        if ($value === '') {
+            return 'غير معروف';
+        }
+
+        return match (Str::lower($value)) {
+            'down' => 'متوقف',
+            'healthy' => 'سليم',
+            'live' => 'حي',
+            'sandbox' => 'اختباري',
+            'unknown' => 'غير معروف',
+            default => Str::headline($value),
+        };
     }
 
     private function displayDateTime(mixed $value): ?string

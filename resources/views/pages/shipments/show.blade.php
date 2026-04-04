@@ -80,7 +80,7 @@
         <x-card title="💰 {{ $portalType === 'b2b' ? 'التفاصيل المالية' : 'التكلفة' }}">
             @php
                 $costItems = [['رسوم الشحن', $shipment->shipping_rate]];
-                if($portalType === 'b2b' && $shipment->is_cod) $costItems[] = ['رسوم COD', 5.00];
+                if($portalType === 'b2b' && $shipment->is_cod) $costItems[] = ['رسوم الدفع عند الاستلام', 5.00];
                 if($shipment->is_insured) $costItems[] = ['التأمين', $shipment->insurance_amount];
                 $subtotal = array_sum(array_column($costItems, 1));
                 $tax = $subtotal * 0.15;
@@ -108,7 +108,7 @@
                 @foreach([
                     ['الناقل', $shipment->carrier_code],
                     ['الخدمة', $shipment->service_name ?? $shipment->service_code ?? '—'],
-                    ['COD', $shipment->is_cod ? number_format($shipment->cod_amount, 2) . ' ر.س' : '—'],
+                    ['الدفع عند الاستلام', $shipment->is_cod ? number_format($shipment->cod_amount, 2) . ' ر.س' : '—'],
                     ['المصدر', $shipment->source],
                     ['تاريخ الإنشاء', $shipment->created_at->format('d/m/Y')],
                     ['آخر تحديث', $shipment->updated_at->format('d/m/Y')],

@@ -4,6 +4,7 @@ namespace Tests\Feature\Web;
 
 use App\Models\SupportTicket;
 use App\Models\User;
+use App\Services\InternalTicketReadService;
 use Database\Seeders\E2EUserMatrixSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
@@ -35,6 +36,9 @@ class InternalTicketsReadCenterWebTest extends TestCase
             'e2e.internal.ops_readonly@example.test',
         ] as $email) {
             $user = $this->userByEmail($email);
+            $visibleDetail = app(InternalTicketReadService::class)->findVisibleDetail($user, (string) $this->shippingTicket->id);
+
+            $this->assertIsArray($visibleDetail);
 
             $index = $this->actingAs($user, 'web')
                 ->get(route('internal.tickets.index'))
@@ -56,25 +60,29 @@ class InternalTicketsReadCenterWebTest extends TestCase
                 ->assertSee('data-testid="internal-ticket-activity-card"', false)
                 ->assertSeeText('TKT-I9A-C-001')
                 ->assertSeeText('Delayed organization shipment follow-up')
-                ->assertSeeText('Shipping')
-                ->assertSeeText('Waiting agent')
+                ->assertSeeText((string) $visibleDetail['category_label'])
+                ->assertSeeText((string) $visibleDetail['status_label'])
                 ->assertSeeText('E2E Account C')
-                ->assertSeeText('Organization')
+                ->assertSeeText((string) data_get($visibleDetail, 'account_summary.type_label'))
                 ->assertSeeText('E2E Account C Logistics LLC')
                 ->assertSeeText('SHP-I5A-C-001')
                 ->assertSeeText('Support reply')
                 ->assertSee('data-testid="internal-ticket-notes-card"', false)
                 ->assertSeeText('Internal escalation note for leadership only.')
-                ->assertDontSee('data-testid="internal-ticket-workflow-activity-card"', false)
-                ->assertDontSee('data-testid="internal-ticket-status-form"', false)
-                ->assertDontSee('data-testid="internal-ticket-assignment-form"', false);
+                ->assertSee('data-testid="internal-ticket-workflow-activity-card"', false);
 
             if ($email === 'e2e.internal.ops_readonly@example.test') {
                 $detail->assertDontSee('data-testid="internal-ticket-reply-form"', false)
-                    ->assertDontSee('data-testid="internal-ticket-note-form"', false);
+                    ->assertDontSee('data-testid="internal-ticket-note-form"', false)
+                    ->assertDontSee('data-testid="internal-ticket-status-form"', false)
+                    ->assertDontSee('data-testid="internal-ticket-assignment-form"', false)
+                    ->assertDontSee('data-testid="internal-ticket-triage-form"', false);
             } else {
                 $detail->assertSee('data-testid="internal-ticket-reply-form"', false)
-                    ->assertSee('data-testid="internal-ticket-note-form"', false);
+                    ->assertSee('data-testid="internal-ticket-note-form"', false)
+                    ->assertSee('data-testid="internal-ticket-status-form"', false)
+                    ->assertSee('data-testid="internal-ticket-assignment-form"', false)
+                    ->assertSee('data-testid="internal-ticket-triage-form"', false);
             }
 
             if ($email === 'e2e.internal.ops_readonly@example.test') {

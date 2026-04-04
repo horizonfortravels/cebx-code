@@ -31,8 +31,8 @@
     <div class="card-title">بحث وفلاتر أساسية</div>
     <form method="GET" action="{{ route('internal.staff.index') }}" class="filter-grid-fluid">
         <label class="filter-field filter-field-wide">
-            <span class="form-label">بحث بالاسم أو البريد</span>
-            <input type="search" name="q" value="{{ $filters['q'] }}" placeholder="مثال: support أو ahmed@example.test" class="form-input">
+            <span class="form-label">بحث بالاسم أو البريد الإلكتروني</span>
+            <input type="search" name="q" value="{{ $filters['q'] }}" placeholder="مثال: فريق الدعم أو ahmed@example.test" class="form-input">
         </label>
 
         <label class="filter-field">

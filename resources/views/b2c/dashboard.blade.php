@@ -116,7 +116,7 @@
     <header class="header">
         <div class="header-inner">
         <div class="header-left">
-            <span class="badge-b2c">B2C — بوابة الأفراد</span>
+        <span class="badge-b2c">بوابة الأفراد</span>
             <h1>لوحة الحساب الفردي</h1>
         </div>
         <div class="header-actions">

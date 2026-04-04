@@ -104,12 +104,12 @@ class ClaimController extends Controller
             'from_status' => 'new',
             'to_status' => 'draft',
             'changed_by' => $request->user()->id,
-            'notes' => 'طھظ… ط¥ظ†ط´ط§ط، ط§ظ„ظ…ط·ط§ظ„ط¨ط©',
+            'notes' => 'تم إنشاء المطالبة',
         ]);
 
         return response()->json([
             'data' => $claim->load(['shipment', 'filer']),
-            'message' => 'طھظ… ط¥ظ†ط´ط§ط، ط§ظ„ظ…ط·ط§ظ„ط¨ط© ط¨ظ†ط¬ط§ط­',
+            'message' => 'تم إنشاء المطالبة بنجاح',
         ], 201);
     }
 
@@ -134,7 +134,7 @@ class ClaimController extends Controller
         $this->authorize('update', $claim);
 
         if (!in_array($claim->status, ['draft', 'submitted'], true)) {
-            return response()->json(['message' => 'ظ„ط§ ظٹظ…ظƒظ† طھط¹ط¯ظٹظ„ ط§ظ„ظ…ط·ط§ظ„ط¨ط© ظپظٹ ظ‡ط°ظ‡ ط§ظ„ظ…ط±ط­ظ„ط©'], 422);
+            return response()->json(['message' => 'لا يمكن تعديل المطالبة في هذه المرحلة'], 422);
         }
 
         $claim->update($request->only([
@@ -147,13 +147,13 @@ class ClaimController extends Controller
 
         return response()->json([
             'data' => $claim,
-            'message' => 'طھظ… طھط­ط¯ظٹط« ط§ظ„ظ…ط·ط§ظ„ط¨ط©',
+            'message' => 'تم تحديث المطالبة',
         ]);
     }
 
     public function submit(Request $request, string $id): JsonResponse
     {
-        return $this->transition($request, $id, 'submitted', 'submit', 'طھظ… طھظ‚ط¯ظٹظ… ط§ظ„ظ…ط·ط§ظ„ط¨ط©');
+        return $this->transition($request, $id, 'submitted', 'submit', 'تم تقديم المطالبة');
     }
 
     public function assign(Request $request, string $id): JsonResponse
@@ -174,23 +174,23 @@ class ClaimController extends Controller
             'from_status' => $fromStatus,
             'to_status' => 'under_review',
             'changed_by' => $request->user()->id,
-            'notes' => 'طھظ… طھط¹ظٹظٹظ† ط§ظ„ظ…ط·ط§ظ„ط¨ط© ظ„ظ…ط¹ط§ظ„ط¬',
+            'notes' => 'تم تعيين المطالبة للمعالجة',
         ]);
 
         return response()->json([
             'data' => $claim,
-            'message' => 'طھظ… طھط¹ظٹظٹظ† ط§ظ„ظ…ط·ط§ظ„ط¨ط©',
+            'message' => 'تم تعيين المطالبة',
         ]);
     }
 
     public function investigate(Request $request, string $id): JsonResponse
     {
-        return $this->transition($request, $id, 'investigation', 'investigate', 'ط¨ط¯ط£ ط§ظ„طھط­ظ‚ظٹظ‚');
+        return $this->transition($request, $id, 'investigation', 'investigate', 'بدأ التحقيق');
     }
 
     public function assess(Request $request, string $id): JsonResponse
     {
-        return $this->transition($request, $id, 'assessment', 'assess', 'ط¬ط§ط±ظٹ ط§ظ„طھظ‚ظٹظٹظ…');
+        return $this->transition($request, $id, 'assessment', 'assess', 'جارٍ التقييم');
     }
 
     public function approve(Request $request, string $id): JsonResponse
@@ -219,12 +219,12 @@ class ClaimController extends Controller
             'from_status' => $fromStatus,
             'to_status' => $status,
             'changed_by' => $request->user()->id,
-            'notes' => 'طھظ…طھ ط§ظ„ظ…ظˆط§ظپظ‚ط© â€” ط§ظ„ظ…ط¨ظ„ط؛: ' . $request->approved_amount,
+            'notes' => 'تمت الموافقة - المبلغ: ' . $request->approved_amount,
         ]);
 
         return response()->json([
             'data' => $claim,
-            'message' => 'طھظ…طھ ط§ظ„ظ…ظˆط§ظپظ‚ط© ط¹ظ„ظ‰ ط§ظ„ظ…ط·ط§ظ„ط¨ط©',
+            'message' => 'تمت الموافقة على المطالبة',
         ]);
     }
 
@@ -247,12 +247,12 @@ class ClaimController extends Controller
             'from_status' => $fromStatus,
             'to_status' => 'rejected',
             'changed_by' => $request->user()->id,
-            'notes' => 'طھظ… ط§ظ„ط±ظپط¶: ' . $request->reason,
+            'notes' => 'تم الرفض: ' . $request->reason,
         ]);
 
         return response()->json([
             'data' => $claim,
-            'message' => 'طھظ… ط±ظپط¶ ط§ظ„ظ…ط·ط§ظ„ط¨ط©',
+            'message' => 'تم رفض المطالبة',
         ]);
     }
 
@@ -281,18 +281,18 @@ class ClaimController extends Controller
             'from_status' => $fromStatus,
             'to_status' => 'settled',
             'changed_by' => $request->user()->id,
-            'notes' => 'طھظ…طھ ط§ظ„طھط³ظˆظٹط© â€” ط§ظ„ظ…ط¨ظ„ط؛: ' . $request->settled_amount,
+            'notes' => 'تمت التسوية - المبلغ: ' . $request->settled_amount,
         ]);
 
         return response()->json([
             'data' => $claim,
-            'message' => 'طھظ…طھ طھط³ظˆظٹط© ط§ظ„ظ…ط·ط§ظ„ط¨ط©',
+            'message' => 'تمت تسوية المطالبة',
         ]);
     }
 
     public function close(Request $request, string $id): JsonResponse
     {
-        return $this->transition($request, $id, 'closed', 'close', 'طھظ… ط¥ط؛ظ„ط§ظ‚ ط§ظ„ظ…ط·ط§ظ„ط¨ط©');
+        return $this->transition($request, $id, 'closed', 'close', 'تم إغلاق المطالبة');
     }
 
     public function resolve(Request $request, string $id): JsonResponse
@@ -308,7 +308,7 @@ class ClaimController extends Controller
         $this->authorize('appeal', $claim);
 
         if (!in_array($claim->status, ['rejected', 'partially_approved'], true)) {
-            return response()->json(['message' => 'ظ„ط§ ظٹظ…ظƒظ† ط§ظ„ط§ط¹طھط±ط§ط¶ ظپظٹ ظ‡ط°ظ‡ ط§ظ„ظ…ط±ط­ظ„ط©'], 422);
+            return response()->json(['message' => 'لا يمكن الاعتراض في هذه المرحلة'], 422);
         }
 
         $fromStatus = $claim->status;
@@ -319,12 +319,12 @@ class ClaimController extends Controller
             'from_status' => $fromStatus,
             'to_status' => 'appealed',
             'changed_by' => $request->user()->id,
-            'notes' => 'ط§ط¹طھط±ط§ط¶: ' . $request->reason,
+            'notes' => 'اعتراض: ' . $request->reason,
         ]);
 
         return response()->json([
             'data' => $claim,
-            'message' => 'طھظ… طھظ‚ط¯ظٹظ… ط§ظ„ط§ط¹طھط±ط§ط¶',
+            'message' => 'تم تقديم الاعتراض',
         ]);
     }
 
@@ -356,7 +356,7 @@ class ClaimController extends Controller
 
         return response()->json([
             'data' => $document,
-            'message' => 'طھظ… ط±ظپط¹ ط§ظ„ظ…ط³طھظ†ط¯',
+            'message' => 'تم رفع المستند',
         ], 201);
     }
 
@@ -384,7 +384,7 @@ class ClaimController extends Controller
             ->firstOrFail()
             ->delete();
 
-        return response()->json(['message' => 'طھظ… ط­ط°ظپ ط§ظ„ظ…ط³طھظ†ط¯']);
+        return response()->json(['message' => 'تم حذف المستند']);
     }
 
     public function history(string $id): JsonResponse

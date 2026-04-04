@@ -86,12 +86,15 @@ class InternalTicketTriageWebTest extends TestCase
         $this->assertTrue((bool) data_get($audit->metadata, 'note_recorded'));
         $this->assertStringNotContainsString('same-day support attention', json_encode($audit->metadata));
 
+        $visibleDetail = app(InternalTicketReadService::class)->findVisibleDetail($actor, (string) $ticket->id);
+        $this->assertIsArray($visibleDetail);
+
         $this->actingAs($actor, 'web')
             ->get(route('internal.tickets.show', $ticket))
             ->assertOk()
-            ->assertSeeText('Urgent')
-            ->assertSeeText('Shipping')
-            ->assertSeeText('Triage updated');
+            ->assertSeeText((string) $visibleDetail['priority_label'])
+            ->assertSeeText((string) $visibleDetail['category_label'])
+            ->assertSeeText((string) $visibleDetail['workflow_activity_summary']);
     }
 
     #[Test]

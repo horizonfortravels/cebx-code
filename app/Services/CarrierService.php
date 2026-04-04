@@ -798,7 +798,7 @@ class CarrierService
                 [
                     'shipment_id' => (string) $shipment->id,
                     'current_status' => (string) $shipment->status,
-                    'next_action' => 'Resolve the dangerous goods hold before continuing.',
+                    'next_action' => 'عالج تعليق المواد الخطرة قبل المتابعة.',
                 ],
                 422
             );
@@ -807,7 +807,7 @@ class CarrierService
         if ($shipment->status !== Shipment::STATUS_PAYMENT_PENDING) {
             throw BusinessException::make(
                 'ERR_INVALID_STATE_FOR_CARRIER',
-                'Shipment must complete declaration and wallet pre-flight before carrier creation.',
+                'يجب أن تكمل الشحنة الإقرار والتحقق المسبق للمحفظة قبل إنشاء الشحنة لدى الناقل.',
                 [
                     'shipment_id' => (string) $shipment->id,
                     'current_status' => (string) $shipment->status,
@@ -821,7 +821,7 @@ class CarrierService
         if (! $declaration || $declaration->status !== ContentDeclaration::STATUS_COMPLETED) {
             throw BusinessException::make(
                 'ERR_DG_DECLARATION_INCOMPLETE',
-                'Dangerous goods declaration must be completed before carrier creation.',
+                'يجب استكمال إقرار المواد الخطرة قبل إنشاء الشحنة لدى الناقل.',
                 ['shipment_id' => (string) $shipment->id],
                 422
             );
@@ -830,7 +830,7 @@ class CarrierService
         if ((bool) ($declaration->contains_dangerous_goods ?? false)) {
             throw BusinessException::make(
                 'ERR_DG_HOLD_REQUIRED',
-                'Dangerous goods shipments require manual handling and cannot continue through normal carrier creation.',
+                'الشحنات التي تحتوي على مواد خطرة تتطلب معالجة يدوية ولا يمكنها المتابعة عبر الإنشاء الاعتيادي لدى الناقل.',
                 ['shipment_id' => (string) $shipment->id],
                 422
             );
@@ -840,7 +840,7 @@ class CarrierService
         if (! $activeReservation) {
             throw BusinessException::make(
                 'ERR_WALLET_RESERVATION_REQUIRED',
-                'An active wallet reservation is required before carrier creation.',
+                'يلزم وجود حجز نشط من المحفظة قبل إنشاء الشحنة لدى الناقل.',
                 ['shipment_id' => (string) $shipment->id],
                 422
             );
@@ -850,7 +850,7 @@ class CarrierService
         if (round((float) $activeReservation->amount, 2) !== round($expectedAmount, 2)) {
             throw BusinessException::make(
                 'ERR_PREFLIGHT_AMOUNT_MISMATCH',
-                'The active wallet reservation does not match the selected shipment offer total.',
+                'حجز المحفظة النشط لا يطابق إجمالي عرض الشحنة المحدد.',
                 [
                     'shipment_id' => (string) $shipment->id,
                     'reservation_id' => (string) $activeReservation->id,
@@ -864,7 +864,7 @@ class CarrierService
         if ($shipment->parcels()->count() === 0) {
             throw BusinessException::make(
                 'ERR_NO_PARCELS',
-                'Shipment must have at least one parcel before carrier creation.',
+                'يجب أن تحتوي الشحنة على طرد واحد على الأقل قبل الإنشاء لدى الناقل.',
                 ['shipment_id' => (string) $shipment->id],
                 422
             );
@@ -873,7 +873,7 @@ class CarrierService
         if (empty($shipment->sender_name) || empty($shipment->recipient_name)) {
             throw BusinessException::make(
                 'ERR_MISSING_ADDRESS',
-                'Shipment must have complete sender and recipient information before carrier creation.',
+                'يجب أن تحتوي الشحنة على بيانات كاملة للمرسل والمستلم قبل الإنشاء لدى الناقل.',
                 ['shipment_id' => (string) $shipment->id],
                 422
             );
@@ -945,7 +945,7 @@ class CarrierService
         if ($carrierCode !== CarrierShipment::CARRIER_FEDEX) {
             throw BusinessException::make(
                 'ERR_CARRIER_PROVIDER_NOT_SUPPORTED',
-                'The selected carrier is not yet supported for real shipment creation.',
+                'شركة الشحن المحددة غير مدعومة بعد لإنشاء شحنة فعلية.',
                 [
                     'shipment_id' => (string) $shipment->id,
                     'carrier_code' => $carrierCode,
@@ -957,7 +957,7 @@ class CarrierService
         if (! $this->fedexShipmentProvider->isEnabled()) {
             throw BusinessException::make(
                 'ERR_FEDEX_NOT_ENABLED',
-                'FedEx shipment creation is not enabled for this environment.',
+                'إنشاء الشحنات عبر فيديكس غير مفعّل في هذه البيئة.',
                 [
                     'shipment_id' => (string) $shipment->id,
                     'carrier_code' => $carrierCode,
@@ -1029,7 +1029,7 @@ class CarrierService
         if ($amount <= 0) {
             throw BusinessException::make(
                 'ERR_INVALID_SELECTED_OFFER_TOTAL',
-                'The selected shipment offer does not have a valid billable total for carrier creation.',
+                'عرض الشحنة المحدد لا يحتوي على إجمالي قابل للفوترة صالح لإنشاء الشحنة لدى الناقل.',
                 [
                     'shipment_id' => (string) $shipment->id,
                     'selected_rate_option_id' => (string) ($shipment->selected_rate_option_id ?? ''),
@@ -1048,7 +1048,7 @@ class CarrierService
         if (! $reservation) {
             throw BusinessException::make(
                 'ERR_WALLET_RESERVATION_REQUIRED',
-                'An active wallet reservation is required before carrier creation.',
+                'يلزم وجود حجز نشط من المحفظة قبل إنشاء الشحنة لدى الناقل.',
                 ['shipment_id' => (string) $shipment->id],
                 422
             );

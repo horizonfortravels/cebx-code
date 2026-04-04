@@ -259,14 +259,14 @@ class InternalComplianceReadCenterController extends Controller
 
         return [
             'declaration' => $declaration,
-            'shipmentReference' => $shipment?->reference_number ?: 'Shipment context unavailable',
-            'shipmentStatus' => $shipment ? $this->shipmentStatusLabel((string) ($shipment->status ?? '')) : 'Not available',
-            'accountLabel' => $account?->name ?: 'Account context unavailable',
-            'accountTypeLabel' => $account ? $this->accountTypeLabel((string) $account->type) : 'Unknown account',
+            'shipmentReference' => $shipment?->reference_number ?: 'سياق الشحنة غير متاح',
+            'shipmentStatus' => $shipment ? $this->shipmentStatusLabel((string) ($shipment->status ?? '')) : 'غير متاح',
+            'accountLabel' => $account?->name ?: 'سياق الحساب غير متاح',
+            'accountTypeLabel' => $account ? $this->accountTypeLabel((string) $account->type) : 'حساب غير معروف',
             'organizationSummary' => $account?->isOrganization()
-                ? trim((string) ($account->organizationProfile?->legal_name ?: $account->organizationProfile?->trade_name ?: 'Organization profile unavailable'))
+                ? trim((string) ($account->organizationProfile?->legal_name ?: $account->organizationProfile?->trade_name ?: 'ملف المنظمة غير متاح'))
                 : null,
-            'ownerSummary' => $owner ? trim((string) $owner->name . ($owner->email ? ' • ' . $owner->email : '')) : 'Owner summary unavailable',
+            'ownerSummary' => $owner ? trim((string) $owner->name . ($owner->email ? ' • ' . $owner->email : '')) : 'ملخص المالك غير متاح',
             'statusLabel' => $this->declarationStatusLabel((string) $declaration->status),
             'reviewLabel' => $review['label'],
             'reviewDetail' => $review['detail'],
@@ -312,9 +312,9 @@ class InternalComplianceReadCenterController extends Controller
             'id' => (string) $shipment->id,
             'reference' => (string) ($shipment->reference_number ?: $shipment->id),
             'workflow_status' => $this->shipmentStatusLabel((string) ($shipment->status ?? '')),
-            'source' => $this->headline((string) ($shipment->source ?? 'direct')),
+            'source' => $this->sourceLabel((string) ($shipment->source ?? 'direct')),
             'dangerous_goods' => $this->yesNo((bool) ($shipment->has_dangerous_goods ?? false)),
-            'status_reason' => Str::limit(trim((string) ($shipment->status_reason ?? 'No workflow note recorded.')), 140, '...'),
+            'status_reason' => Str::limit(trim((string) ($shipment->status_reason ?? 'لا توجد ملاحظة مسجلة على سير العمل.')), 140, '...'),
             'created_at' => optional($shipment->created_at)->format('Y-m-d H:i') ?? '-',
             'updated_at' => optional($shipment->updated_at)->format('Y-m-d H:i') ?? '-',
         ];
@@ -334,10 +334,10 @@ class InternalComplianceReadCenterController extends Controller
             'type' => $this->accountTypeLabel((string) $account->type),
             'status' => $this->headline((string) ($account->status ?? 'pending')),
             'organization' => $account->isOrganization()
-                ? trim((string) ($account->organizationProfile?->legal_name ?: $account->organizationProfile?->trade_name ?: 'Organization profile unavailable'))
-                : 'Individual account',
-            'owner' => $owner ? (string) ($owner->name ?: $owner->email) : 'Owner summary unavailable',
-            'owner_email' => $owner?->email ?: 'No visible owner email',
+                ? trim((string) ($account->organizationProfile?->legal_name ?: $account->organizationProfile?->trade_name ?: 'ملف المنظمة غير متاح'))
+                : 'حساب فردي',
+            'owner' => $owner ? (string) ($owner->name ?: $owner->email) : 'ملخص المالك غير متاح',
+            'owner_email' => $owner?->email ?: 'لا يوجد بريد مالك ظاهر',
         ];
     }
 
@@ -358,7 +358,7 @@ class InternalComplianceReadCenterController extends Controller
             'updated_at' => optional($declaration->updated_at)->format('Y-m-d H:i') ?? '-',
             'hold_reason' => $declaration->hold_reason
                 ? Str::limit(trim((string) $declaration->hold_reason), 180, '...')
-                : 'No hold reason recorded.',
+                : 'لا يوجد سبب حجز مسجل.',
         ];
     }
 
@@ -369,9 +369,9 @@ class InternalComplianceReadCenterController extends Controller
     {
         if ((bool) $declaration->contains_dangerous_goods) {
             return [
-                'state_label' => 'Not applicable',
-                'detail' => 'Dangerous-goods declarations move into manual review instead of waiver acceptance.',
-                'version' => 'No waiver version linked',
+                'state_label' => 'غير منطبق',
+                'detail' => 'إقرارات المواد الخطرة تنتقل إلى مراجعة يدوية بدلًا من مسار الإقرار القانوني.',
+                'version' => 'لا توجد نسخة إقرار قانوني مرتبطة',
                 'accepted_at' => '-',
                 'locale' => (string) ($declaration->locale ?: '-'),
             ];
@@ -379,18 +379,18 @@ class InternalComplianceReadCenterController extends Controller
 
         if ((bool) $declaration->waiver_accepted) {
             return [
-                'state_label' => 'Accepted',
-                'detail' => 'A legal acknowledgement was captured for the non-dangerous-goods declaration.',
-                'version' => (string) ($declaration->waiverVersion?->version ?: 'Version unavailable'),
+                'state_label' => 'تم القبول',
+                'detail' => 'تم تسجيل الإقرار القانوني لهذا التصريح غير الخطر.',
+                'version' => (string) ($declaration->waiverVersion?->version ?: 'الإصدار غير متاح'),
                 'accepted_at' => optional($declaration->waiver_accepted_at)->format('Y-m-d H:i') ?? '-',
                 'locale' => (string) (($declaration->waiverVersion?->locale ?: $declaration->locale) ?: '-'),
             ];
         }
 
         return [
-            'state_label' => 'Pending',
-            'detail' => 'The legal acknowledgement still needs to be accepted before the shipment can proceed normally.',
-            'version' => (string) ($declaration->waiverVersion?->version ?: 'No waiver version linked'),
+            'state_label' => 'معلّق',
+            'detail' => 'ما زال الإقرار القانوني يحتاج إلى قبول قبل أن تتمكن الشحنة من المتابعة بشكل طبيعي.',
+            'version' => (string) ($declaration->waiverVersion?->version ?: 'لا توجد نسخة إقرار قانوني مرتبطة'),
             'accepted_at' => '-',
             'locale' => (string) (($declaration->waiverVersion?->locale ?: $declaration->locale) ?: '-'),
         ];
@@ -406,13 +406,13 @@ class InternalComplianceReadCenterController extends Controller
         }
 
         return [
-            'un_number' => trim((string) ($metadata->un_number ?: 'Not recorded')),
-            'dg_class' => trim((string) ($metadata->dg_class ?: 'Not recorded')),
-            'packing_group' => trim((string) ($metadata->packing_group ?: 'Not recorded')),
-            'proper_shipping_name' => trim((string) ($metadata->proper_shipping_name ?: 'Not recorded')),
+            'un_number' => trim((string) ($metadata->un_number ?: 'غير مسجل')),
+            'dg_class' => trim((string) ($metadata->dg_class ?: 'غير مسجل')),
+            'packing_group' => trim((string) ($metadata->packing_group ?: 'غير مسجل')),
+            'proper_shipping_name' => trim((string) ($metadata->proper_shipping_name ?: 'غير مسجل')),
             'quantity' => $metadata->quantity !== null
                 ? rtrim(rtrim(number_format((float) $metadata->quantity, 3, '.', ''), '0'), '.') . ' ' . trim((string) ($metadata->quantity_unit ?: ''))
-                : 'Not recorded',
+                : 'غير مسجل',
         ];
     }
 
@@ -428,7 +428,7 @@ class InternalComplianceReadCenterController extends Controller
         );
 
         return [
-            'shipment_workflow_state' => $shipment ? $this->shipmentStatusLabel((string) ($shipment->status ?? '')) : 'Not available',
+            'shipment_workflow_state' => $shipment ? $this->shipmentStatusLabel((string) ($shipment->status ?? '')) : 'غير متاح',
             'is_blocked' => $declaration->isBlocked(),
             'declaration_complete' => $declaration->isReadyForIssuance(),
             'requires_disclaimer' => $requiresDisclaimer,
@@ -446,7 +446,7 @@ class InternalComplianceReadCenterController extends Controller
 
         if (trim((string) ($declaration->hold_reason ?? '')) !== '') {
             $notes->push([
-                'source' => 'Hold reason',
+                'source' => 'سبب الحجز',
                 'detail' => Str::limit(trim((string) $declaration->hold_reason), 180, '...'),
             ]);
         }
@@ -454,14 +454,14 @@ class InternalComplianceReadCenterController extends Controller
         $review = $this->reviewState($declaration);
         if (trim((string) ($review['detail'] ?? '')) !== '') {
             $notes->push([
-                'source' => 'Review summary',
+                'source' => 'ملخص المراجعة',
                 'detail' => trim((string) $review['detail']),
             ]);
         }
 
         if ($shipment instanceof Shipment && trim((string) ($shipment->status_reason ?? '')) !== '') {
             $notes->push([
-                'source' => 'Shipment workflow note',
+                'source' => 'ملاحظة سير عمل الشحنة',
                 'detail' => Str::limit(trim((string) $shipment->status_reason), 180, '...'),
             ]);
         }
@@ -471,7 +471,7 @@ class InternalComplianceReadCenterController extends Controller
             ->take(3)
             ->each(function (array $entry) use ($notes): void {
                 $notes->push([
-                    'source' => 'Audit note',
+                    'source' => 'ملاحظة تدقيق',
                     'detail' => trim((string) $entry['note']),
                 ]);
             });
@@ -546,8 +546,8 @@ class InternalComplianceReadCenterController extends Controller
             ->map(fn (DgAuditLog $audit): array => [
                 'action' => $this->auditActionLabel((string) $audit->action),
                 'created_at' => optional($audit->created_at)->format('Y-m-d H:i') ?? '-',
-                'actor_role' => $audit->actor_role ? $this->headline((string) $audit->actor_role) : 'System',
-                'note' => Str::limit(trim((string) ($audit->notes ?: 'No note recorded for this compliance event.')), 160, '...'),
+                'actor_role' => $audit->actor_role ? $this->headline((string) $audit->actor_role) : 'النظام',
+                'note' => Str::limit(trim((string) ($audit->notes ?: 'لا توجد ملاحظة مسجلة لهذا الحدث الامتثالي.')), 160, '...'),
                 'change_summary' => $this->auditChangeSummary($audit, $declaration),
             ])
             ->values();
@@ -563,20 +563,20 @@ class InternalComplianceReadCenterController extends Controller
         $newStatus = $this->auditStatusLabel($newValues['status'] ?? null);
 
         if ($oldStatus !== '' && $newStatus !== '' && $oldStatus !== $newStatus) {
-            $parts[] = sprintf('Status: %s -> %s', $oldStatus, $newStatus);
+            $parts[] = sprintf('الحالة: %s -> %s', $oldStatus, $newStatus);
         } elseif ($newStatus !== '') {
-            $parts[] = sprintf('Status: %s', $newStatus);
+            $parts[] = sprintf('الحالة: %s', $newStatus);
         }
 
         if (array_key_exists('contains_dangerous_goods', $newValues)) {
-            $parts[] = 'DG answer: ' . $this->yesNo((bool) $newValues['contains_dangerous_goods']);
+            $parts[] = 'إجابة المواد الخطرة: ' . $this->yesNo((bool) $newValues['contains_dangerous_goods']);
         } elseif (array_key_exists('contains_dangerous_goods', $oldValues)) {
-            $parts[] = 'DG answer: ' . $this->yesNo((bool) $oldValues['contains_dangerous_goods']);
+            $parts[] = 'إجابة المواد الخطرة: ' . $this->yesNo((bool) $oldValues['contains_dangerous_goods']);
         }
 
         $waiverVersion = trim((string) ($newValues['waiver_version'] ?? ''));
         if ($waiverVersion !== '') {
-            $parts[] = 'Waiver version: ' . $waiverVersion;
+            $parts[] = 'نسخة الإقرار القانوني: ' . $waiverVersion;
         }
 
         if ((string) $audit->action === DgAuditLog::ACTION_DG_METADATA_SAVED) {
@@ -590,18 +590,18 @@ class InternalComplianceReadCenterController extends Controller
                 ]);
 
                 if ($metadataParts !== []) {
-                    $parts[] = 'DG metadata: ' . implode(' / ', $metadataParts);
+                    $parts[] = 'بيانات المواد الخطرة: ' . implode(' / ', $metadataParts);
                 }
             }
         }
 
         if ($parts === []) {
             return match ((string) $audit->action) {
-                DgAuditLog::ACTION_CREATED => 'Declaration case opened.',
-                DgAuditLog::ACTION_DG_FLAG_SET => 'DG answer: ' . $this->yesNo((bool) $declaration->contains_dangerous_goods),
-                DgAuditLog::ACTION_WAIVER_ACCEPTED => 'Waiver version: ' . trim((string) ($declaration->waiverVersion?->version ?: 'Version unavailable')),
-                DgAuditLog::ACTION_HOLD_APPLIED => 'Status: ' . $this->declarationStatusLabel((string) $declaration->status),
-                DgAuditLog::ACTION_COMPLETED => 'Status: ' . $this->declarationStatusLabel(ContentDeclaration::STATUS_COMPLETED),
+                DgAuditLog::ACTION_CREATED => 'تم فتح حالة الإقرار.',
+                DgAuditLog::ACTION_DG_FLAG_SET => 'إجابة المواد الخطرة: ' . $this->yesNo((bool) $declaration->contains_dangerous_goods),
+                DgAuditLog::ACTION_WAIVER_ACCEPTED => 'نسخة الإقرار القانوني: ' . trim((string) ($declaration->waiverVersion?->version ?: 'الإصدار غير متاح')),
+                DgAuditLog::ACTION_HOLD_APPLIED => 'الحالة: ' . $this->declarationStatusLabel((string) $declaration->status),
+                DgAuditLog::ACTION_COMPLETED => 'الحالة: ' . $this->declarationStatusLabel(ContentDeclaration::STATUS_COMPLETED),
                 default => '',
             };
         }
@@ -623,22 +623,22 @@ class InternalComplianceReadCenterController extends Controller
     private function nextActionForDeclaration(ContentDeclaration $declaration): string
     {
         if (! $declaration->dg_flag_declared) {
-            return 'Declare whether the shipment contains dangerous goods before the workflow can continue.';
+            return 'حدّد ما إذا كانت الشحنة تحتوي على مواد خطرة قبل أن يتمكن سير العمل من المتابعة.';
         }
 
         if ($declaration->contains_dangerous_goods) {
-            return 'Dangerous goods were declared, so the shipment remains in manual review until an internal team resolves the hold.';
+            return 'تم التصريح بوجود مواد خطرة، لذا تبقى الشحنة في المراجعة اليدوية حتى يعالج الفريق الداخلي سبب الحجز.';
         }
 
         if (! $declaration->waiver_accepted) {
-            return 'Accept the legal acknowledgement for this non-DG declaration before the shipment can proceed normally.';
+            return 'اقبل الإقرار القانوني لهذا التصريح غير الخطر قبل أن تتمكن الشحنة من المتابعة بشكل طبيعي.';
         }
 
         if ($declaration->status === ContentDeclaration::STATUS_COMPLETED) {
-            return 'The declaration gate is complete. The shipment is ready for the next workflow phase when downstream checks are clear.';
+            return 'اكتمل حاجز الإقرار. تصبح الشحنة جاهزة للمرحلة التالية من سير العمل عند خلو الفحوصات اللاحقة من العوائق.';
         }
 
-        return 'Review the current compliance case state before moving the shipment forward.';
+        return 'راجع الحالة الحالية لملف الامتثال قبل دفع الشحنة إلى الأمام.';
     }
 
     /**
@@ -648,26 +648,26 @@ class InternalComplianceReadCenterController extends Controller
     {
         return match ((string) $declaration->status) {
             ContentDeclaration::STATUS_HOLD_DG => [
-                'label' => 'Manual dangerous-goods review',
+                'label' => 'مراجعة يدوية للمواد الخطرة',
                 'detail' => $declaration->hold_reason
                     ? Str::limit(trim((string) $declaration->hold_reason), 140, '...')
-                    : 'Dangerous goods were declared, so automated shipment progression is blocked.',
+                    : 'تم التصريح بوجود مواد خطرة، لذلك تم إيقاف تقدم الشحنة الآلي.',
             ],
             ContentDeclaration::STATUS_REQUIRES_ACTION => [
-                'label' => 'Requires action',
-                'detail' => 'The declaration needs follow-up before the shipment can proceed normally.',
+                'label' => 'تحتاج إجراء',
+                'detail' => 'يحتاج هذا الإقرار إلى متابعة قبل أن تتمكن الشحنة من المتابعة بشكل طبيعي.',
             ],
             ContentDeclaration::STATUS_COMPLETED => [
-                'label' => 'Clear for next workflow phase',
-                'detail' => 'The declaration gate is complete for the current shipment workflow.',
+                'label' => 'جاهز للمرحلة التالية',
+                'detail' => 'اكتمل حاجز الإقرار لسير عمل هذه الشحنة.',
             ],
             ContentDeclaration::STATUS_EXPIRED => [
-                'label' => 'Expired',
-                'detail' => 'The declaration has expired and should be refreshed before further processing.',
+                'label' => 'منتهي',
+                'detail' => 'انتهت صلاحية الإقرار ويجب تحديثه قبل أي معالجة إضافية.',
             ],
             default => [
-                'label' => 'Open review',
-                'detail' => 'The declaration is still waiting for a final answer or legal acknowledgement.',
+                'label' => 'مراجعة مفتوحة',
+                'detail' => 'ما زال الإقرار بانتظار إجابة نهائية أو قبول الإقرار القانوني.',
             ],
         };
     }
@@ -692,7 +692,7 @@ class InternalComplianceReadCenterController extends Controller
     private function queueDeclarationSummary(ContentDeclaration $declaration): string
     {
         return sprintf(
-            'DG declared: %s • Contains DG: %s • Waiver: %s',
+            'التصريح بالمواد الخطرة: %s • تحتوي مواد خطرة: %s • الإقرار القانوني: %s',
             $this->yesNo((bool) ($declaration->dg_flag_declared ?? false)),
             $this->yesNo((bool) $declaration->contains_dangerous_goods),
             $this->legalSummary($declaration)['state_label']
@@ -702,7 +702,7 @@ class InternalComplianceReadCenterController extends Controller
     private function auditSummaryLine(?DgAuditLog $audit): string
     {
         if (! $audit instanceof DgAuditLog) {
-            return 'No compliance audit entry is visible for this case yet.';
+            return 'لا يوجد إدخال تدقيق امتثالي ظاهر لهذه الحالة حتى الآن.';
         }
 
         $timestamp = optional($audit->created_at)->format('Y-m-d H:i') ?? '-';
@@ -710,7 +710,7 @@ class InternalComplianceReadCenterController extends Controller
 
         if ($note !== '') {
             return sprintf(
-                'Latest update: %s • %s • %s',
+                'آخر تحديث: %s • %s • %s',
                 $this->auditActionLabel((string) $audit->action),
                 $timestamp,
                 Str::limit($note, 80, '...')
@@ -718,7 +718,7 @@ class InternalComplianceReadCenterController extends Controller
         }
 
         return sprintf(
-            'Latest update: %s • %s',
+            'آخر تحديث: %s • %s',
             $this->auditActionLabel((string) $audit->action),
             $timestamp
         );
@@ -807,23 +807,23 @@ class InternalComplianceReadCenterController extends Controller
         if ((bool) $declaration->contains_dangerous_goods || $declaration->status === ContentDeclaration::STATUS_HOLD_DG) {
             return [
                 'is_available' => false,
-                'headline' => 'Dangerous-goods hold already active',
-                'detail' => 'This case is already blocked for manual dangerous-goods handling, so the internal correction request action is not used here.',
+                'headline' => 'حجز المواد الخطرة مفعّل بالفعل',
+                'detail' => 'هذه الحالة محجوبة بالفعل لمعالجة المواد الخطرة يدويًا، لذلك لا يُستخدم إجراء طلب التصحيح الداخلي هنا.',
             ];
         }
 
         if ($declaration->status === ContentDeclaration::STATUS_REQUIRES_ACTION) {
             return [
                 'is_available' => false,
-                'headline' => 'Already waiting for correction',
-                'detail' => 'A correction request is already active for this declaration. Review the existing reason in the audit trail before taking any further action.',
+                'headline' => 'بانتظار التصحيح بالفعل',
+                'detail' => 'يوجد طلب تصحيح نشط بالفعل لهذا الإقرار. راجع السبب الحالي في سجل التدقيق قبل اتخاذ أي إجراء إضافي.',
             ];
         }
 
         return [
             'is_available' => true,
-            'headline' => 'Request customer correction',
-            'detail' => 'Use this only when the declaration should remain blocked until the customer corrects or clarifies the compliance information. A human reason is required and the shipment workflow stays synchronized.',
+            'headline' => 'طلب تصحيح من العميل',
+            'detail' => 'استخدم هذا الإجراء فقط عندما يجب أن يبقى الإقرار محجوبًا حتى يصحح العميل معلومات الامتثال أو يوضحها. يلزم سبب بشري واضح مع إبقاء سير عمل الشحنة متزامنًا.',
         ];
     }
 
@@ -833,11 +833,11 @@ class InternalComplianceReadCenterController extends Controller
     private function statusOptions(): array
     {
         return [
-            ContentDeclaration::STATUS_PENDING => 'Pending',
-            ContentDeclaration::STATUS_COMPLETED => 'Completed',
-            ContentDeclaration::STATUS_HOLD_DG => 'DG hold',
-            ContentDeclaration::STATUS_REQUIRES_ACTION => 'Requires action',
-            ContentDeclaration::STATUS_EXPIRED => 'Expired',
+            ContentDeclaration::STATUS_PENDING => 'قيد الانتظار',
+            ContentDeclaration::STATUS_COMPLETED => 'مكتمل',
+            ContentDeclaration::STATUS_HOLD_DG => 'حجز مواد خطرة',
+            ContentDeclaration::STATUS_REQUIRES_ACTION => 'تحتاج إجراء',
+            ContentDeclaration::STATUS_EXPIRED => 'منتهي',
         ];
     }
 
@@ -847,9 +847,9 @@ class InternalComplianceReadCenterController extends Controller
     private function reviewOptions(): array
     {
         return [
-            'attention' => 'Needs attention',
-            'open' => 'Open review',
-            'clear' => 'Clear',
+            'attention' => 'تحتاج متابعة',
+            'open' => 'مراجعة مفتوحة',
+            'clear' => 'واضحة',
         ];
     }
 
@@ -873,20 +873,20 @@ class InternalComplianceReadCenterController extends Controller
 
     private function accountTypeLabel(string $type): string
     {
-        return $type === 'organization' ? 'Organization account' : 'Individual account';
+        return $type === 'organization' ? 'حساب منظمة' : 'حساب فردي';
     }
 
     private function auditActionLabel(string $action): string
     {
         return match ($action) {
-            DgAuditLog::ACTION_CREATED => 'Declaration created',
-            DgAuditLog::ACTION_DG_FLAG_SET => 'DG answer recorded',
-            DgAuditLog::ACTION_WAIVER_ACCEPTED => 'Legal acknowledgement accepted',
-            DgAuditLog::ACTION_HOLD_APPLIED => 'Dangerous-goods hold applied',
-            DgAuditLog::ACTION_DG_METADATA_SAVED => 'DG metadata recorded',
-            DgAuditLog::ACTION_COMPLETED => 'Declaration completed',
-            DgAuditLog::ACTION_VIEWED => 'Viewed',
-            DgAuditLog::ACTION_STATUS_CHANGED => 'Status changed',
+            DgAuditLog::ACTION_CREATED => 'تم إنشاء الإقرار',
+            DgAuditLog::ACTION_DG_FLAG_SET => 'تم تسجيل إجابة المواد الخطرة',
+            DgAuditLog::ACTION_WAIVER_ACCEPTED => 'تم قبول الإقرار القانوني',
+            DgAuditLog::ACTION_HOLD_APPLIED => 'تم تطبيق حجز المواد الخطرة',
+            DgAuditLog::ACTION_DG_METADATA_SAVED => 'تم حفظ بيانات المواد الخطرة',
+            DgAuditLog::ACTION_COMPLETED => 'اكتمل الإقرار',
+            DgAuditLog::ACTION_VIEWED => 'تمت المشاهدة',
+            DgAuditLog::ACTION_STATUS_CHANGED => 'تم تغيير الحالة',
             default => $this->headline($action),
         };
     }
@@ -905,7 +905,7 @@ class InternalComplianceReadCenterController extends Controller
 
     private function yesNo(bool $value): string
     {
-        return $value ? 'Yes' : 'No';
+        return $value ? 'نعم' : 'لا';
     }
 
     private function headline(string $value): string
@@ -913,10 +913,44 @@ class InternalComplianceReadCenterController extends Controller
         $normalized = trim(str_replace(['_', '-'], ' ', $value));
 
         if ($normalized === '') {
-            return 'Not available';
+            return 'غير متاح';
         }
 
-        return Str::title($normalized);
+        $map = [
+            'active' => 'نشط',
+            'approved' => 'مقبول',
+            'completed' => 'مكتمل',
+            'direct' => 'مباشر',
+            'expired' => 'منتهي',
+            'external' => 'خارجي',
+            'hold dg' => 'حجز مواد خطرة',
+            'individual' => 'فردي',
+            'internal' => 'داخلي',
+            'open' => 'مفتوح',
+            'order' => 'طلب',
+            'organization' => 'منظمة',
+            'pending' => 'قيد الانتظار',
+            'requires action' => 'تحتاج إجراء',
+            'return' => 'إرجاع',
+            'suspended' => 'معلّق',
+            'system' => 'النظام',
+            'under review' => 'قيد المراجعة',
+        ];
+
+        $key = Str::of($normalized)->lower()->value();
+
+        return $map[$key] ?? Str::title($normalized);
+    }
+
+    private function sourceLabel(string $source): string
+    {
+        return match (trim($source)) {
+            Shipment::SOURCE_DIRECT => 'مباشر',
+            Shipment::SOURCE_ORDER => 'طلب',
+            Shipment::SOURCE_BULK => 'مجمع',
+            Shipment::SOURCE_RETURN => 'إرجاع',
+            default => $this->headline($source),
+        };
     }
 
     private function normalizedFilter(string $value, array $allowed): string

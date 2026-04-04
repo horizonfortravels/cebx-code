@@ -27,6 +27,16 @@
     <x-toast type="error" :message="$errors->first()" />
 @endif
 
+@php
+    $staffStatusLabel = match ((string) ($staffUser->status ?? 'active')) {
+        'active' => 'نشط',
+        'pending' => 'قيد التفعيل',
+        'suspended' => 'معلّق',
+        'disabled' => 'معطّل',
+        default => (string) ($staffUser->status ?? 'نشط'),
+    };
+@endphp
+
 <form method="POST" action="{{ route('internal.staff.update', $staffUser) }}" class="grid-main-sidebar" data-testid="internal-staff-edit-form">
     @csrf
     @method('PUT')
@@ -56,7 +66,7 @@
         <div class="form-grid-2">
             <div>
                 <label style="display:block;font-size:12px;color:var(--tm);margin-bottom:6px">الحالة الحالية</label>
-                <div class="input" style="display:flex;align-items:center">{{ $staffUser->status ?? 'active' }}</div>
+                <div class="input" style="display:flex;align-items:center">{{ $staffStatusLabel }}</div>
             </div>
             <div>
                 <label for="role" style="display:block;font-size:12px;color:var(--tm);margin-bottom:6px">الدور الداخلي المعتمد</label>

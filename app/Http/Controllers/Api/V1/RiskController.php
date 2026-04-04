@@ -21,7 +21,7 @@ class RiskController extends Controller
 
         return response()->json([
             'data' => $risk,
-            'message' => 'طھظ… طھظ‚ظٹظٹظ… ط§ظ„ظ…ط®ط§ط·ط±',
+            'message' => 'تم تقييم المخاطر',
         ]);
     }
 
@@ -55,7 +55,7 @@ class RiskController extends Controller
             ->first();
 
         if (!$risk) {
-            return response()->json(['message' => 'ظ„ظ… ظٹطھظ… طھظ‚ظٹظٹظ… ط§ظ„ظ…ط®ط§ط·ط± ط¨ط¹ط¯'], 404);
+            return response()->json(['message' => 'لم يتم تقييم المخاطر بعد'], 404);
         }
 
         $this->authorize('view', $risk);
@@ -85,7 +85,7 @@ class RiskController extends Controller
 
         return response()->json([
             'data' => $results->values(),
-            'message' => 'طھظ… طھظ‚ظٹظٹظ… ' . $results->count() . ' ط´ط­ظ†ط©',
+            'message' => 'تم تقييم ' . $results->count() . ' شحنة',
         ]);
     }
 
@@ -259,7 +259,7 @@ class RiskController extends Controller
 
         return response()->json([
             'data' => $route,
-            'message' => 'طھظ… ط§ط®طھظٹط§ط± ط§ظ„ظ…ط³ط§ط±',
+            'message' => 'تم اختيار المسار',
         ]);
     }
 
@@ -273,27 +273,27 @@ class RiskController extends Controller
 
         if ($shipment->shipment_type === 'sea') {
             $delayProbability += 25;
-            $factors[] = ['factor' => 'sea_freight', 'impact' => 25, 'description_ar' => 'ط§ظ„ط´ط­ظ† ط§ظ„ط¨ط­ط±ظٹ ط¹ط±ط¶ط© ظ„طھط£ط®ظٹط±ط§طھ ط§ظ„ط·ظ‚ط³'];
+            $factors[] = ['factor' => 'sea_freight', 'impact' => 25, 'description_ar' => 'الشحن البحري عرضة لتأخيرات الطقس'];
         }
 
         if ($shipment->is_international) {
             $delayProbability += 15;
-            $factors[] = ['factor' => 'international', 'impact' => 15, 'description_ar' => 'ط´ط­ظ†ط© ط¯ظˆظ„ظٹط© â€” ط¥ط¬ط±ط§ط،ط§طھ ط¬ظ…ط±ظƒظٹط©'];
+            $factors[] = ['factor' => 'international', 'impact' => 15, 'description_ar' => 'شحنة دولية - إجراءات جمركية'];
         }
 
         if ($shipment->has_dangerous_goods) {
             $delayProbability += 20;
-            $factors[] = ['factor' => 'dangerous_goods', 'impact' => 20, 'description_ar' => 'ط¨ط¶ط§ط¦ط¹ ط®ط·ط±ط© طھط­طھط§ط¬ طھطµط§ط±ظٹط­ ط¥ط¶ط§ظپظٹط©'];
+            $factors[] = ['factor' => 'dangerous_goods', 'impact' => 20, 'description_ar' => 'بضائع خطرة تحتاج تصاريح إضافية'];
         }
 
         if ($shipment->chargeable_weight > 1000) {
             $delayProbability += 10;
-            $factors[] = ['factor' => 'heavy_shipment', 'impact' => 10, 'description_ar' => 'ط´ط­ظ†ط© ط«ظ‚ظٹظ„ط© â€” ط§ط­طھظ…ط§ظ„ طھط£ط®ظٹط± ط§ظ„طھط­ظ…ظٹظ„'];
+            $factors[] = ['factor' => 'heavy_shipment', 'impact' => 10, 'description_ar' => 'شحنة ثقيلة - احتمال تأخير التحميل'];
         }
 
         if (now()->isWeekend()) {
             $delayProbability += 5;
-            $factors[] = ['factor' => 'weekend', 'impact' => 5, 'description_ar' => 'ط¹ط·ظ„ط© ظ†ظ‡ط§ظٹط© ط§ظ„ط£ط³ط¨ظˆط¹'];
+            $factors[] = ['factor' => 'weekend', 'impact' => 5, 'description_ar' => 'عطلة نهاية الأسبوع'];
         }
 
         $delayProbability = min(100, $delayProbability);
@@ -327,17 +327,17 @@ class RiskController extends Controller
 
         if ($shipment->declared_value > 50000 && $shipment->chargeable_weight < 5) {
             $score += 30;
-            $flags[] = ['flag' => 'value_weight_mismatch', 'severity' => 'high', 'ar' => 'طھظ†ط§ظ‚ط¶ ط¨ظٹظ† ط§ظ„ظ‚ظٹظ…ط© ط§ظ„ظ…ط¹ظ„ظ†ط© ظˆط§ظ„ظˆط²ظ†'];
+            $flags[] = ['flag' => 'value_weight_mismatch', 'severity' => 'high', 'ar' => 'تناقض بين القيمة المعلنة والوزن'];
         }
 
         if ($shipment->declared_value > 200000) {
             $score += 20;
-            $flags[] = ['flag' => 'high_value', 'severity' => 'medium', 'ar' => 'ظ‚ظٹظ…ط© ظ…ط±طھظپط¹ط© ط¬ط¯ط§ظ‹'];
+            $flags[] = ['flag' => 'high_value', 'severity' => 'medium', 'ar' => 'قيمة مرتفعة جدًا'];
         }
 
         if ($shipment->is_cod && $shipment->is_international) {
             $score += 25;
-            $flags[] = ['flag' => 'international_cod', 'severity' => 'high', 'ar' => 'ط¯ظپط¹ ط¹ظ†ط¯ ط§ظ„ط§ط³طھظ„ط§ظ… ظ„ط´ط­ظ†ط© ط¯ظˆظ„ظٹط© â€” ظ…ط®ط§ط·ط± ط¹ط§ظ„ظٹط©'];
+            $flags[] = ['flag' => 'international_cod', 'severity' => 'high', 'ar' => 'الدفع عند الاستلام لشحنة دولية - مخاطر عالية'];
         }
 
         $customerShipments = Shipment::query()
@@ -346,7 +346,7 @@ class RiskController extends Controller
 
         if ($customerShipments <= 3 && $shipment->declared_value > 10000) {
             $score += 15;
-            $flags[] = ['flag' => 'new_customer_high_value', 'severity' => 'medium', 'ar' => 'ط¹ظ…ظٹظ„ ط¬ط¯ظٹط¯ ط¨ط´ط­ظ†ط© ط°ط§طھ ظ‚ظٹظ…ط© ط¹ط§ظ„ظٹط©'];
+            $flags[] = ['flag' => 'new_customer_high_value', 'severity' => 'medium', 'ar' => 'عميل جديد بشحنة ذات قيمة عالية'];
         }
 
         $level = match (true) {
@@ -363,10 +363,10 @@ class RiskController extends Controller
             'flags' => $flags,
             'action_required' => in_array($level, ['critical', 'high'], true),
             'recommendations' => match ($level) {
-                'critical' => ['ط­ط¬ط¨ ط§ظ„ط´ط­ظ†ط© ظ„ظ„ظ…ط±ط§ط¬ط¹ط© ط§ظ„ظٹط¯ظˆظٹط©', 'ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ظ‡ظˆظٹط© ط§ظ„ط¹ظ…ظٹظ„', 'ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط¹ظ†ظˆط§ظ† ط§ظ„ظ…ط³طھظ„ظ…'],
-                'high' => ['ظ…ط±ط§ط¬ط¹ط© ظٹط¯ظˆظٹط© ظ‚ط¨ظ„ ط§ظ„ط´ط­ظ†', 'ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط¨ظٹط§ظ†ط§طھ ط§ظ„ط¯ظپط¹'],
-                'medium' => ['ظ…ط±ط§ظ‚ط¨ط© ط§ظ„ط´ط­ظ†ط©', 'طھط³ط¬ظٹظ„ ظ…ظ„ط§ط­ط¸ط© ظپظٹ ط§ظ„ظ…ظ„ظپ'],
-                default => ['ظ„ط§ ط­ط§ط¬ط© ظ„ط¥ط¬ط±ط§ط، ط¥ط¶ط§ظپظٹ'],
+                'critical' => ['حجب الشحنة للمراجعة اليدوية', 'التحقق من هوية العميل', 'التحقق من عنوان المستلم'],
+                'high' => ['مراجعة يدوية قبل الشحن', 'التحقق من بيانات الدفع'],
+                'medium' => ['مراقبة الشحنة', 'تسجيل ملاحظة في الملف'],
+                default => ['لا حاجة لإجراء إضافي'],
             },
         ]]);
     }
@@ -422,12 +422,12 @@ class RiskController extends Controller
 
         foreach ($factors as $factor) {
             $recommendations[] = match ($factor['factor']) {
-                'sea_freight' => 'ظپظƒط± ظپظٹ ط§ظ„ط´ط­ظ† ط§ظ„ط¬ظˆظٹ ظ„ظ„ط´ط­ظ†ط§طھ ط§ظ„ط¹ط§ط¬ظ„ط©',
-                'international' => 'ط¬ظ‡ط² ط§ظ„ظ…ط³طھظ†ط¯ط§طھ ط§ظ„ط¬ظ…ط±ظƒظٹط© ظ…ط³ط¨ظ‚ط§ظ‹',
-                'dangerous_goods' => 'طھط£ظƒط¯ ظ…ظ† ط§ط³طھظƒظ…ط§ظ„ ط¬ظ…ظٹط¹ ط§ظ„طھطµط§ط±ظٹط­',
-                'heavy_shipment' => 'ط§ط·ظ„ط¨ ط­ط¬ط² ظ…ط³ط¨ظ‚ ظ…ط¹ ط§ظ„ظ†ط§ظ‚ظ„',
-                'weekend' => 'ط§ط®طھط± ط§ظ„طھط³ظ„ظٹظ… ظپظٹ ط£ظٹط§ظ… ط§ظ„ط¹ظ…ظ„',
-                default => 'ط±ط§ظ‚ط¨ ط§ظ„ط´ط­ظ†ط© ط¨ط§ظ†طھط¸ط§ظ…',
+                'sea_freight' => 'فكّر في الشحن الجوي للشحنات العاجلة',
+                'international' => 'جهّز المستندات الجمركية مسبقًا',
+                'dangerous_goods' => 'تأكد من استكمال جميع التصاريح',
+                'heavy_shipment' => 'اطلب حجزًا مسبقًا مع الناقل',
+                'weekend' => 'اختر التسليم في أيام العمل',
+                default => 'راقب الشحنة بانتظام',
             };
         }
 

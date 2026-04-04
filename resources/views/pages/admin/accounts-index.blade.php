@@ -68,7 +68,7 @@
     </div>
 
     <div class="filter-actions">
-        <button type="submit" class="btn btn-pr">تطبيق</button>
+        <button type="submit" class="btn btn-pr">تطبيق الفلاتر</button>
         <a href="{{ route('internal.accounts.index') }}" class="btn btn-s">إعادة ضبط</a>
     </div>
 </form>

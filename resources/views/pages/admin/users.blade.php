@@ -46,8 +46,8 @@
                 <tr>
                     <td>{{ $user->name }}</td>
                     <td>{{ $user->email }}</td>
-                    <td>{{ $user->user_type ?? 'external' }}</td>
-                    <td>{{ $user->status ?? 'active' }}</td>
+                    <td>{{ ($user->user_type ?? 'external') === 'external' ? 'خارجي' : ($user->user_type ?? 'external') }}</td>
+                    <td>{{ ($user->status ?? 'active') === 'active' ? 'نشط' : ($user->status ?? 'active') }}</td>
                     <td>{{ optional($user->last_login_at)->format('Y-m-d H:i') ?? '—' }}</td>
                 </tr>
             @empty

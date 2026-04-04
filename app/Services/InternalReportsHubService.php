@@ -43,12 +43,12 @@ class InternalReportsHubService
     public function domainOptions(): array
     {
         return [
-            'shipments' => 'Shipments',
-            'kyc' => 'KYC',
-            'billing' => 'Wallet & billing',
-            'compliance' => 'Compliance & DG',
-            'tickets' => 'Tickets & helpdesk',
-            'executive' => 'Executive metrics',
+            'shipments' => 'الشحنات',
+            'kyc' => 'التحقق KYC',
+            'billing' => 'المحفظة والفوترة',
+            'compliance' => 'الامتثال والمواد الخطرة',
+            'tickets' => 'التذاكر ومركز الدعم',
+            'executive' => 'المؤشرات التنفيذية',
         ];
     }
 
@@ -61,27 +61,27 @@ class InternalReportsHubService
 
         return [
             'key' => 'shipments',
-            'title' => 'Shipments',
-            'eyebrow' => 'Operational flow',
-            'description' => 'High-level shipment flow health across the internal shipment center.',
-            'summary' => 'Focused on live queue pressure, in-flight movement, and blocked shipment visibility.',
+            'title' => 'الشحنات',
+            'eyebrow' => 'التدفق التشغيلي',
+            'description' => 'نظرة تشغيلية عالية المستوى على صحة تدفق الشحنات داخل مركز الشحن الداخلي.',
+            'summary' => 'يركز هذا الملخص على ضغط الطوابير الحية، وحركة الشحنات الجارية، وحالات التعطيل التي تحتاج متابعة.',
             'route_name' => 'internal.shipments.index',
-            'cta_label' => 'Open shipment center',
+            'cta_label' => 'فتح مركز الشحن',
             'metrics' => [
-                $this->metric('Total shipments', (clone $query)->count()),
-                $this->metric('In flight', (clone $query)->whereIn('status', [
+                $this->metric('إجمالي الشحنات', (clone $query)->count()),
+                $this->metric('قيد التنفيذ', (clone $query)->whereIn('status', [
                     Shipment::STATUS_PURCHASED,
                     Shipment::STATUS_READY_FOR_PICKUP,
                     Shipment::STATUS_PICKED_UP,
                     Shipment::STATUS_IN_TRANSIT,
                     Shipment::STATUS_OUT_FOR_DELIVERY,
                 ])->count()),
-                $this->metric('Needs attention', (clone $query)->whereIn('status', [
+                $this->metric('تحتاج متابعة', (clone $query)->whereIn('status', [
                     Shipment::STATUS_REQUIRES_ACTION,
                     Shipment::STATUS_EXCEPTION,
                     Shipment::STATUS_FAILED,
                 ])->count()),
-                $this->metric('KYC blocked', (clone $query)->where('status', Shipment::STATUS_KYC_BLOCKED)->count()),
+                $this->metric('محجوبة بسبب KYC', (clone $query)->where('status', Shipment::STATUS_KYC_BLOCKED)->count()),
             ],
         ];
     }
@@ -128,17 +128,17 @@ class InternalReportsHubService
 
         return [
             'key' => 'kyc',
-            'title' => 'KYC',
-            'eyebrow' => 'Verification queue',
-            'description' => 'Current KYC review posture across internal verification operations.',
-            'summary' => 'Highlights pending reviews, rejected cases, and accounts that still carry verification-linked restrictions.',
+            'title' => 'التحقق KYC',
+            'eyebrow' => 'طابور التحقق',
+            'description' => 'الوضع الحالي لمراجعات التحقق عبر العمليات الداخلية الخاصة بـ KYC.',
+            'summary' => 'يبرز هذا الملخص المراجعات المعلقة، والحالات المرفوضة، والحسابات التي ما زالت تحمل قيودًا مرتبطة بالتحقق.',
             'route_name' => 'internal.kyc.index',
-            'cta_label' => 'Open KYC center',
+            'cta_label' => 'فتح مركز KYC',
             'metrics' => [
-                $this->metric('Tracked accounts', (clone $accounts)->count()),
-                $this->metric('Pending review', $pendingCount),
-                $this->metric('Rejected', $rejectedCount),
-                $this->metric('Restricted', $restrictedCount),
+                $this->metric('الحسابات المتعقبة', (clone $accounts)->count()),
+                $this->metric('بانتظار المراجعة', $pendingCount),
+                $this->metric('مرفوضة', $rejectedCount),
+                $this->metric('مقيّدة', $restrictedCount),
             ],
         ];
     }
@@ -160,24 +160,24 @@ class InternalReportsHubService
 
         return [
             'key' => 'billing',
-            'title' => 'Wallet & billing',
-            'eyebrow' => 'Balance oversight',
-            'description' => 'Read-only financial operations summary for wallet health and preflight activity.',
-            'summary' => 'Only high-level balance risk and reservation activity is surfaced here; detailed financial internals stay in the billing center.',
+            'title' => 'المحفظة والفوترة',
+            'eyebrow' => 'متابعة الأرصدة',
+            'description' => 'ملخص مالي للقراءة فقط يعرض صحة المحفظة ونشاط الحجوزات المسبقة.',
+            'summary' => 'يعرض هذا المركز مؤشرات المخاطر العامة على الرصيد ونشاط الحجوزات فقط، بينما تبقى التفاصيل المالية الدقيقة داخل مركز الفوترة.',
             'route_name' => 'internal.billing.index',
-            'cta_label' => 'Open billing center',
+            'cta_label' => 'فتح مركز الفوترة',
             'metrics' => [
-                $this->metric('Wallet accounts', $wallets ? (clone $wallets)->count() : 0),
-                $this->metric('Low balance', $wallets
+                $this->metric('حسابات المحافظ', $wallets ? (clone $wallets)->count() : 0),
+                $this->metric('رصيد منخفض', $wallets
                     ? (clone $wallets)
                         ->whereNotNull('low_balance_threshold')
                         ->whereColumn('available_balance', '<', 'low_balance_threshold')
                         ->count()
                     : 0),
-                $this->metric('Active holds', $holds
+                $this->metric('حجوزات نشطة', $holds
                     ? (clone $holds)->where('status', WalletHold::STATUS_ACTIVE)->count()
                     : 0),
-                $this->metric('Confirmed top-ups (24h)', $topups
+                $this->metric('عمليات شحن مؤكدة (24 ساعة)', $topups
                     ? (clone $topups)
                         ->where('status', WalletTopup::STATUS_SUCCESS)
                         ->where('created_at', '>=', now()->subDay())
@@ -196,24 +196,24 @@ class InternalReportsHubService
 
         return [
             'key' => 'compliance',
-            'title' => 'Compliance & DG',
-            'eyebrow' => 'Declaration review',
-            'description' => 'Operational view into dangerous-goods and declaration review pressure.',
-            'summary' => 'Tracks cases that need compliance attention, pending waivers, and DG-flagged shipments without exposing raw legal payloads.',
+            'title' => 'الامتثال والمواد الخطرة',
+            'eyebrow' => 'مراجعة الإقرارات',
+            'description' => 'نظرة تشغيلية على ضغط مراجعات الامتثال والتصاريح المرتبطة بالمواد الخطرة.',
+            'summary' => 'يتابع الحالات التي تحتاج انتباه فريق الامتثال، والإقرارات القانونية المعلقة، والشحنات الموسومة بالمواد الخطرة دون كشف الحمولات القانونية الخام.',
             'route_name' => 'internal.compliance.index',
-            'cta_label' => 'Open compliance center',
+            'cta_label' => 'فتح مركز الامتثال',
             'metrics' => [
-                $this->metric('Total cases', (clone $query)->count()),
-                $this->metric('Needs attention', (clone $query)->whereIn('status', [
+                $this->metric('إجمالي الحالات', (clone $query)->count()),
+                $this->metric('تحتاج متابعة', (clone $query)->whereIn('status', [
                     ContentDeclaration::STATUS_HOLD_DG,
                     ContentDeclaration::STATUS_REQUIRES_ACTION,
                 ])->count()),
-                $this->metric('Waiver pending', (clone $query)
+                $this->metric('إقرار قانوني معلّق', (clone $query)
                     ->where('dg_flag_declared', true)
                     ->where('contains_dangerous_goods', false)
                     ->where('waiver_accepted', false)
                     ->count()),
-                $this->metric('DG flagged', (clone $query)->where('contains_dangerous_goods', true)->count()),
+                $this->metric('موسومة كمواد خطرة', (clone $query)->where('contains_dangerous_goods', true)->count()),
             ],
         ];
     }
@@ -227,17 +227,17 @@ class InternalReportsHubService
 
         return [
             'key' => 'tickets',
-            'title' => 'Tickets & helpdesk',
-            'eyebrow' => 'Support queue',
-            'description' => 'Internal helpdesk queue pressure, urgency, and shipment-linked ticket load.',
-            'summary' => 'Summarizes the active ticket queue without exposing note bodies or hidden escalation content from the helpdesk center.',
+            'title' => 'التذاكر ومركز الدعم',
+            'eyebrow' => 'طابور الدعم',
+            'description' => 'ضغط طابور الدعم الداخلي، ومستوى الإلحاح، وحجم التذاكر المرتبطة بالشحنات.',
+            'summary' => 'يلخّص الطابور النشط للتذاكر دون كشف نصوص الملاحظات أو تفاصيل التصعيد الداخلي المخفية داخل مركز الدعم.',
             'route_name' => 'internal.tickets.index',
-            'cta_label' => 'Open ticket center',
+            'cta_label' => 'فتح مركز التذاكر',
             'metrics' => [
-                $this->metric('Total tickets', (int) ($stats['total'] ?? 0)),
-                $this->metric('Open queue', (int) ($stats['open'] ?? 0)),
-                $this->metric('Urgent', (int) ($stats['urgent'] ?? 0)),
-                $this->metric('Linked shipments', (int) ($stats['linked_shipments'] ?? 0)),
+                $this->metric('إجمالي التذاكر', (int) ($stats['total'] ?? 0)),
+                $this->metric('الطابور المفتوح', (int) ($stats['open'] ?? 0)),
+                $this->metric('العاجلة', (int) ($stats['urgent'] ?? 0)),
+                $this->metric('المرتبطة بالشحنات', (int) ($stats['linked_shipments'] ?? 0)),
             ],
         ];
     }

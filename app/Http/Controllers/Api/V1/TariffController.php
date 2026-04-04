@@ -92,7 +92,7 @@ class TariffController extends Controller
 
         return response()->json([
             'data' => TariffRule::create($validated),
-            'message' => 'طھظ… ط¥ظ†ط´ط§ط، ظ‚ط§ط¹ط¯ط© ط§ظ„طھط¹ط±ظپط©',
+            'message' => 'تم إنشاء قاعدة التعرفة',
         ], 201);
     }
 
@@ -113,7 +113,7 @@ class TariffController extends Controller
 
         return response()->json([
             'data' => $tariff,
-            'message' => 'طھظ… طھط­ط¯ظٹط« ط§ظ„طھط¹ط±ظپط©',
+            'message' => 'تم تحديث التعرفة',
         ]);
     }
 
@@ -124,7 +124,7 @@ class TariffController extends Controller
 
         $tariff->delete();
 
-        return response()->json(['message' => 'طھظ… ط­ط°ظپ ط§ظ„طھط¹ط±ظپط©']);
+        return response()->json(['message' => 'تم حذف التعرفة']);
     }
 
     public function calculate(Request $request): JsonResponse
@@ -154,7 +154,7 @@ class TariffController extends Controller
             ->get();
 
         if ($rules->isEmpty()) {
-            return response()->json(['data' => [], 'message' => 'ظ„ط§ طھظˆط¬ط¯ طھط¹ط±ظپط§طھ ظ…ط·ط§ط¨ظ‚ط© â€” ط£ط¶ظپ ظ‚ظˆط§ط¹ط¯ طھط¹ط±ظپط© ط£ظˆظ„ط§ظ‹']);
+            return response()->json(['data' => [], 'message' => 'لا توجد تعريفات مطابقة - أضف قواعد تعرفة أولًا']);
         }
 
         $results = $rules->map(function (TariffRule $rule) use ($request): array {
@@ -211,7 +211,7 @@ class TariffController extends Controller
 
         return response()->json([
             'data' => ShipmentCharge::create($validated),
-            'message' => 'طھظ… ط¥ط¶ط§ظپط© ط§ظ„ط±ط³ظ…',
+            'message' => 'تمت إضافة الرسم',
         ], 201);
     }
 
@@ -228,7 +228,7 @@ class TariffController extends Controller
 
         $charge->delete();
 
-        return response()->json(['message' => 'طھظ… ط­ط°ظپ ط§ظ„ط±ط³ظ…']);
+        return response()->json(['message' => 'تم حذف الرسم']);
     }
 
     public function taxRules(Request $request): JsonResponse
@@ -257,7 +257,7 @@ class TariffController extends Controller
 
         return response()->json([
             'data' => TaxRule::create($validated),
-            'message' => 'طھظ… ط¥ظ†ط´ط§ط، ظ‚ط§ط¹ط¯ط© ط§ظ„ط¶ط±ظٹط¨ط©',
+            'message' => 'تم إنشاء قاعدة الضريبة',
         ], 201);
     }
 

@@ -55,8 +55,8 @@ class InternalBillingReadCenterController extends Controller
             'filters' => $filters,
             'currencyOptions' => $this->currencyOptions(),
             'statusOptions' => [
-                'active' => 'Active',
-                'frozen' => 'Frozen',
+                'active' => 'نشطة',
+                'frozen' => 'مجمّدة',
             ],
         ]);
     }
@@ -202,7 +202,7 @@ class InternalBillingReadCenterController extends Controller
         return [
             'account' => $account,
             'accountLabel' => (string) $account->name,
-            'accountTypeLabel' => $account->isOrganization() ? 'Organization' : 'Individual',
+            'accountTypeLabel' => $account->isOrganization() ? 'منظمة' : 'فردي',
             'organizationSummary' => trim((string) ($account->organizationProfile?->legal_name ?: $account->organizationProfile?->trade_name ?: '')),
             'wallet' => $this->walletSummary($account),
             'kycSummary' => $this->kycSummary($account),
@@ -233,7 +233,7 @@ class InternalBillingReadCenterController extends Controller
 
             return [
                 'source' => 'billing_wallet',
-                'source_label' => 'Billing wallet',
+                'source_label' => 'محفظة الفوترة',
                 'currency' => $currency,
                 'status' => (string) $wallet->status,
                 'status_label' => $this->walletStatusLabel((string) $wallet->status),
@@ -243,7 +243,7 @@ class InternalBillingReadCenterController extends Controller
                 'total_credited' => $this->money($wallet->total_credited, $currency),
                 'total_debited' => $this->money($wallet->total_debited, $currency),
                 'low_balance' => $wallet->isLowBalance(),
-                'summary_note' => 'Read-only balance, ledger, hold, and funding visibility from the billing wallet source of truth.',
+                'summary_note' => 'رؤية للقراءة فقط للرصيد والسجل والحجوزات والتمويل من مصدر محفظة الفوترة المعتمد.',
             ];
         }
 
@@ -254,17 +254,17 @@ class InternalBillingReadCenterController extends Controller
 
         return [
             'source' => 'legacy_wallet',
-            'source_label' => 'Legacy wallet summary',
+            'source_label' => 'ملخص المحفظة القديمة',
             'currency' => $currency,
             'status' => (string) ($wallet->status ?? 'active'),
             'status_label' => $this->walletStatusLabel((string) ($wallet->status ?? 'active')),
             'current_balance' => $this->money($available, $currency),
             'reserved_balance' => $this->money($reserved, $currency),
             'available_balance' => $this->money($available - $reserved, $currency),
-            'total_credited' => 'Not available',
-            'total_debited' => 'Not available',
+            'total_credited' => 'غير متاح',
+            'total_debited' => 'غير متاح',
             'low_balance' => false,
-            'summary_note' => 'This account still resolves through the legacy wallet fallback, so ledger and preflight summaries stay hidden from the internal billing center.',
+            'summary_note' => 'ما زال هذا الحساب يستخدم مسار المحفظة القديمة، لذلك تبقى ملخصات السجل وحجوزات ما قبل التنفيذ مخفية عن مركز الفوترة الداخلي.',
         ];
     }
 
@@ -332,7 +332,7 @@ class InternalBillingReadCenterController extends Controller
                     'amount' => $this->money($entry->amount, (string) $wallet->currency),
                     'direction' => $this->headline((string) ($entry->direction ?: 'debit')),
                     'created_at' => optional($entry->created_at)->format('Y-m-d H:i') ?? '-',
-                    'note' => Str::limit(trim((string) ($entry->notes ?? $entry->description ?? 'Adjustment')), 120, '...'),
+                    'note' => Str::limit(trim((string) ($entry->notes ?? $entry->description ?? 'تسوية')), 120, '...'),
                 ];
             })
             ->values();
@@ -361,17 +361,17 @@ class InternalBillingReadCenterController extends Controller
                 return [
                     'id' => (string) $hold->id,
                     'shipment_id' => $shipment instanceof Shipment ? (string) $shipment->id : '',
-                    'shipment_reference' => $shipment instanceof Shipment ? (string) $shipment->reference_number : 'Unlinked shipment',
+                    'shipment_reference' => $shipment instanceof Shipment ? (string) $shipment->reference_number : 'شحنة غير مرتبطة',
                     'shipment_status' => $shipment instanceof Shipment
                         ? $this->shipmentStatusLabel((string) $shipment->status)
-                        : 'Shipment context unavailable',
+                        : 'سياق الشحنة غير متاح',
                     'status' => $this->holdStatusLabel((string) $hold->status),
                     'outcome' => $this->preflightOutcomeLabel((string) $hold->status),
                     'amount' => $this->money($hold->amount, (string) $wallet->currency),
                     'source' => $this->headline((string) ($hold->source ?: 'shipment_preflight')),
                     'shipment_total' => $shipment instanceof Shipment && $shipment->total_charge !== null
                         ? $this->money($shipment->total_charge, (string) $wallet->currency)
-                        : 'Not captured',
+                        : 'غير مسجل',
                     'created_at' => optional($hold->created_at)->format('Y-m-d H:i') ?? '-',
                     'expires_at' => optional($hold->expires_at)->format('Y-m-d H:i') ?? '-',
                     'captured_at' => optional($hold->captured_at)->format('Y-m-d H:i') ?? '-',
@@ -454,11 +454,11 @@ class InternalBillingReadCenterController extends Controller
                 'ledger_id' => (string) $entry->id,
                 'shipment_id' => $shipmentId,
                 'label' => $this->ledgerTypeLabel((string) ($entry->transaction_type ?: $entry->type)),
-                'shipment_reference' => $shipment instanceof Shipment ? (string) $shipment->reference_number : 'Shipment context unavailable',
-                'shipment_status' => $shipment instanceof Shipment ? $this->shipmentStatusLabel((string) $shipment->status) : 'Not available',
+                'shipment_reference' => $shipment instanceof Shipment ? (string) $shipment->reference_number : 'سياق الشحنة غير متاح',
+                'shipment_status' => $shipment instanceof Shipment ? $this->shipmentStatusLabel((string) $shipment->status) : 'غير متاح',
                 'amount' => $this->money($entry->amount, (string) $wallet->currency),
                 'created_at' => optional($entry->created_at)->format('Y-m-d H:i') ?? '-',
-                'note' => Str::limit(trim((string) ($entry->notes ?? $entry->description ?? 'Shipment-linked wallet event')), 120, '...'),
+                'note' => Str::limit(trim((string) ($entry->notes ?? $entry->description ?? 'حدث محفظة مرتبط بالشحنة')), 120, '...'),
             ];
         })->values();
     }
@@ -535,8 +535,8 @@ class InternalBillingReadCenterController extends Controller
 
         return [
             'status_label' => $verification?->statusDisplay()['label'] ?? $this->headline($status),
-            'queue_summary' => (string) ($effect['queue_summary'] ?? 'KYC status available'),
-            'action_label' => (string) ($effect['action_label'] ?? 'No extra action captured'),
+            'queue_summary' => (string) ($effect['queue_summary'] ?? 'حالة KYC متاحة'),
+            'action_label' => (string) ($effect['action_label'] ?? 'لا يوجد إجراء إضافي مسجل'),
             'restriction_names' => $restrictionNames,
         ];
     }
@@ -584,8 +584,8 @@ class InternalBillingReadCenterController extends Controller
     private function walletStatusLabel(string $status): string
     {
         return match (strtolower(trim($status))) {
-            'active' => 'Active',
-            'frozen' => 'Frozen',
+            'active' => 'نشطة',
+            'frozen' => 'مجمّدة',
             default => $this->headline($status),
         };
     }
@@ -593,10 +593,10 @@ class InternalBillingReadCenterController extends Controller
     private function topupStatusLabel(string $status): string
     {
         return match (strtolower(trim($status))) {
-            WalletTopup::STATUS_PENDING => 'Pending',
-            WalletTopup::STATUS_SUCCESS => 'Confirmed',
-            WalletTopup::STATUS_FAILED => 'Failed',
-            WalletTopup::STATUS_EXPIRED => 'Expired',
+            WalletTopup::STATUS_PENDING => 'قيد الانتظار',
+            WalletTopup::STATUS_SUCCESS => 'مؤكد',
+            WalletTopup::STATUS_FAILED => 'فشل',
+            WalletTopup::STATUS_EXPIRED => 'منتهي',
             default => $this->headline($status),
         };
     }
@@ -604,10 +604,10 @@ class InternalBillingReadCenterController extends Controller
     private function holdStatusLabel(string $status): string
     {
         return match (strtolower(trim($status))) {
-            WalletHold::STATUS_ACTIVE => 'Reserved',
-            WalletHold::STATUS_CAPTURED => 'Captured',
-            WalletHold::STATUS_RELEASED => 'Released',
-            WalletHold::STATUS_EXPIRED => 'Expired',
+            WalletHold::STATUS_ACTIVE => 'محجوز',
+            WalletHold::STATUS_CAPTURED => 'تم الالتقاط',
+            WalletHold::STATUS_RELEASED => 'تم التحرير',
+            WalletHold::STATUS_EXPIRED => 'منتهي',
             default => $this->headline($status),
         };
     }
@@ -615,25 +615,25 @@ class InternalBillingReadCenterController extends Controller
     private function preflightOutcomeLabel(string $status): string
     {
         return match (strtolower(trim($status))) {
-            WalletHold::STATUS_ACTIVE => 'Reservation is still holding funds for shipment preflight.',
-            WalletHold::STATUS_CAPTURED => 'Reserved funds were captured against the shipment charge.',
-            WalletHold::STATUS_RELEASED => 'Reserved funds were released back to the wallet.',
-            WalletHold::STATUS_EXPIRED => 'Reservation expired before the shipment moved forward.',
-            default => 'Preflight outcome is not available.',
+            WalletHold::STATUS_ACTIVE => 'ما زال الحجز يحتفظ بالمبلغ لحجز ما قبل تنفيذ الشحنة.',
+            WalletHold::STATUS_CAPTURED => 'تم التقاط المبلغ المحجوز مقابل رسوم الشحنة.',
+            WalletHold::STATUS_RELEASED => 'تم تحرير المبلغ المحجوز وإعادته إلى المحفظة.',
+            WalletHold::STATUS_EXPIRED => 'انتهت صلاحية الحجز قبل انتقال الشحنة إلى الخطوة التالية.',
+            default => 'نتيجة الحجز المسبق غير متاحة.',
         };
     }
 
     private function ledgerTypeLabel(string $type): string
     {
         return match (strtolower(trim($type))) {
-            'topup' => 'Top-up',
-            'debit' => 'Shipment debit',
-            'refund' => 'Refund',
-            'adjustment' => 'Adjustment',
-            'hold' => 'Reservation',
-            'hold_capture' => 'Reservation capture',
-            'hold_release' => 'Reservation release',
-            'reversal' => 'Reversal',
+            'topup' => 'شحن رصيد',
+            'debit' => 'خصم شحنة',
+            'refund' => 'استرداد',
+            'adjustment' => 'تسوية',
+            'hold' => 'حجز',
+            'hold_capture' => 'التقاط الحجز',
+            'hold_release' => 'تحرير الحجز',
+            'reversal' => 'عكس',
             default => $this->headline($type),
         };
     }
@@ -650,7 +650,7 @@ class InternalBillingReadCenterController extends Controller
         $transactionType = strtolower(trim((string) ($entry->transaction_type ?: $entry->type)));
 
         if ($referenceType === '' && $referenceId === '') {
-            return 'No linked reference';
+            return 'لا يوجد مرجع مرتبط';
         }
 
         if ($referenceType === 'shipment' && $referenceId !== '') {
@@ -661,10 +661,10 @@ class InternalBillingReadCenterController extends Controller
 
             if (is_string($shipmentReference) && trim($shipmentReference) !== '') {
                 if ($transactionType === 'hold_capture') {
-                    return 'Reservation capture for shipment ' . trim($shipmentReference);
+                    return 'التقاط الحجز للشحنة ' . trim($shipmentReference);
                 }
 
-                return 'Shipment ' . trim($shipmentReference);
+                return 'شحنة ' . trim($shipmentReference);
             }
         }
 
@@ -676,10 +676,10 @@ class InternalBillingReadCenterController extends Controller
                 ->value('reference_number');
 
             if (is_string($shipmentReference) && trim($shipmentReference) !== '') {
-                return 'Reservation for shipment ' . trim($shipmentReference);
+                return 'حجز للشحنة ' . trim($shipmentReference);
             }
 
-            return 'Reservation ' . $referenceId;
+            return 'حجز ' . $referenceId;
         }
 
         if ($referenceType === 'refund' && $referenceId !== '') {
@@ -690,7 +690,7 @@ class InternalBillingReadCenterController extends Controller
                 ->value('reference_number');
 
             if (is_string($shipmentReference) && trim($shipmentReference) !== '') {
-                return 'Refund for shipment ' . trim($shipmentReference);
+                return 'استرداد للشحنة ' . trim($shipmentReference);
             }
         }
 
@@ -720,10 +720,10 @@ class InternalBillingReadCenterController extends Controller
             'status' => $this->shipmentStatusLabel((string) $shipment->status),
             'total_charge' => $shipment->total_charge !== null
                 ? $this->money($shipment->total_charge, (string) $wallet->currency)
-                : 'Not captured',
+                : 'غير مسجل',
             'reserved_amount' => $shipment->reserved_amount !== null
                 ? $this->money($shipment->reserved_amount, (string) $wallet->currency)
-                : 'Not captured',
+                : 'غير مسجل',
         ];
     }
 
@@ -772,7 +772,7 @@ class InternalBillingReadCenterController extends Controller
             'running_balance' => $this->money($entry->running_balance, (string) $wallet->currency),
             'reference' => $this->ledgerReferenceLabel($entry),
             'created_at' => optional($entry->created_at)->format('Y-m-d H:i') ?? '-',
-            'note' => Str::limit(trim((string) ($entry->notes ?? $entry->description ?? '')), 120, '...') ?: 'No extra note',
+            'note' => Str::limit(trim((string) ($entry->notes ?? $entry->description ?? '')), 120, '...') ?: 'لا توجد ملاحظة إضافية',
         ];
     }
 
@@ -882,16 +882,33 @@ class InternalBillingReadCenterController extends Controller
 
     private function headline(string $value): string
     {
-        $normalized = trim($value);
+        $normalized = Str::lower(trim($value));
 
         if ($normalized === '') {
-            return 'Not available';
+            return 'غير متاح';
         }
 
-        return Str::of($normalized)
-            ->replace(['.', '_', '-'], ' ')
-            ->squish()
-            ->title()
-            ->value();
+        return match ($normalized) {
+            'shipment_preflight' => 'حجز مسبق للشحنة',
+            'preflight' => 'حجز مسبق',
+            'debit' => 'مدين',
+            'credit' => 'دائن',
+            'refund' => 'استرداد',
+            'hold' => 'حجز',
+            'hold_capture' => 'التقاط الحجز',
+            'hold_release' => 'تحرير الحجز',
+            'reversal' => 'عكس',
+            'captured' => 'مقبوض',
+            'released' => 'محرر',
+            'pending' => 'قيد الانتظار',
+            'approved' => 'معتمد',
+            'rejected' => 'مرفوض',
+            'failed' => 'فشل',
+            'succeeded', 'success' => 'نجح',
+            'manual' => 'يدوي',
+            'shipment' => 'شحنة',
+            'wallet' => 'محفظة',
+            default => 'غير معروف',
+        };
     }
 }

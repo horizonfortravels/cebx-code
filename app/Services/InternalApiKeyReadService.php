@@ -18,8 +18,8 @@ class InternalApiKeyReadService
      * @var array<string, string>
      */
     private const SAFE_SCOPE_OPTIONS = [
-        'shipments:read' => 'Shipments read',
-        'shipments:write' => 'Shipments write',
+        'shipments:read' => 'قراءة الشحنات',
+        'shipments:write' => 'إنشاء وتحديث الشحنات',
     ];
 
     public function __construct(
@@ -115,10 +115,10 @@ class InternalApiKeyReadService
     public function stateOptions(): array
     {
         return [
-            'active' => 'Active',
-            'expiring' => 'Expiring soon',
-            'expired' => 'Expired',
-            'revoked' => 'Revoked',
+            'active' => 'نشط',
+            'expiring' => 'تنتهي قريبًا',
+            'expired' => 'منتهي',
+            'revoked' => 'ملغى',
         ];
     }
 
@@ -210,24 +210,24 @@ class InternalApiKeyReadService
             'scope_items' => $scopeItems,
             'scope_summary' => $scopeItems->isNotEmpty()
                 ? $scopeItems->pluck('label')->implode(' | ')
-                : 'All scopes (legacy unrestricted key)',
+                : 'كل النطاقات (مفتاح قديم غير مقيّد)',
             'allowed_ip_summary' => $allowedIpCount > 0
-                ? number_format($allowedIpCount) . ' allowlisted IP(s)'
-                : 'No IP allowlist',
+                ? number_format($allowedIpCount) . ' عنوان IP مسموح'
+                : 'لا توجد قائمة سماح لعناوين IP',
             'allowed_ip_count' => $allowedIpCount,
             'created_at' => $this->displayDateTime($apiKey->created_at) ?? '-',
-            'last_used_at' => $this->displayDateTime($apiKey->last_used_at) ?? 'Never used',
-            'expires_at' => $this->displayDateTime($apiKey->expires_at) ?? 'Does not expire',
-            'revoked_at' => $this->displayDateTime($apiKey->revoked_at) ?? 'Not revoked',
+            'last_used_at' => $this->displayDateTime($apiKey->last_used_at) ?? 'لم يُستخدم',
+            'expires_at' => $this->displayDateTime($apiKey->expires_at) ?? 'لا تنتهي صلاحيته',
+            'revoked_at' => $this->displayDateTime($apiKey->revoked_at) ?? 'غير ملغى',
             'account_summary' => $account instanceof Account ? [
                 'account' => $account,
                 'id' => (string) $account->id,
                 'name' => (string) $account->name,
                 'slug' => (string) ($account->slug ?? '-'),
-                'type_label' => $account->isOrganization() ? 'Organization' : 'Individual',
+                'type_label' => $account->isOrganization() ? 'منظمة' : 'فردي',
             ] : null,
             'creator_summary' => [
-                'name' => $creator?->name ?: 'System',
+                'name' => $creator?->name ?: 'النظام',
                 'email' => $creator?->email ?: 'system',
             ],
         ];
@@ -241,31 +241,31 @@ class InternalApiKeyReadService
         if ($apiKey->isRevoked()) {
             return [
                 'key' => 'revoked',
-                'label' => 'Revoked',
-                'detail' => 'This key can no longer authenticate requests.',
+                'label' => 'ملغى',
+                'detail' => 'لم يعد هذا المفتاح صالحًا للمصادقة على الطلبات.',
             ];
         }
 
         if ($this->isExpired($apiKey)) {
             return [
                 'key' => 'expired',
-                'label' => 'Expired',
-                'detail' => 'This key has passed its expiry timestamp and should be rotated or replaced.',
+                'label' => 'منتهي',
+                'detail' => 'تجاوز هذا المفتاح تاريخ انتهاء صلاحيته ويجب تدويره أو استبداله.',
             ];
         }
 
         if ($apiKey->expires_at instanceof Carbon && $apiKey->expires_at->lte(now()->addDays(14))) {
             return [
                 'key' => 'expiring',
-                'label' => 'Expiring soon',
-                'detail' => 'This key expires within the next 14 days.',
+                'label' => 'تنتهي قريبًا',
+                'detail' => 'ستنتهي صلاحية هذا المفتاح خلال الأربعة عشر يومًا القادمة.',
             ];
         }
 
         return [
             'key' => 'active',
-            'label' => 'Active',
-            'detail' => 'This key is currently eligible for API authentication.',
+            'label' => 'نشط',
+            'detail' => 'هذا المفتاح صالح حاليًا للمصادقة عبر API.',
         ];
     }
 

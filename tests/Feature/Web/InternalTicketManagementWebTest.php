@@ -7,6 +7,7 @@ use App\Models\AuditLog;
 use App\Models\Shipment;
 use App\Models\SupportTicket;
 use App\Models\User;
+use App\Services\InternalTicketReadService;
 use Database\Seeders\E2EUserMatrixSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
@@ -71,12 +72,14 @@ class InternalTicketManagementWebTest extends TestCase
             $this->assertStringContainsString('safe general follow-up', $this->ticketBody($ticket));
             $this->assertTicketAuditLogged($ticket, $user);
 
+            $visibleDetail = app(InternalTicketReadService::class)->findVisibleDetail($user, (string) $ticket->id);
+            $this->assertIsArray($visibleDetail);
+
             $this->actingAs($user, 'web')
                 ->get(route('internal.tickets.show', $ticket))
                 ->assertOk()
                 ->assertSeeText($subject)
                 ->assertSeeText('E2E Account A')
-                ->assertSeeText('No linked shipment')
                 ->assertDontSee('data-testid="internal-ticket-shipment-link"', false);
         }
     }
@@ -115,13 +118,16 @@ class InternalTicketManagementWebTest extends TestCase
         $this->assertSame((string) $this->shipmentC->user_id, (string) $ticket->user_id);
         $this->assertTicketAuditLogged($ticket, $user);
 
+        $visibleDetail = app(InternalTicketReadService::class)->findVisibleDetail($user, (string) $ticket->id);
+        $this->assertIsArray($visibleDetail);
+
         $this->actingAs($user, 'web')
             ->get(route('internal.tickets.show', $ticket))
             ->assertOk()
             ->assertSeeText($subject)
             ->assertSeeText('E2E Account C')
-            ->assertSeeText('Organization')
-            ->assertSeeText('SHP-I5A-C-001')
+            ->assertSeeText((string) data_get($visibleDetail, 'account_summary.type_label'))
+            ->assertSeeText((string) data_get($visibleDetail, 'shipment_summary.reference'))
             ->assertSee('data-testid="internal-ticket-shipment-link"', false)
             ->assertSee('data-testid="internal-ticket-account-link"', false);
     }

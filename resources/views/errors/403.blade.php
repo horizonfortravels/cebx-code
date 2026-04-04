@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ request()->is('b2c/*') || request()->is('b2b/*') || request()->is('notifications') ? __('portal_shipments.errors.external.403.heading') : 'Restricted access' }} - CBEX Shipping Gateway</title>
+    <title>{{ request()->is('b2c/*') || request()->is('b2b/*') || request()->is('notifications') ? __('portal_shipments.errors.external.403.heading') : 'وصول مقيّد' }} - بوابة الشحن CBEX</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
         :root {
@@ -103,7 +103,7 @@
     $secondaryRoute = $portal === 'b2c' ? 'b2c.shipments.index' : ($portal === 'b2b' ? 'b2b.shipments.index' : null);
     $fallbackMessage = $isExternalPortal
         ? __('portal_shipments.errors.external.403.message')
-        : 'This page is not available with the current account permissions.';
+        : 'هذه الصفحة غير متاحة بصلاحيات الحساب الحالية.';
     $message = trim((string) ($exception->getMessage() ?? ''));
     if ($message === '' || $message === 'This action is unauthorized.') {
         $message = $fallbackMessage;
@@ -111,19 +111,19 @@
 @endphp
     <div class="panel">
         <div class="hero">
-            <div class="eyebrow">{{ $isExternalPortal ? __('portal_shipments.errors.external.403.eyebrow') : '403 Restricted access' }}</div>
-            <h1>{{ $isExternalPortal ? __('portal_shipments.errors.external.403.heading') : 'You cannot open this page.' }}</h1>
+            <div class="eyebrow">{{ $isExternalPortal ? __('portal_shipments.errors.external.403.eyebrow') : '403 وصول مقيّد' }}</div>
+            <h1>{{ $isExternalPortal ? __('portal_shipments.errors.external.403.heading') : 'لا يمكنك فتح هذه الصفحة.' }}</h1>
             <p>{{ $message }}</p>
         </div>
         <div class="body">
             <div class="summary">
                 {{ $isExternalPortal
                     ? __('portal_shipments.errors.external.403.message')
-                    : 'Use the correct portal or request the required permission before trying again.' }}
+                    : 'استخدم البوابة الصحيحة أو اطلب الصلاحية المطلوبة قبل المحاولة مرة أخرى.' }}
             </div>
             <div class="actions">
-                <a href="{{ $primaryRoute && \Illuminate\Support\Facades\Route::has($primaryRoute) ? route($primaryRoute) : url('/') }}" class="button button-primary">{{ $isExternalPortal ? __('portal_shipments.errors.external.primary_action') : 'Back to home' }}</a>
-                <a href="{{ $secondaryRoute && \Illuminate\Support\Facades\Route::has($secondaryRoute) ? route($secondaryRoute) : url()->previous() }}" class="button button-secondary">{{ $isExternalPortal ? __('portal_shipments.errors.external.secondary_action') : 'Go back' }}</a>
+                <a href="{{ $primaryRoute && \Illuminate\Support\Facades\Route::has($primaryRoute) ? route($primaryRoute) : url('/') }}" class="button button-primary">{{ $isExternalPortal ? __('portal_shipments.errors.external.primary_action') : 'العودة إلى الرئيسية' }}</a>
+                <a href="{{ $secondaryRoute && \Illuminate\Support\Facades\Route::has($secondaryRoute) ? route($secondaryRoute) : url()->previous() }}" class="button button-secondary">{{ $isExternalPortal ? __('portal_shipments.errors.external.secondary_action') : 'عودة' }}</a>
             </div>
             <div class="meta">HTTP 403</div>
         </div>

@@ -162,7 +162,7 @@
                 </div>
                 <div style="display:flex;gap:24px;margin-top:16px;padding:16px 20px;background:var(--sf);border-radius:8px">
                     <label style="display:flex;align-items:center;gap:8px;color:var(--tm);font-size:13px;cursor:pointer">
-                        <input type="checkbox" name="is_cod"> الدفع عند الاستلام (COD)
+                <input type="checkbox" name="is_cod"> الدفع عند الاستلام
                     </label>
                     <label style="display:flex;align-items:center;gap:8px;color:var(--tm);font-size:13px;cursor:pointer">
                         <input type="checkbox" name="is_insured"> تأمين الشحنة

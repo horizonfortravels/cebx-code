@@ -47,11 +47,16 @@
                 @forelse($users as $user)
                     @php
                         $status = (string) ($user->status ?? 'active');
+                        $userTypeLabel = match ((string) ($user->user_type ?? 'external')) {
+                            'external' => 'خارجي',
+                            'internal' => 'داخلي',
+                            default => 'غير معروف',
+                        };
                         $statusLabel = match ($status) {
                             'active' => 'نشط',
                             'suspended' => 'معلّق',
                             'disabled' => 'معطّل',
-                            default => $status,
+                            default => 'غير معروف',
                         };
                         $statusColor = match ($status) {
                             'active' => 'var(--ac)',
@@ -63,6 +68,21 @@
                         if ($roleNames->isEmpty()) {
                             $roleNames = $user->roles->pluck('name')->filter()->values();
                         }
+                        $roleNames = $roleNames->map(static function (string $roleName): string {
+                            $normalized = trim(strtolower($roleName));
+
+                            return match ($normalized) {
+                                'admin', 'administrator' => 'مدير النظام',
+                                'super admin', 'superadmin' => 'مدير النظام الأعلى',
+                                'manager' => 'مدير',
+                                'operator', 'operations', 'ops' => 'مشغّل',
+                                'support', 'customer support' => 'الدعم',
+                                'viewer', 'read only', 'readonly' => 'مُطلع',
+                                'member' => 'عضو',
+                                'owner' => 'مالك',
+                                default => preg_match('/[A-Za-z]/', $roleName) ? 'دور غير معروف' : $roleName,
+                            };
+                        });
                     @endphp
                     <tr>
                         <td>
@@ -70,7 +90,7 @@
                                 <div class="user-avatar" style="background:rgba(37,99,235,.12);color:#2563eb">{{ mb_substr($user->name, 0, 1) }}</div>
                                 <div>
                                     <div style="font-weight:700;color:var(--tx)">{{ $user->name }}</div>
-                                    <div style="font-size:12px;color:var(--tm)">{{ $user->user_type ?? 'external' }}</div>
+                                    <div style="font-size:12px;color:var(--tm)">{{ $userTypeLabel }}</div>
                                 </div>
                             </div>
                         </td>

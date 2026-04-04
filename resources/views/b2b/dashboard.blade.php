@@ -127,7 +127,7 @@
     <header class="header">
         <div class="header-inner">
         <div class="header-left">
-            <span class="badge-b2b">B2B — بوابة الأعمال</span>
+        <span class="badge-b2b">بوابة الأعمال</span>
             <h1>لوحة حساب المنظمة</h1>
         </div>
         <div class="header-actions">

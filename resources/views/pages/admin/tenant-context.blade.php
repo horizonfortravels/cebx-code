@@ -26,11 +26,11 @@
 </div>
 
 <div class="card" style="margin-bottom:20px">
-    <div class="card-title">بحث</div>
+    <div class="card-title">بحث سريع</div>
     <form method="GET" action="{{ route('admin.tenant-context') }}" class="quick-search-row">
-        <input type="text" name="q" value="{{ $search }}" placeholder="ابحث باسم الحساب أو slug" class="input quick-search-input">
+        <input type="text" name="q" value="{{ $search }}" placeholder="ابحث باسم الحساب أو المعرّف" class="input quick-search-input">
         <input type="hidden" name="redirect" value="{{ $redirectTo }}">
-        <button type="submit" class="btn btn-s">بحث</button>
+        <button type="submit" class="btn btn-s">تنفيذ البحث</button>
     </form>
 </div>
 
@@ -45,7 +45,7 @@
                 <div style="font-weight:700;color:var(--tx);margin-bottom:4px">{{ $account->name }}</div>
                 <div style="font-size:13px;color:var(--td);margin-bottom:12px">{{ $account->type === 'organization' ? 'منظمة' : 'فردي' }}</div>
                 @if($account->slug)
-                    <div style="font-size:12px;color:var(--td);margin-bottom:12px">slug: {{ $account->slug }}</div>
+                    <div style="font-size:12px;color:var(--td);margin-bottom:12px">المعرّف: {{ $account->slug }}</div>
                 @endif
                 <button type="submit" class="btn btn-s">اختيار هذا الحساب</button>
             </form>

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>إعادة تعيين كلمة المرور - Shipping Gateway</title>
+    <title>إعادة تعيين كلمة المرور - بوابة الشحن</title>
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     @include('components.pwa-meta')
@@ -140,7 +140,7 @@
 <body>
 <div class="reset-page">
     <section class="reset-hero">
-        <div style="display:inline-flex;align-items:center;justify-content:center;width:72px;height:72px;border-radius:20px;background:rgba(255,255,255,.14);font-weight:800;font-size:24px">SG</div>
+        <div style="display:inline-flex;align-items:center;justify-content:center;width:72px;height:72px;border-radius:20px;background:rgba(255,255,255,.14);font-weight:800;font-size:24px">ش</div>
         <div style="display:inline-block;padding:6px 12px;border-radius:999px;background:rgba(255,255,255,.12);font-size:12px;font-weight:700;width:max-content">استعادة الوصول</div>
         <h1 style="margin:0;font-size:30px;font-weight:800;line-height:1.4">أعد تعيين كلمة المرور بأمان</h1>
         <p style="margin:0;font-size:15px;line-height:1.9;opacity:.92;max-width:460px">

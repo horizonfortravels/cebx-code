@@ -21,9 +21,9 @@
             <a href="{{ route('internal.accounts.edit', $account) }}" class="btn btn-pr">تحرير الحساب</a>
         @endif
         @if($canCreateTickets)
-            <a href="{{ route('internal.accounts.tickets.create', $account) }}" class="btn btn-s" data-testid="account-create-linked-ticket-link">Create linked ticket</a>
+            <a href="{{ route('internal.accounts.tickets.create', $account) }}" class="btn btn-s" data-testid="account-create-linked-ticket-link">إنشاء تذكرة مرتبطة</a>
         @endif
-        <a href="{{ route('internal.kyc.show', $account) }}" class="btn btn-s">KYC Center</a>
+        <a href="{{ route('internal.kyc.show', $account) }}" class="btn btn-s">مركز التحقق</a>
         <a href="{{ route('internal.accounts.index') }}" class="btn btn-s">العودة إلى القائمة</a>
         <a href="{{ route('internal.accounts.show', $account) }}" class="btn btn-pr">تحديث التفاصيل</a>
     </div>
@@ -96,7 +96,7 @@
                 </div>
                 <div>
                     <div style="font-size:12px;color:var(--tm)">حالة المستخدم</div>
-                    <div style="color:var(--tx)">{{ $owner->status ?? 'active' }}</div>
+                    <div style="color:var(--tx)">{{ $owner->status ?? 'نشط' }}</div>
                 </div>
             </div>
         @else
@@ -310,7 +310,7 @@
                     </div>
                     <div>
                         <label class="input-label">البريد الإلكتروني</label>
-                        <input type="email" name="email" class="input" placeholder="member@example.test" value="{{ old('email') }}" required>
+                        <input type="email" name="email" class="input" placeholder="أدخل بريد العضو الإلكتروني" value="{{ old('email') }}" required>
                     </div>
                     <div>
                         <label class="input-label">الدور</label>

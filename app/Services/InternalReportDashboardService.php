@@ -29,12 +29,12 @@ class InternalReportDashboardService
     public function domainOptions(): array
     {
         return [
-            'shipments' => 'Shipment operations',
-            'kyc' => 'KYC operations',
-            'billing' => 'Wallet & billing operations',
-            'compliance' => 'Compliance & DG operations',
-            'tickets' => 'Helpdesk & tickets operations',
-            'executive' => 'Executive metrics',
+            'shipments' => 'عمليات الشحن',
+            'kyc' => 'عمليات KYC',
+            'billing' => 'عمليات المحفظة والفوترة',
+            'compliance' => 'عمليات الامتثال والمواد الخطرة',
+            'tickets' => 'عمليات الدعم والتذاكر',
+            'executive' => 'المؤشرات التنفيذية',
         ];
     }
 
@@ -61,58 +61,58 @@ class InternalReportDashboardService
     {
         $query = Shipment::query()->withoutGlobalScopes();
         $statusCounts = $this->countByValues(clone $query, 'status', [
-            Shipment::STATUS_PURCHASED => 'Purchased',
-            Shipment::STATUS_READY_FOR_PICKUP => 'Ready for pickup',
-            Shipment::STATUS_PICKED_UP => 'Picked up',
-            Shipment::STATUS_IN_TRANSIT => 'In transit',
-            Shipment::STATUS_OUT_FOR_DELIVERY => 'Out for delivery',
-            Shipment::STATUS_REQUIRES_ACTION => 'Requires action',
-            Shipment::STATUS_EXCEPTION => 'Exception',
-            Shipment::STATUS_FAILED => 'Failed',
-            Shipment::STATUS_DELIVERED => 'Delivered',
-            Shipment::STATUS_KYC_BLOCKED => 'KYC blocked',
+            Shipment::STATUS_PURCHASED => 'تم الشراء',
+            Shipment::STATUS_READY_FOR_PICKUP => 'جاهزة للاستلام',
+            Shipment::STATUS_PICKED_UP => 'تم الاستلام',
+            Shipment::STATUS_IN_TRANSIT => 'في الطريق',
+            Shipment::STATUS_OUT_FOR_DELIVERY => 'خرجت للتسليم',
+            Shipment::STATUS_REQUIRES_ACTION => 'تحتاج إجراء',
+            Shipment::STATUS_EXCEPTION => 'استثناء',
+            Shipment::STATUS_FAILED => 'فشلت',
+            Shipment::STATUS_DELIVERED => 'تم التسليم',
+            Shipment::STATUS_KYC_BLOCKED => 'محجوبة بسبب KYC',
         ]);
 
         return [
             'key' => 'shipments',
-            'title' => 'Shipment operations dashboard',
-            'eyebrow' => 'Operational analytics / shipments',
-            'description' => 'Live shipment flow counts, current status buckets, and safe recent volume trends for the internal shipment center.',
+            'title' => 'لوحة عمليات الشحن',
+            'eyebrow' => 'تحليلات تشغيلية / الشحنات',
+            'description' => 'أعداد تدفق الشحنات الحية، وتوزيع الحالات الحالية، واتجاهات الحجم الحديثة الآمنة داخل مركز الشحن الداخلي.',
             'metrics' => [
-                $this->metric('Total shipments', (clone $query)->count()),
-                $this->metric('In flight', (clone $query)->whereIn('status', [
+                $this->metric('إجمالي الشحنات', (clone $query)->count()),
+                $this->metric('قيد التنفيذ', (clone $query)->whereIn('status', [
                     Shipment::STATUS_PURCHASED,
                     Shipment::STATUS_READY_FOR_PICKUP,
                     Shipment::STATUS_PICKED_UP,
                     Shipment::STATUS_IN_TRANSIT,
                     Shipment::STATUS_OUT_FOR_DELIVERY,
                 ])->count()),
-                $this->metric('Needs attention', (clone $query)->whereIn('status', [
+                $this->metric('تحتاج متابعة', (clone $query)->whereIn('status', [
                     Shipment::STATUS_REQUIRES_ACTION,
                     Shipment::STATUS_EXCEPTION,
                     Shipment::STATUS_FAILED,
                 ])->count()),
-                $this->metric('KYC blocked', (clone $query)->where('status', Shipment::STATUS_KYC_BLOCKED)->count()),
+                $this->metric('محجوبة بسبب KYC', (clone $query)->where('status', Shipment::STATUS_KYC_BLOCKED)->count()),
             ],
             'breakdowns' => [
                 [
-                    'title' => 'Current workflow status breakdown',
+                    'title' => 'توزيع حالات سير العمل الحالية',
                     'items' => $statusCounts,
                 ],
             ],
             'trend' => [
-                'title' => 'Recent shipment intake',
-                'summary' => 'Shipments created during the last seven days.',
+                'title' => 'الاستقبال الحديث للشحنات',
+                'summary' => 'الشحنات التي أُنشئت خلال الأيام السبعة الماضية.',
                 'points' => $this->dailyTrend(clone $query, 'created_at'),
             ],
             'action_summaries' => [
-                $this->summaryLine('Action queue', (clone $query)->whereIn('status', [
+                $this->summaryLine('طابور الإجراءات', (clone $query)->whereIn('status', [
                     Shipment::STATUS_REQUIRES_ACTION,
                     Shipment::STATUS_EXCEPTION,
                     Shipment::STATUS_FAILED,
-                ])->count(), 'shipment(s) need operator attention now.'),
-                $this->summaryLine('Final-mile focus', (clone $query)->where('status', Shipment::STATUS_OUT_FOR_DELIVERY)->count(), 'shipment(s) are already out for delivery.'),
-                $this->summaryLine('Verification pressure', (clone $query)->where('status', Shipment::STATUS_KYC_BLOCKED)->count(), 'shipment(s) are blocked by upstream verification state.'),
+                ])->count(), 'شحنة تحتاج الآن إلى متابعة المشغّل.'),
+                $this->summaryLine('تركيز الميل الأخير', (clone $query)->where('status', Shipment::STATUS_OUT_FOR_DELIVERY)->count(), 'شحنة خرجت بالفعل للتسليم.'),
+                $this->summaryLine('ضغط التحقق', (clone $query)->where('status', Shipment::STATUS_KYC_BLOCKED)->count(), 'شحنة محجوبة بسبب حالة تحقق سابقة.'),
             ],
         ];
     }
@@ -126,11 +126,11 @@ class InternalReportDashboardService
         $restrictedStatuses = $this->restrictedVerificationStatuses();
 
         $statusLabels = [
-            KycVerification::STATUS_UNVERIFIED => 'Unverified',
-            KycVerification::STATUS_PENDING => 'Pending',
-            KycVerification::STATUS_APPROVED => 'Approved',
-            KycVerification::STATUS_REJECTED => 'Rejected',
-            KycVerification::STATUS_EXPIRED => 'Expired',
+            KycVerification::STATUS_UNVERIFIED => 'غير موثّق',
+            KycVerification::STATUS_PENDING => 'قيد المراجعة',
+            KycVerification::STATUS_APPROVED => 'مقبول',
+            KycVerification::STATUS_REJECTED => 'مرفوض',
+            KycVerification::STATUS_EXPIRED => 'منتهي',
         ];
 
         $statusCounts = collect($statusLabels)->map(function (string $label, string $status) use ($accounts): array {
@@ -150,30 +150,30 @@ class InternalReportDashboardService
 
         return [
             'key' => 'kyc',
-            'title' => 'KYC operations dashboard',
-            'eyebrow' => 'Operational analytics / KYC',
-            'description' => 'Verification queue pressure, status mix, and safe recent submission volume across internal KYC operations.',
+            'title' => 'لوحة عمليات KYC',
+            'eyebrow' => 'تحليلات تشغيلية / KYC',
+            'description' => 'ضغط طابور التحقق، وتوزيع الحالات، وحجم الإرسالات الحديثة الآمنة عبر عمليات KYC الداخلية.',
             'metrics' => [
-                $this->metric('Tracked accounts', (clone $accounts)->count()),
-                $this->metric('Pending review', $pendingCount),
-                $this->metric('Rejected', $rejectedCount),
-                $this->metric('Restricted', $restrictedCount),
+                $this->metric('الحسابات المتعقبة', (clone $accounts)->count()),
+                $this->metric('بانتظار المراجعة', $pendingCount),
+                $this->metric('مرفوضة', $rejectedCount),
+                $this->metric('مقيّدة', $restrictedCount),
             ],
             'breakdowns' => [
                 [
-                    'title' => 'Verification status breakdown',
+                    'title' => 'توزيع حالات التحقق',
                     'items' => $statusCounts,
                 ],
             ],
             'trend' => [
-                'title' => 'Recent KYC submissions',
-                'summary' => 'Cases submitted during the last seven days.',
+                'title' => 'إرسالات KYC الحديثة',
+                'summary' => 'الحالات التي أُرسلت خلال الأيام السبعة الماضية.',
                 'points' => $this->kycSubmissionTrend(),
             ],
             'action_summaries' => [
-                $this->summaryLine('Pending review backlog', $pendingCount, 'account(s) are waiting for an internal review decision.'),
-                $this->summaryLine('Blocked shipments', $blockedShipments, 'shipment(s) are currently held by KYC state.'),
-                $this->summaryLine('Restricted accounts', $restrictedCount, 'account(s) still carry verification-linked operational restrictions.'),
+                $this->summaryLine('تراكم المراجعات المعلقة', $pendingCount, 'حساب بانتظار قرار المراجعة الداخلية.'),
+                $this->summaryLine('الشحنات المحجوبة', $blockedShipments, 'شحنة محجوبة حاليًا بسبب حالة KYC.'),
+                $this->summaryLine('الحسابات المقيّدة', $restrictedCount, 'حساب ما زال يحمل قيودًا تشغيلية مرتبطة بالتحقق.'),
             ],
         ];
     }
@@ -192,16 +192,16 @@ class InternalReportDashboardService
             : null;
 
         $walletStatusBreakdown = $this->countByValues(clone $wallets, 'status', [
-            'active' => 'Active',
-            'frozen' => 'Frozen',
+            'active' => 'نشطة',
+            'frozen' => 'مجمّدة',
         ]);
 
         $holdStatusBreakdown = $holds
             ? $this->countByValues(clone $holds, 'status', [
-                WalletHold::STATUS_ACTIVE => 'Reserved',
-                WalletHold::STATUS_CAPTURED => 'Captured',
-                WalletHold::STATUS_RELEASED => 'Released',
-                WalletHold::STATUS_EXPIRED => 'Expired',
+                WalletHold::STATUS_ACTIVE => 'محجوزة',
+                WalletHold::STATUS_CAPTURED => 'محصّلة',
+                WalletHold::STATUS_RELEASED => 'محرّرة',
+                WalletHold::STATUS_EXPIRED => 'منتهية',
             ])
             : [];
 
@@ -220,28 +220,28 @@ class InternalReportDashboardService
 
         return [
             'key' => 'billing',
-            'title' => 'Wallet & billing dashboard',
-            'eyebrow' => 'Operational analytics / billing',
-            'description' => 'Current wallet risk posture, hold lifecycle visibility, and safe recent billing volume trends.',
+            'title' => 'لوحة المحفظة والفوترة',
+            'eyebrow' => 'تحليلات تشغيلية / الفوترة',
+            'description' => 'الوضع الحالي لمخاطر المحافظ، ووضوح دورة حياة الحجوزات، واتجاهات حجم الفوترة الحديثة الآمنة.',
             'metrics' => [
-                $this->metric('Wallet accounts', (clone $wallets)->count()),
-                $this->metric('Low balance', $lowBalanceCount),
-                $this->metric('Active holds', $activeHoldsCount),
-                $this->metric('Confirmed top-ups (24h)', $confirmedTopups24h),
+                $this->metric('حسابات المحافظ', (clone $wallets)->count()),
+                $this->metric('رصيد منخفض', $lowBalanceCount),
+                $this->metric('الحجوزات النشطة', $activeHoldsCount),
+                $this->metric('عمليات شحن مؤكدة (24 ساعة)', $confirmedTopups24h),
             ],
             'breakdowns' => array_values(array_filter([
                 [
-                    'title' => 'Wallet status breakdown',
+                    'title' => 'توزيع حالات المحافظ',
                     'items' => $walletStatusBreakdown,
                 ],
                 $holdStatusBreakdown !== [] ? [
-                    'title' => 'Preflight hold lifecycle',
+                    'title' => 'دورة حياة الحجز المسبق',
                     'items' => $holdStatusBreakdown,
                 ] : null,
             ])),
             'trend' => [
-                'title' => 'Recent confirmed top-ups',
-                'summary' => 'Confirmed wallet top-ups during the last seven days.',
+                'title' => 'عمليات الشحن المؤكدة الحديثة',
+                'summary' => 'عمليات شحن المحفظة المؤكدة خلال الأيام السبعة الماضية.',
                 'points' => $topups
                     ? $this->dailyTrend(
                         (clone $topups)->where('status', WalletTopup::STATUS_SUCCESS),
@@ -250,9 +250,9 @@ class InternalReportDashboardService
                     : $this->emptyTrend(),
             ],
             'action_summaries' => [
-                $this->summaryLine('Balance risk', $lowBalanceCount, 'wallet(s) are below their configured low-balance threshold.'),
-                $this->summaryLine('Reserved funds', $activeHoldsCount, 'active shipment preflight reservation(s) are still holding funds.'),
-                $this->summaryLine('Frozen wallets', $frozenWalletsCount, 'wallet(s) are currently frozen and need review before normal operations resume.'),
+                $this->summaryLine('مخاطر الرصيد', $lowBalanceCount, 'محفظة تحت حد الرصيد المنخفض المهيأ لها.'),
+                $this->summaryLine('الأموال المحجوزة', $activeHoldsCount, 'حجز مسبق للشحنات ما زال يحتفظ بالأموال.'),
+                $this->summaryLine('المحافظ المجمّدة', $frozenWalletsCount, 'محفظة مجمّدة وتحتاج مراجعة قبل استئناف التشغيل الطبيعي.'),
             ],
         ];
     }
@@ -266,47 +266,47 @@ class InternalReportDashboardService
 
         return [
             'key' => 'compliance',
-            'title' => 'Compliance & DG dashboard',
-            'eyebrow' => 'Operational analytics / compliance',
-            'description' => 'Declaration queue posture, dangerous-goods review pressure, and safe recent compliance intake trends.',
+            'title' => 'لوحة الامتثال والمواد الخطرة',
+            'eyebrow' => 'تحليلات تشغيلية / الامتثال',
+            'description' => 'وضع طابور الإقرارات، وضغط مراجعات المواد الخطرة، واتجاهات الاستقبال الحديثة الآمنة لحالات الامتثال.',
             'metrics' => [
-                $this->metric('Total cases', (clone $query)->count()),
-                $this->metric('Needs attention', (clone $query)->whereIn('status', [
+                $this->metric('إجمالي الحالات', (clone $query)->count()),
+                $this->metric('تحتاج متابعة', (clone $query)->whereIn('status', [
                     ContentDeclaration::STATUS_HOLD_DG,
                     ContentDeclaration::STATUS_REQUIRES_ACTION,
                 ])->count()),
-                $this->metric('Waiver pending', (clone $query)
+                $this->metric('إقرار قانوني معلّق', (clone $query)
                     ->where('dg_flag_declared', true)
                     ->where('contains_dangerous_goods', false)
                     ->where('waiver_accepted', false)
                     ->count()),
-                $this->metric('DG flagged', (clone $query)->where('contains_dangerous_goods', true)->count()),
+                $this->metric('موسومة كمواد خطرة', (clone $query)->where('contains_dangerous_goods', true)->count()),
             ],
             'breakdowns' => [
                 [
-                    'title' => 'Compliance status breakdown',
+                    'title' => 'توزيع حالات الامتثال',
                     'items' => $this->countByValues(clone $query, 'status', [
-                        ContentDeclaration::STATUS_PENDING => 'Pending',
-                        ContentDeclaration::STATUS_REQUIRES_ACTION => 'Requires action',
-                        ContentDeclaration::STATUS_HOLD_DG => 'DG hold',
-                        ContentDeclaration::STATUS_EXPIRED => 'Expired',
-                        ContentDeclaration::STATUS_COMPLETED => 'Completed',
+                        ContentDeclaration::STATUS_PENDING => 'قيد الانتظار',
+                        ContentDeclaration::STATUS_REQUIRES_ACTION => 'تحتاج إجراء',
+                        ContentDeclaration::STATUS_HOLD_DG => 'حجز مواد خطرة',
+                        ContentDeclaration::STATUS_EXPIRED => 'منتهية',
+                        ContentDeclaration::STATUS_COMPLETED => 'مكتملة',
                     ]),
                 ],
             ],
             'trend' => [
-                'title' => 'Recent declaration intake',
-                'summary' => 'Compliance declarations created during the last seven days.',
+                'title' => 'الإقرارات الحديثة',
+                'summary' => 'إقرارات الامتثال التي أُنشئت خلال الأيام السبعة الماضية.',
                 'points' => $this->dailyTrend(clone $query, 'created_at'),
             ],
             'action_summaries' => [
-                $this->summaryLine('Manual DG holds', (clone $query)->where('status', ContentDeclaration::STATUS_HOLD_DG)->count(), 'case(s) are blocked in manual dangerous-goods review.'),
-                $this->summaryLine('Correction requests', (clone $query)->where('status', ContentDeclaration::STATUS_REQUIRES_ACTION)->count(), 'case(s) are waiting for correction before workflow can continue.'),
-                $this->summaryLine('Pending waivers', (clone $query)
+                $this->summaryLine('حجوزات المراجعة اليدوية', (clone $query)->where('status', ContentDeclaration::STATUS_HOLD_DG)->count(), 'حالة محجوبة في مراجعة المواد الخطرة اليدوية.'),
+                $this->summaryLine('طلبات التصحيح', (clone $query)->where('status', ContentDeclaration::STATUS_REQUIRES_ACTION)->count(), 'حالة بانتظار التصحيح قبل استمرار سير العمل.'),
+                $this->summaryLine('الإقرارات المعلقة', (clone $query)
                     ->where('dg_flag_declared', true)
                     ->where('contains_dangerous_goods', false)
                     ->where('waiver_accepted', false)
-                    ->count(), 'non-DG declaration(s) still need legal acknowledgement.'),
+                    ->count(), 'إقرار غير خطِر ما زال يحتاج إلى إقرار قانوني.'),
             ],
         ];
     }
@@ -326,54 +326,54 @@ class InternalReportDashboardService
 
         return [
             'key' => 'tickets',
-            'title' => 'Helpdesk & tickets dashboard',
-            'eyebrow' => 'Operational analytics / helpdesk',
-            'description' => 'Queue state, triage posture, and safe recent support volume trends for the internal helpdesk center.',
+            'title' => 'لوحة الدعم والتذاكر',
+            'eyebrow' => 'تحليلات تشغيلية / الدعم',
+            'description' => 'حالة الطابور، ووضع الفرز، واتجاهات حجم الدعم الحديثة الآمنة داخل مركز الدعم الداخلي.',
             'metrics' => [
-                $this->metric('Total tickets', $stats['total']),
-                $this->metric('Open queue', $stats['open']),
-                $this->metric('Urgent', $stats['urgent']),
-                $this->metric('Linked shipments', $stats['linked_shipments']),
+                $this->metric('إجمالي التذاكر', $stats['total']),
+                $this->metric('الطابور المفتوح', $stats['open']),
+                $this->metric('العاجلة', $stats['urgent']),
+                $this->metric('المرتبطة بالشحنات', $stats['linked_shipments']),
             ],
             'breakdowns' => [
                 [
-                    'title' => 'Workflow status breakdown',
+                    'title' => 'توزيع حالات سير العمل',
                     'items' => $this->countByValues(clone $query, 'status', [
-                        'open' => 'Open',
-                        'in_progress' => 'In progress',
-                        'waiting_customer' => 'Waiting on customer',
-                        'waiting_agent' => 'Waiting agent',
-                        'resolved' => 'Resolved',
-                        'closed' => 'Closed',
+                        'open' => 'مفتوحة',
+                        'in_progress' => 'قيد المعالجة',
+                        'waiting_customer' => 'بانتظار العميل',
+                        'waiting_agent' => 'بانتظار الفريق',
+                        'resolved' => 'محلولة',
+                        'closed' => 'مغلقة',
                     ]),
                 ],
                 [
-                    'title' => 'Priority breakdown',
+                    'title' => 'توزيع الأولويات',
                     'items' => $this->countByValues(clone $query, 'priority', [
-                        'low' => 'Low',
-                        'medium' => 'Medium',
-                        'high' => 'High',
-                        'urgent' => 'Urgent',
+                        'low' => 'منخفضة',
+                        'medium' => 'متوسطة',
+                        'high' => 'مرتفعة',
+                        'urgent' => 'عاجلة',
                     ]),
                 ],
             ],
             'trend' => [
-                'title' => 'Recent ticket intake',
-                'summary' => 'Tickets created during the last seven days.',
+                'title' => 'التذاكر الحديثة',
+                'summary' => 'التذاكر التي أُنشئت خلال الأيام السبعة الماضية.',
                 'points' => $this->dailyTrend(clone $query, 'created_at'),
             ],
             'action_summaries' => [
-                $this->summaryLine('Unassigned open', (clone $query)
+                $this->summaryLine('مفتوحة بلا إسناد', (clone $query)
                     ->whereIn('status', ['open', 'in_progress', 'waiting_customer', 'waiting_agent'])
                     ->whereNull('assigned_to')
-                    ->count(), 'open ticket(s) still have no assignee.'),
-                $this->summaryLine('Urgent open', (clone $query)
+                    ->count(), 'تذكرة مفتوحة ما زالت بلا مسؤول.'),
+                $this->summaryLine('عاجلة مفتوحة', (clone $query)
                     ->whereIn('status', ['open', 'in_progress', 'waiting_customer', 'waiting_agent'])
                     ->where('priority', 'urgent')
-                    ->count(), 'urgent ticket(s) remain in the active queue.'),
-                $this->summaryLine('Waiting on customer', (clone $query)
+                    ->count(), 'تذكرة عاجلة ما زالت في الطابور النشط.'),
+                $this->summaryLine('بانتظار العميل', (clone $query)
                     ->where('status', 'waiting_customer')
-                    ->count(), 'ticket(s) are paused on customer follow-up.'),
+                    ->count(), 'تذكرة متوقفة بانتظار متابعة العميل.'),
             ],
         ];
     }
@@ -446,7 +446,7 @@ class InternalReportDashboardService
                 $key = $date->toDateString();
 
                 return [
-                    'label' => $date->format('M d'),
+                    'label' => $date->format('d/m'),
                     'value' => (int) ($counts[$key] ?? 0),
                 ];
             })
@@ -475,7 +475,7 @@ class InternalReportDashboardService
                 $date = now()->subDays(6 - $offset);
 
                 return [
-                    'label' => $date->format('M d'),
+                    'label' => $date->format('d/m'),
                     'value' => 0,
                 ];
             })

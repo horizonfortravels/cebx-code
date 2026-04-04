@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'بوابة إدارة الشحن') - CBEX Shipping Gateway</title>
+    <title>@yield('title', 'بوابة إدارة الشحن') - بوابة الشحن CBEX</title>
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     @include('components.pwa-meta')
@@ -150,7 +150,7 @@
                 $menu[] = ['divider' => 'عمليات العملاء'];
             }
 
-            $menu[] = ['active' => ['internal.billing.*'], 'route' => 'internal.billing.index', 'icon' => 'WAL', 'label' => 'Wallet & billing'];
+            $menu[] = ['active' => ['internal.billing.*'], 'route' => 'internal.billing.index', 'icon' => 'WAL', 'label' => 'المحفظة والفوترة'];
         }
 
         if ($showInternalCarrierReadCenter) {
@@ -158,7 +158,7 @@
                 $menu[] = ['divider' => 'عمليات العملاء'];
             }
 
-            $menu[] = ['active' => ['internal.carriers.*'], 'route' => 'internal.carriers.index', 'icon' => 'CAR', 'label' => 'Carrier integrations'];
+            $menu[] = ['active' => ['internal.carriers.*'], 'route' => 'internal.carriers.index', 'icon' => 'CAR', 'label' => 'تكاملات شركات الشحن'];
         }
 
         if ($showInternalIntegrationsReadCenter) {
@@ -166,7 +166,7 @@
                 $menu[] = ['divider' => 'عمليات العملاء'];
             }
 
-            $menu[] = ['active' => ['internal.integrations.*'], 'route' => 'internal.integrations.index', 'icon' => 'INT', 'label' => 'Integrations'];
+            $menu[] = ['active' => ['internal.integrations.*'], 'route' => 'internal.integrations.index', 'icon' => 'INT', 'label' => 'التكاملات'];
         }
 
         if ($showInternalFeatureFlagsCenter) {
@@ -174,7 +174,7 @@
                 $menu[] = ['divider' => 'عمليات العملاء'];
             }
 
-            $menu[] = ['active' => ['internal.feature-flags.*'], 'route' => 'internal.feature-flags.index', 'icon' => 'FLG', 'label' => 'Feature flags'];
+            $menu[] = ['active' => ['internal.feature-flags.*'], 'route' => 'internal.feature-flags.index', 'icon' => 'FLG', 'label' => 'أعلام الميزات'];
         }
 
         if ($showInternalApiKeysCenter) {
@@ -182,7 +182,7 @@
                 $menu[] = ['divider' => 'عمليات العملاء'];
             }
 
-            $menu[] = ['active' => ['internal.api-keys.*'], 'route' => 'internal.api-keys.index', 'icon' => 'KEY', 'label' => 'API keys'];
+            $menu[] = ['active' => ['internal.api-keys.*'], 'route' => 'internal.api-keys.index', 'icon' => 'KEY', 'label' => 'مفاتيح التكامل'];
         }
 
         if ($showInternalWebhookReadCenter) {
@@ -190,7 +190,7 @@
                 $menu[] = ['divider' => 'عمليات العملاء'];
             }
 
-            $menu[] = ['active' => ['internal.webhooks.*'], 'route' => 'internal.webhooks.index', 'icon' => 'WH', 'label' => 'Webhooks'];
+            $menu[] = ['active' => ['internal.webhooks.*'], 'route' => 'internal.webhooks.index', 'icon' => 'WH', 'label' => 'الويبهوكات'];
         }
 
         if ($showInternalShipmentReadCenter) {
@@ -198,7 +198,7 @@
                 $menu[] = ['divider' => 'عمليات العملاء'];
             }
 
-            $menu[] = ['active' => ['internal.shipments.*'], 'route' => 'internal.shipments.index', 'icon' => 'SHP', 'label' => 'Shipments'];
+            $menu[] = ['active' => ['internal.shipments.*'], 'route' => 'internal.shipments.index', 'icon' => 'SHP', 'label' => 'الشحنات'];
         }
 
         if ($showInternalTicketsReadCenter) {
@@ -206,7 +206,7 @@
                 $menu[] = ['divider' => 'عمليات العملاء'];
             }
 
-            $menu[] = ['active' => ['internal.tickets.*'], 'route' => 'internal.tickets.index', 'icon' => 'TKT', 'label' => 'Tickets'];
+            $menu[] = ['active' => ['internal.tickets.*'], 'route' => 'internal.tickets.index', 'icon' => 'TKT', 'label' => 'التذاكر'];
         }
 
         if ($showInternalReportsHub) {
@@ -214,7 +214,7 @@
                 $menu[] = ['divider' => 'عمليات العملاء'];
             }
 
-            $menu[] = ['active' => ['internal.reports.*'], 'route' => 'internal.reports.index', 'icon' => 'RPT', 'label' => 'Reports & analytics'];
+            $menu[] = ['active' => ['internal.reports.*'], 'route' => 'internal.reports.index', 'icon' => 'RPT', 'label' => 'التقارير والتحليلات'];
         }
 
         if ($showInternalKycReadCenter) {
@@ -230,7 +230,7 @@
                 $menu[] = ['divider' => 'عمليات العملاء'];
             }
 
-            $menu[] = ['active' => ['internal.compliance.*'], 'route' => 'internal.compliance.index', 'icon' => 'CMP', 'label' => 'Compliance & DG'];
+            $menu[] = ['active' => ['internal.compliance.*'], 'route' => 'internal.compliance.index', 'icon' => 'CMP', 'label' => 'الامتثال والمواد الخطرة'];
         }
 
         if ($showInternalStaffReadCenter) {
@@ -240,7 +240,7 @@
 
         if ($showSmtpSettings) {
             $menu[] = ['divider' => 'البريد والمنصة'];
-            $menu[] = ['active' => ['internal.smtp-settings.*'], 'route' => 'internal.smtp-settings.edit', 'icon' => 'SMTP', 'label' => 'إعدادات SMTP'];
+            $menu[] = ['active' => ['internal.smtp-settings.*'], 'route' => 'internal.smtp-settings.edit', 'icon' => 'SMTP', 'label' => 'إعدادات خادم البريد'];
         }
 
         if ($showAdminDashboard) {
@@ -280,7 +280,7 @@
                 $menu[] = ['active' => ['b2b.developer.integrations'], 'route' => 'b2b.developer.integrations', 'icon' => 'INT', 'label' => 'التكاملات'];
             }
             if ($canReadApiKeys) {
-                $menu[] = ['active' => ['b2b.developer.api-keys'], 'route' => 'b2b.developer.api-keys', 'icon' => 'KEY', 'label' => 'مفاتيح API'];
+                $menu[] = ['active' => ['b2b.developer.api-keys'], 'route' => 'b2b.developer.api-keys', 'icon' => 'KEY', 'label' => 'مفاتيح التكامل'];
             }
             if ($canReadWebhooks) {
                 $menu[] = ['active' => ['b2b.developer.webhooks'], 'route' => 'b2b.developer.webhooks', 'icon' => 'WH', 'label' => 'الويبهوكات'];
@@ -305,7 +305,7 @@
     <aside class="sidebar">
         <div class="sidebar-header">
             <img src="{{ asset('images/logo-sidebar.png') }}" alt="CBEX" class="sidebar-logo-img">
-            <span class="sidebar-title">CBEX Gateway</span>
+            <span class="sidebar-title">بوابة CBEX</span>
         </div>
         <nav class="sidebar-nav">
             @if($isInternalUser)

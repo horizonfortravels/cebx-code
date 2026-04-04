@@ -165,13 +165,13 @@ class DgComplianceService
 
         if ($declaration->contains_dangerous_goods) {
             throw new BusinessException(
-                'The declaration is on hold because the shipment contains dangerous goods.',
+                'تم تعليق الإقرار لأن الشحنة تحتوي على مواد خطرة.',
                 'ERR_DG_HOLD_REQUIRED',
                 422,
                 [
                     'shipment_id' => (string) $declaration->shipment_id,
                     'declaration_id' => (string) $declaration->id,
-                    'next_action' => 'Contact support for manual dangerous goods handling.',
+                    'next_action' => 'تواصل مع فريق الدعم لمعالجة المواد الخطرة يدويًا.',
                 ]
             );
         }
@@ -181,14 +181,14 @@ class DgComplianceService
 
         if (! $waiverVersion) {
             throw new BusinessException(
-                sprintf('No active waiver version is available for locale %s.', $locale),
+                sprintf('لا توجد نسخة إعفاء نشطة متاحة للغة %s.', $locale),
                 'ERR_DG_WAIVER_UNAVAILABLE',
                 503,
                 [
                     'shipment_id' => (string) $declaration->shipment_id,
                     'declaration_id' => (string) $declaration->id,
                     'locale' => $locale,
-                    'next_action' => 'Ask an administrator to publish an active legal disclaimer before continuing.',
+                    'next_action' => 'اطلب من المسؤول نشر إخلاء قانوني نشط قبل المتابعة.',
                 ]
             );
         }
@@ -253,79 +253,79 @@ class DgComplianceService
 
         if (! $declaration) {
             throw new BusinessException(
-                'A dangerous goods declaration is required before the workflow can continue.',
+                'يلزم إقرار المواد الخطرة قبل أن يتمكن سير العمل من المتابعة.',
                 'ERR_DG_DECLARATION_REQUIRED',
                 422,
                 [
                     'shipment_id' => $shipmentId,
                     'shipment_status' => (string) ($shipment?->status ?? ''),
-                    'next_action' => 'Complete the dangerous goods declaration step for this shipment.',
+                    'next_action' => 'أكمل خطوة إقرار المواد الخطرة لهذه الشحنة.',
                 ]
             );
         }
 
         if ($declaration->status === ContentDeclaration::STATUS_HOLD_DG) {
             throw new BusinessException(
-                'This shipment is on hold because dangerous goods were declared.',
+                'هذه الشحنة معلقة لأنه تم التصريح بوجود مواد خطرة.',
                 'ERR_DG_HOLD_REQUIRED',
                 422,
                 [
                     'shipment_id' => $shipmentId,
                     'declaration_id' => (string) $declaration->id,
                     'hold_reason' => (string) ($declaration->hold_reason ?? ''),
-                    'next_action' => 'Contact support for manual dangerous goods handling.',
+                    'next_action' => 'تواصل مع فريق الدعم لمعالجة المواد الخطرة يدويًا.',
                 ]
             );
         }
 
         if ($declaration->status === ContentDeclaration::STATUS_REQUIRES_ACTION) {
             throw new BusinessException(
-                'The dangerous goods declaration still requires additional action.',
+                'إقرار المواد الخطرة ما يزال يتطلب إجراءً إضافيًا.',
                 'ERR_DG_REQUIRES_ACTION',
                 422,
                 [
                     'shipment_id' => $shipmentId,
                     'declaration_id' => (string) $declaration->id,
-                    'next_action' => 'Review the declaration and supply the required information before continuing.',
+                    'next_action' => 'راجع الإقرار وقدّم المعلومات المطلوبة قبل المتابعة.',
                 ]
             );
         }
 
         if (! $declaration->dg_flag_declared) {
             throw new BusinessException(
-                'You must declare whether the shipment contains dangerous goods before the workflow can continue.',
+                'يجب تحديد ما إذا كانت الشحنة تحتوي على مواد خطرة قبل أن يتمكن سير العمل من المتابعة.',
                 'ERR_DG_DECLARATION_INCOMPLETE',
                 422,
                 [
                     'shipment_id' => $shipmentId,
                     'declaration_id' => (string) $declaration->id,
-                    'next_action' => 'Answer the dangerous goods declaration question for this shipment.',
+                    'next_action' => 'أجب عن سؤال إقرار المواد الخطرة لهذه الشحنة.',
                 ]
             );
         }
 
         if (! $declaration->contains_dangerous_goods && ! $declaration->waiver_accepted) {
             throw new BusinessException(
-                'You must accept the legal disclaimer before the workflow can continue.',
+                'يجب قبول الإخلاء القانوني قبل أن يتمكن سير العمل من المتابعة.',
                 'ERR_DG_DISCLAIMER_REQUIRED',
                 422,
                 [
                     'shipment_id' => $shipmentId,
                     'declaration_id' => (string) $declaration->id,
-                    'next_action' => 'Accept the legal disclaimer for a non-dangerous-goods shipment.',
+                    'next_action' => 'اقبل الإخلاء القانوني للشحنة غير الخطرة.',
                 ]
             );
         }
 
         if (! $declaration->isReadyForIssuance()) {
             throw new BusinessException(
-                'The dangerous goods declaration is not complete yet.',
+                'إقرار المواد الخطرة غير مكتمل بعد.',
                 'ERR_DG_DECLARATION_INCOMPLETE',
                 422,
                 [
                     'shipment_id' => $shipmentId,
                     'declaration_id' => (string) $declaration->id,
-                    'next_action' => 'Complete the dangerous goods declaration before continuing.',
+                    'next_action' => 'أكمل إقرار المواد الخطرة قبل المتابعة.',
                 ]
             );
         }
@@ -349,7 +349,7 @@ class DgComplianceService
 
         if ($reason === '') {
             throw new BusinessException(
-                'A clear internal review reason is required before requesting a correction.',
+                'يلزم إدخال سبب مراجعة داخلي واضح قبل طلب التصحيح.',
                 'ERR_DG_REASON_REQUIRED',
                 422
             );
@@ -357,7 +357,7 @@ class DgComplianceService
 
         if ((bool) $declaration->contains_dangerous_goods || $declaration->status === ContentDeclaration::STATUS_HOLD_DG) {
             throw new BusinessException(
-                'Dangerous-goods holds already require manual handling and cannot be converted into a correction request from this internal surface.',
+                'حالات تعليق المواد الخطرة تتطلب بالفعل معالجة يدوية، ولا يمكن تحويلها إلى طلب تصحيح من هذه الواجهة الداخلية.',
                 'ERR_DG_REVIEW_UNAVAILABLE',
                 422
             );
@@ -365,7 +365,7 @@ class DgComplianceService
 
         if ($declaration->status === ContentDeclaration::STATUS_REQUIRES_ACTION) {
             throw new BusinessException(
-                'This declaration is already waiting for customer correction.',
+                'هذا الإقرار ينتظر بالفعل تصحيح العميل.',
                 'ERR_DG_ALREADY_REQUIRES_ACTION',
                 422
             );
@@ -598,13 +598,13 @@ class DgComplianceService
 
         if ($declaration->status === ContentDeclaration::STATUS_HOLD_DG || $declaration->status === ContentDeclaration::STATUS_REQUIRES_ACTION) {
             $updates['status'] = Shipment::STATUS_REQUIRES_ACTION;
-            $updates['status_reason'] = (string) ($declaration->hold_reason ?: 'Dangerous goods declaration requires manual handling.');
+            $updates['status_reason'] = (string) ($declaration->hold_reason ?: 'إقرار المواد الخطرة يتطلب معالجة يدوية.');
         } elseif ($declaration->status === ContentDeclaration::STATUS_COMPLETED && $declaration->waiver_accepted) {
             $updates['status'] = Shipment::STATUS_DECLARATION_COMPLETE;
             $updates['status_reason'] = null;
         } else {
             $updates['status'] = Shipment::STATUS_DECLARATION_REQUIRED;
-            $updates['status_reason'] = 'Dangerous goods declaration and legal disclaimer must be completed before payment or issuance.';
+            $updates['status_reason'] = 'يجب استكمال إقرار المواد الخطرة والإخلاء القانوني قبل الدفع أو الإصدار.';
         }
 
         $shipment->update($updates);

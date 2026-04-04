@@ -346,7 +346,7 @@
                                 </div>
                             </div>
                             @if(!empty($event['correlation_id']))
-                                <div class="td-mono" style="font-size:12px;color:var(--tm)">Correlation: {{ $event['correlation_id'] }}</div>
+                                <div class="td-mono" style="font-size:12px;color:var(--tm)">الربط المرجعي: {{ $event['correlation_id'] }}</div>
                             @endif
                         </div>
                     </div>

@@ -58,7 +58,6 @@ class LegacyExternalSurfaceLockdownWebTest extends TestCase
             '/wallet' => '/b2c/wallet',
             '/addresses' => '/b2c/addresses',
             '/settings' => '/b2c/settings',
-            '/support' => '/b2c/support',
             '/tracking' => '/b2c/tracking',
         ];
 
@@ -116,7 +115,6 @@ class LegacyExternalSurfaceLockdownWebTest extends TestCase
             '/companies',
             '/hscodes',
             '/reports/export/shipments',
-            '/support',
         ] as $path) {
             $response = $this->actingAs($user, 'web')->get($path);
 
@@ -163,6 +161,21 @@ class LegacyExternalSurfaceLockdownWebTest extends TestCase
         $response->assertOk();
         $response->assertDontSeeText('Internal Server Error');
         $response->assertDontSeeText('Whoops');
+    }
+
+    #[Test]
+    public function legacy_support_center_remains_available_for_external_users(): void
+    {
+        foreach ([
+            'e2e.a.individual@example.test',
+            'e2e.c.organization_owner@example.test',
+        ] as $email) {
+            $response = $this->actingAs($this->userByEmail($email), 'web')->get('/support');
+
+            $response->assertOk();
+            $response->assertDontSeeText('Internal Server Error');
+            $response->assertDontSeeText('Whoops');
+        }
     }
 
     private function userByEmail(string $email): User

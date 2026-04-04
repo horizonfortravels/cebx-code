@@ -117,13 +117,13 @@ class WalletBillingService
         $this->assertPermission($performer, 'wallet.topup');
 
         if ($amount <= 0) {
-            throw new BusinessException('ط§ظ„ظ…ط¨ظ„ط؛ ظٹط¬ط¨ ط£ظ† ظٹظƒظˆظ† ط£ظƒط¨ط± ظ…ظ† طµظپط±.', 'ERR_INVALID_AMOUNT', 422);
+            throw new BusinessException('المبلغ يجب أن يكون أكبر من صفر.', 'ERR_INVALID_AMOUNT', 422);
         }
 
         $wallet = $this->ensureWallet($accountId);
 
         if (!$wallet->isActive()) {
-            throw new BusinessException('ط§ظ„ظ…ط­ظپط¸ط© ظ…ط¬ظ…ط¯ط© ط£ظˆ ظ…ط؛ظ„ظ‚ط©.', 'ERR_WALLET_FROZEN', 422);
+            throw new BusinessException('المحفظة مجمّدة أو مغلقة.', 'ERR_WALLET_FROZEN', 422);
         }
 
         return DB::transaction(function () use ($wallet, $amount, $referenceId, $performer, $description, $metadata) {
@@ -171,11 +171,11 @@ class WalletBillingService
         $wallet = $this->ensureWallet($accountId);
 
         if (!$wallet->isActive()) {
-            throw new BusinessException('ط§ظ„ظ…ط­ظپط¸ط© ظ…ط¬ظ…ط¯ط© ط£ظˆ ظ…ط؛ظ„ظ‚ط©.', 'ERR_WALLET_FROZEN', 422);
+            throw new BusinessException('المحفظة مجمّدة أو مغلقة.', 'ERR_WALLET_FROZEN', 422);
         }
 
         if ((float) $wallet->available_balance < $amount) {
-            throw new BusinessException('ط±طµظٹط¯ ط§ظ„ظ…ط­ظپط¸ط© ط؛ظٹط± ظƒط§ظپظچ.', 'ERR_INSUFFICIENT_BALANCE', 422);
+            throw new BusinessException('رصيد المحفظة غير كافٍ.', 'ERR_INSUFFICIENT_BALANCE', 422);
         }
 
         return DB::transaction(function () use ($wallet, $amount, $referenceType, $referenceId, $performer, $description) {
@@ -243,7 +243,7 @@ class WalletBillingService
     }
 
     // â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
-    // Payment Methods (Billing) â€” FR-IAM-017 + FR-IAM-020
+        // Payment Methods (Billing) - FR-IAM-017 + FR-IAM-020
     // â•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گâ•گ
 
     /**
@@ -282,7 +282,7 @@ class WalletBillingService
         $account = Account::findOrFail($accountId);
         if (in_array($account->status, ['suspended', 'closed'])) {
             throw new BusinessException(
-                'ظ„ط§ ظٹظ…ظƒظ† ط¥ط¶ط§ظپط© ظˆط³ظٹظ„ط© ط¯ظپط¹ ظ„ط­ط³ط§ط¨ ظ…ط¹ط·ظ„.',
+                'لا يمكن إضافة وسيلة دفع لحساب معطّل.',
                 'ERR_ACCOUNT_DISABLED', 422
             );
         }
@@ -411,12 +411,12 @@ class WalletBillingService
     public static function walletPermissions(): array
     {
         return [
-            'wallet.balance'   => 'ط¹ط±ط¶ ط±طµظٹط¯ ط§ظ„ظ…ط­ظپط¸ط©',
-            'wallet.ledger'    => 'ط¹ط±ط¶ ظƒط´ظپ ط§ظ„ط­ط³ط§ط¨',
-            'wallet.topup'     => 'ط´ط­ظ† ط§ظ„ط±طµظٹط¯',
-            'wallet.configure' => 'ط¥ط¹ط¯ط§ط¯ط§طھ ط§ظ„ظ…ط­ظپط¸ط© (ط­ط¯ ط§ظ„طھظ†ط¨ظٹظ‡)',
-            'billing.view'     => 'ط¹ط±ط¶ ظˆط³ط§ط¦ظ„ ط§ظ„ط¯ظپط¹',
-            'billing.manage'   => 'ط¥ط¶ط§ظپط©/ط¥ط²ط§ظ„ط© ظˆط³ط§ط¦ظ„ ط§ظ„ط¯ظپط¹',
+            'wallet.balance'   => 'عرض رصيد المحفظة',
+            'wallet.ledger'    => 'عرض كشف الحساب',
+            'wallet.topup'     => 'شحن الرصيد',
+            'wallet.configure' => 'إعدادات المحفظة (حد التنبيه)',
+            'billing.view'     => 'عرض وسائل الدفع',
+            'billing.manage'   => 'إضافة/إزالة وسائل الدفع',
         ];
     }
 

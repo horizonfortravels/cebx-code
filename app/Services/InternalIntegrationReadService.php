@@ -24,10 +24,10 @@ class InternalIntegrationReadService
      * @var array<string, array{label: string, type_label: string, feature_flag: string|null, health_service: string, config_path: string}>
      */
     private const CARRIERS = [
-        'aramex' => ['label' => 'Aramex', 'type_label' => 'Carrier API', 'feature_flag' => 'carrier_aramex', 'health_service' => 'carrier:aramex', 'config_path' => 'services.aramex'],
-        'dhl' => ['label' => 'DHL Express', 'type_label' => 'Carrier API', 'feature_flag' => 'carrier_dhl', 'health_service' => 'carrier:dhl', 'config_path' => 'services.dhl'],
-        'fedex' => ['label' => 'FedEx', 'type_label' => 'Carrier API', 'feature_flag' => 'carrier_fedex', 'health_service' => 'carrier:fedex', 'config_path' => 'services.fedex'],
-        'smsa' => ['label' => 'SMSA', 'type_label' => 'Carrier API', 'feature_flag' => 'carrier_smsa', 'health_service' => 'carrier:smsa', 'config_path' => 'services.smsa'],
+        'aramex' => ['label' => 'Aramex', 'type_label' => 'واجهة برمجة تطبيقات الناقل', 'feature_flag' => 'carrier_aramex', 'health_service' => 'carrier:aramex', 'config_path' => 'services.aramex'],
+        'dhl' => ['label' => 'DHL Express', 'type_label' => 'واجهة برمجة تطبيقات الناقل', 'feature_flag' => 'carrier_dhl', 'health_service' => 'carrier:dhl', 'config_path' => 'services.dhl'],
+        'fedex' => ['label' => 'FedEx', 'type_label' => 'واجهة برمجة تطبيقات الناقل', 'feature_flag' => 'carrier_fedex', 'health_service' => 'carrier:fedex', 'config_path' => 'services.fedex'],
+        'smsa' => ['label' => 'SMSA', 'type_label' => 'واجهة برمجة تطبيقات الناقل', 'feature_flag' => 'carrier_smsa', 'health_service' => 'carrier:smsa', 'config_path' => 'services.smsa'],
     ];
 
     /**
@@ -139,19 +139,6 @@ class InternalIntegrationReadService
             'attention' => $rows->where('needs_attention', true)->count(),
             'carrier' => $rows->where('visibility_scope', 'carrier')->count(),
         ];
-
-        $requestSummary = sprintf(
-            '%s total â€¢ %s failed',
-            number_format((int) $log->total_requests),
-            number_format((int) $log->failed_requests)
-        );
-
-        return [
-            'total' => $rows->count(),
-            'enabled' => $rows->where('is_enabled', true)->count(),
-            'attention' => $rows->where('needs_attention', true)->count(),
-            'carrier' => $rows->where('visibility_scope', 'carrier')->count(),
-        ];
     }
 
     /**
@@ -170,7 +157,7 @@ class InternalIntegrationReadService
      */
     public function typeOptions(): array
     {
-        return ['carrier' => 'Carrier', 'store' => 'Store', 'gateway' => 'Gateway'];
+        return ['carrier' => 'ناقل', 'store' => 'متجر', 'gateway' => 'بوابة دفع'];
     }
 
     /**
@@ -178,7 +165,7 @@ class InternalIntegrationReadService
      */
     public function stateOptions(): array
     {
-        return ['enabled' => 'Enabled', 'configured' => 'Configured', 'attention' => 'Needs attention', 'disabled' => 'Disabled'];
+        return ['enabled' => 'مفعلة', 'configured' => 'مهيأة', 'attention' => 'بحاجة إلى متابعة', 'disabled' => 'معطلة'];
     }
 
     /**
@@ -187,10 +174,10 @@ class InternalIntegrationReadService
     public function healthOptions(): array
     {
         return [
-            IntegrationHealthLog::STATUS_HEALTHY => 'Healthy',
-            IntegrationHealthLog::STATUS_DEGRADED => 'Degraded',
-            IntegrationHealthLog::STATUS_DOWN => 'Down',
-            'unknown' => 'Unknown',
+            IntegrationHealthLog::STATUS_HEALTHY => 'سليمة',
+            IntegrationHealthLog::STATUS_DEGRADED => 'متدهورة',
+            IntegrationHealthLog::STATUS_DOWN => 'متوقفة',
+            'unknown' => 'غير معروفة',
         ];
     }
 
@@ -262,18 +249,18 @@ class InternalIntegrationReadService
                 healthSummary: $this->healthSummary($healthLog),
                 activitySummary: [
                     'headline' => $webhook instanceof TrackingWebhook
-                        ? 'Last webhook: ' . $this->headline((string) $webhook->event_type)
-                        : 'No tracking webhook activity recorded yet',
+                        ? 'آخر ويبهوك: ' . $this->headline((string) $webhook->event_type)
+                        : 'لا يوجد نشاط ويبهوك تتبع مسجل بعد',
                     'detail' => $webhook instanceof TrackingWebhook
                         ? implode(' • ', array_filter([
                             $this->headline((string) $webhook->status),
                             $this->displayDateTime($webhook->created_at),
                         ]))
-                        : 'No safe webhook summary is currently available.',
+                        : 'لا يوجد ملخص ويبهوك آمن متاح حاليًا.',
                     'items' => collect([
-                        ['label' => 'Last webhook event', 'value' => $webhook instanceof TrackingWebhook ? $this->headline((string) $webhook->event_type) : 'None recorded'],
-                        ['label' => 'Webhook status', 'value' => $webhook instanceof TrackingWebhook ? $this->headline((string) $webhook->status) : 'Unknown'],
-                        ['label' => 'Webhook time', 'value' => $webhook instanceof TrackingWebhook ? ($this->displayDateTime($webhook->created_at) ?? '—') : '—'],
+                        ['label' => 'آخر حدث ويبهوك', 'value' => $webhook instanceof TrackingWebhook ? $this->headline((string) $webhook->event_type) : 'لا يوجد'],
+                        ['label' => 'حالة الويبهوك', 'value' => $webhook instanceof TrackingWebhook ? $this->headline((string) $webhook->status) : 'غير معروفة'],
+                        ['label' => 'وقت الويبهوك', 'value' => $webhook instanceof TrackingWebhook ? ($this->displayDateTime($webhook->created_at) ?? '—') : '—'],
                     ]),
                 ],
                 credentials: $credentials,
@@ -317,7 +304,7 @@ class InternalIntegrationReadService
                 name: (string) $store->name,
                 providerKey: $providerKey,
                 providerName: $this->headline($providerKey),
-                typeLabel: 'Store Connector',
+                typeLabel: 'موصل متجر',
                 visibilityScope: 'all',
                 isEnabled: $this->storeIsEnabled($store),
                 isConfigured: $credentials['configured_count'] > 0,
@@ -325,17 +312,17 @@ class InternalIntegrationReadService
                 healthSummary: $this->healthSummary($healthLog),
                 activitySummary: [
                     'headline' => $syncLog instanceof StoreSyncLog
-                        ? 'Last sync: ' . $this->headline((string) $syncLog->status)
-                        : ($webhookEvent instanceof WebhookEvent ? 'Last webhook: ' . $this->headline((string) $webhookEvent->event_type) : 'No recent sync or webhook summary'),
+                        ? 'آخر مزامنة: ' . $this->headline((string) $syncLog->status)
+                        : ($webhookEvent instanceof WebhookEvent ? 'آخر ويبهوك: ' . $this->headline((string) $webhookEvent->event_type) : 'لا يوجد ملخص مزامنة أو ويبهوك حديث'),
                     'detail' => implode(' • ', array_filter([
-                        $syncLog instanceof StoreSyncLog ? 'Sync ' . $this->headline((string) $syncLog->sync_type) : null,
+                        $syncLog instanceof StoreSyncLog ? 'مزامنة ' . $this->headline((string) $syncLog->sync_type) : null,
                         $syncLog instanceof StoreSyncLog ? $this->displayDateTime($syncLog->completed_at ?: $syncLog->started_at) : null,
-                        $webhookEvent instanceof WebhookEvent ? 'Webhook ' . $this->headline((string) $webhookEvent->status) : null,
-                    ])) ?: 'No safe sync or webhook activity summary is available.',
+                        $webhookEvent instanceof WebhookEvent ? 'ويبهوك ' . $this->headline((string) $webhookEvent->status) : null,
+                    ])) ?: 'لا يوجد ملخص آمن متاح للمزامنة أو الويبهوك.',
                     'items' => collect([
-                        ['label' => 'Connection state', 'value' => $this->headline($connectionState)],
-                        ['label' => 'Last sync', 'value' => $syncLog instanceof StoreSyncLog ? ($this->displayDateTime($syncLog->completed_at ?: $syncLog->started_at) ?? '—') : ($this->displayDateTime($this->storeLastSyncAt($store)) ?? '—')],
-                        ['label' => 'Last webhook', 'value' => $webhookEvent instanceof WebhookEvent ? $this->headline((string) $webhookEvent->event_type) . ' • ' . $this->headline((string) $webhookEvent->status) : 'None recorded'],
+                        ['label' => 'حالة الاتصال', 'value' => $this->headline($connectionState)],
+                        ['label' => 'آخر مزامنة', 'value' => $syncLog instanceof StoreSyncLog ? ($this->displayDateTime($syncLog->completed_at ?: $syncLog->started_at) ?? '—') : ($this->displayDateTime($this->storeLastSyncAt($store)) ?? '—')],
+                        ['label' => 'آخر ويبهوك', 'value' => $webhookEvent instanceof WebhookEvent ? $this->headline((string) $webhookEvent->event_type) . ' • ' . $this->headline((string) $webhookEvent->status) : 'لا يوجد'],
                     ]),
                 ],
                 credentials: $credentials,
@@ -344,7 +331,7 @@ class InternalIntegrationReadService
                     'account' => $account,
                     'name' => (string) $account->name,
                     'slug' => (string) ($account->slug ?? '—'),
-                    'type_label' => $account->isOrganization() ? 'Organization' : 'Individual',
+                    'type_label' => $account->isOrganization() ? 'منظمة' : 'فردي',
                 ] : null,
                 metadata: [
                     'status' => $this->headline((string) $store->status),
@@ -378,7 +365,7 @@ class InternalIntegrationReadService
                 name: (string) $gateway->name,
                 providerKey: $providerKey,
                 providerName: (string) $gateway->provider,
-                typeLabel: 'Payment gateway',
+                typeLabel: 'بوابة دفع',
                 visibilityScope: 'all',
                 isEnabled: (bool) $gateway->is_active,
                 isConfigured: $credentials['configured_count'] > 0,
@@ -386,16 +373,16 @@ class InternalIntegrationReadService
                 healthSummary: $this->healthSummary($healthLog),
                 activitySummary: [
                     'headline' => $healthLog instanceof IntegrationHealthLog
-                        ? 'Health check: ' . $this->headline((string) $healthLog->status)
-                        : 'No recent sync or webhook summary',
+                        ? 'فحص الصحة: ' . $this->headline((string) $healthLog->status)
+                        : 'لا يوجد ملخص مزامنة أو ويبهوك حديث',
                     'detail' => implode(' • ', array_filter([
-                        $gateway->is_sandbox ? 'Sandbox mode' : 'Live mode',
+                        $gateway->is_sandbox ? 'وضع الاختبار' : 'الوضع الحي',
                         $this->displayDateTime($gateway->updated_at),
                     ])),
                     'items' => collect([
-                        ['label' => 'Gateway mode', 'value' => $gateway->is_sandbox ? 'Sandbox' : 'Live'],
-                        ['label' => 'Supported methods', 'value' => $this->listSummary($this->safeArray($gateway->supported_methods))],
-                        ['label' => 'Updated at', 'value' => $this->displayDateTime($gateway->updated_at) ?? '—'],
+                        ['label' => 'وضع البوابة', 'value' => $gateway->is_sandbox ? 'اختباري' : 'حي'],
+                        ['label' => 'الوسائل المدعومة', 'value' => $this->listSummary($this->safeArray($gateway->supported_methods))],
+                        ['label' => 'آخر تحديث', 'value' => $this->displayDateTime($gateway->updated_at) ?? '—'],
                     ]),
                 ],
                 credentials: $credentials,
@@ -453,13 +440,13 @@ class InternalIntegrationReadService
             'type_label' => $typeLabel,
             'visibility_scope' => $visibilityScope,
             'is_enabled' => $isEnabled,
-            'enabled_label' => $isEnabled ? 'Enabled' : 'Disabled',
+            'enabled_label' => $isEnabled ? 'مفعلة' : 'معطلة',
             'is_configured' => $isConfigured,
-            'configuration_label' => $isConfigured ? 'Configured' : 'Configuration incomplete',
+            'configuration_label' => $isConfigured ? 'مهيأة' : 'الإعداد غير مكتمل',
             'health_status' => $healthStatus,
-            'health_label' => $this->healthOptions()[$healthStatus] ?? 'Unknown',
+            'health_label' => $this->healthOptions()[$healthStatus] ?? 'غير معروفة',
             'needs_attention' => $needsAttention,
-            'state_badge' => $needsAttention ? 'Needs attention' : ($isEnabled ? 'Operational' : 'Read only'),
+            'state_badge' => $needsAttention ? 'بحاجة إلى متابعة' : ($isEnabled ? 'تشغيلية' : 'للقراءة فقط'),
             'health_summary' => $healthSummary,
             'activity_summary' => $activitySummary,
             'credentials' => $credentials,
@@ -625,9 +612,9 @@ class InternalIntegrationReadService
 
                 return [
                     'key' => $key,
-                    'label' => Str::headline($key),
+                    'label' => $this->featureFlagLabel($key),
                     'is_enabled' => $enabled,
-                    'state_label' => $enabled ? 'Enabled' : 'Disabled',
+                    'state_label' => $enabled ? 'مفعلة' : 'معطلة',
                 ];
             });
     }
@@ -650,7 +637,7 @@ class InternalIntegrationReadService
     private function featureFlagSummary(Collection $items): string
     {
         if ($items->isEmpty()) {
-            return 'No feature flags are currently linked to this integration.';
+            return 'لا توجد أعلام ميزات مرتبطة بهذا التكامل حاليًا.';
         }
 
         return $items
@@ -672,8 +659,8 @@ class InternalIntegrationReadService
             ->filter(fn (mixed $value, mixed $key): bool => is_string($key) && $this->looksSensitiveKey($key))
             ->map(function (mixed $value, string $key): array {
                 return [
-                    'label' => Str::headline($key),
-                    'value' => $this->hasVisibleValue($value) ? '********' : 'Not configured',
+                    'label' => $this->credentialFieldLabel($key),
+                    'value' => $this->hasVisibleValue($value) ? '********' : 'غير مهيأ',
                     'configured' => $this->hasVisibleValue($value),
                 ];
             })
@@ -685,8 +672,8 @@ class InternalIntegrationReadService
             'configured_count' => $configuredCount,
             'hidden_for_role' => false,
             'summary' => $configuredCount > 0
-                ? number_format($configuredCount) . ' masked credential field(s) configured'
-                : 'No configured credential fields detected',
+                ? number_format($configuredCount) . ' حقل اعتماد مقنّع مهيأ'
+                : 'لم يتم اكتشاف أي حقول اعتماد مهيأة',
             'items' => $items->map(static fn (array $item): array => [
                 'label' => $item['label'],
                 'value' => $item['value'],
@@ -701,26 +688,20 @@ class InternalIntegrationReadService
     {
         if (! $log instanceof IntegrationHealthLog) {
             return [
-                'label' => 'Unknown',
+                'label' => 'غير معروفة',
                 'checked_at' => '—',
                 'response_time' => '—',
-            'request_summary' => 'No recent health check summary',
-            'status_detail' => 'No recent health check summary',
+                'request_summary' => 'لا يوجد ملخص حديث لفحص الصحة',
+                'status_detail' => 'لا يوجد ملخص حديث لفحص الصحة',
             ];
         }
 
-        $requestSummary = sprintf(
-            '%s total â€¢ %s failed',
-            number_format((int) $log->total_requests),
-            number_format((int) $log->failed_requests)
-        );
-
         return [
-            'label' => $this->healthOptions()[$log->status] ?? 'Unknown',
+            'label' => $this->healthOptions()[$log->status] ?? 'غير معروفة',
             'checked_at' => $this->displayDateTime($log->checked_at) ?? '—',
             'response_time' => $log->response_time_ms !== null ? number_format((int) $log->response_time_ms) . ' ms' : '—',
             'request_summary' => sprintf(
-                '%s total • %s failed',
+                '%s إجمالي • %s فشل',
                 number_format((int) $log->total_requests),
                 number_format((int) $log->failed_requests)
             ),
@@ -853,10 +834,54 @@ class InternalIntegrationReadService
     {
         $items = collect($value)
             ->filter(static fn ($item): bool => is_string($item) && trim($item) !== '')
-            ->map(static fn (string $item): string => Str::headline($item))
+            ->map(fn (string $item): string => $this->headline($item))
             ->values();
 
-        return $items->isNotEmpty() ? $items->implode(' • ') : 'No linked values';
+        return $items->isNotEmpty() ? $items->implode(' • ') : 'لا توجد قيم مرتبطة';
+    }
+
+    private function featureFlagLabel(string $key): string
+    {
+        $normalized = Str::lower(trim($key));
+
+        if (str_starts_with($normalized, 'carrier_')) {
+            return 'شركة الشحن ' . Str::headline(str_replace('carrier_', '', $normalized));
+        }
+
+        if (str_starts_with($normalized, 'ecommerce_')) {
+            return 'التجارة الإلكترونية ' . Str::headline(str_replace('ecommerce_', '', $normalized));
+        }
+
+        if (str_starts_with($normalized, 'payment_')) {
+            return 'الدفع ' . Str::headline(str_replace('payment_', '', $normalized));
+        }
+
+        return $this->headline($normalized);
+    }
+
+    private function credentialFieldLabel(string $key): string
+    {
+        $normalized = Str::lower(trim($key));
+
+        $map = [
+            'account' => 'الحساب',
+            'account_number' => 'رقم الحساب',
+            'account_pin' => 'رمز الحساب',
+            'api_key' => 'مفتاح الواجهة البرمجية',
+            'api_secret' => 'سر الواجهة البرمجية',
+            'auth_token' => 'رمز المصادقة',
+            'client_id' => 'معرّف العميل',
+            'client_secret' => 'سر العميل',
+            'key' => 'المفتاح',
+            'password' => 'كلمة المرور',
+            'secret' => 'السر',
+            'sid' => 'المعرّف',
+            'store_id' => 'معرّف المتجر',
+            'token' => 'الرمز',
+            'username' => 'اسم المستخدم',
+        ];
+
+        return $map[$normalized] ?? $this->headline($normalized);
     }
 
     private function displayDateTime(mixed $value): ?string
@@ -876,6 +901,44 @@ class InternalIntegrationReadService
     {
         $value = trim($value);
 
-        return $value === '' ? 'Unknown' : Str::headline($value);
+        if ($value === '') {
+            return 'غير معروف';
+        }
+
+        $normalized = Str::lower($value);
+
+        $map = [
+            'active' => 'نشط',
+            'api_only' => 'برمجي فقط',
+            'api_first' => 'برمجي أولًا',
+            'connected' => 'متصل',
+            'custom_api' => 'واجهة مخصصة',
+            'degraded' => 'متدهور',
+            'delivered' => 'تم التسليم',
+            'disabled' => 'معطّل',
+            'disconnected' => 'غير متصل',
+            'down' => 'متوقف',
+            'error' => 'خطأ',
+            'failed' => 'فشل',
+            'healthy' => 'سليم',
+            'live' => 'حي',
+            'manual' => 'يدوي',
+            'pending' => 'قيد الانتظار',
+            'processed' => 'تمت المعالجة',
+            'processing' => 'قيد المعالجة',
+            'queued' => 'قيد الاصطفاف',
+            'received' => 'تم الاستلام',
+            'retryable' => 'قابل لإعادة المحاولة',
+            'sandbox' => 'اختباري',
+            'scheduled' => 'مجدول',
+            'store_sync' => 'مزامنة المتجر',
+            'store' => 'متجر',
+            'success' => 'نجح',
+            'unknown' => 'غير معروف',
+            'warning' => 'تحذير',
+            'webhook' => 'ويبهوك',
+        ];
+
+        return $map[$normalized] ?? Str::headline($value);
     }
 }

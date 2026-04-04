@@ -9,7 +9,7 @@
         <p style="margin:0;max-width:760px;line-height:1.9;color:rgba(255,255,255,.9)">
             هذه الصفحة تجمع ما يحتاجه فريق المنظمة {{ $account->name }} يوميًا: الشحنات، الطلبات، المستخدمون، والتقارير عبر شبكة الناقلين التابعة للمنصة.
             @if($developerTools->isNotEmpty())
-                وإذا كان لديك دور تكاملات أو API فستجد هنا أدوات تكامل المنصة بشكل واضح بدل الاعتماد على المسارات البرمجية فقط.
+                وإذا كان لديك دور تكاملات أو واجهات برمجية فستجد هنا أدوات تكامل المنصة بشكل واضح بدل الاعتماد على المسارات البرمجية فقط.
             @endif
         </p>
     </section>
@@ -40,14 +40,14 @@
         <section class="card">
             <div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap;margin-bottom:18px">
                 <div>
-                    <div style="font-size:12px;color:var(--tm);margin-bottom:6px">أدوات المطور</div>
-                    <h2 style="margin:0;font-size:24px;color:var(--tx)">مسار واضح لفريق التكامل</h2>
-                    <p style="margin:8px 0 0;color:var(--td);line-height:1.8;max-width:760px">
-                        هذه الأدوات تظهر فقط للأدوار التي تملك صلاحيات التكاملات أو مفاتيح API أو الويبهوكات.
-                        هي مخصصة لتكامل المنظمة مع المنصة فقط، ولا تعني ملكية تكاملات الناقلين أو عقودهم. بعض الإجراءات المتقدمة ما زالت API-only، لكنك ستجد من هنا أين تبدأ وماذا يمكنك إنجازه من المتصفح.
-                    </p>
-                </div>
-                <a href="{{ route($developerEntryRoute) }}" class="btn btn-pr">فتح واجهة المطور</a>
+                        <div style="font-size:12px;color:var(--tm);margin-bottom:6px">أدوات التكامل</div>
+                        <h2 style="margin:0;font-size:24px;color:var(--tx)">مسار واضح لفريق التكامل</h2>
+                        <p style="margin:8px 0 0;color:var(--td);line-height:1.8;max-width:760px">
+                            هذه الأدوات تظهر فقط للأدوار التي تملك صلاحيات التكاملات أو مفاتيح الواجهة البرمجية أو الويبهوكات.
+                            هي مخصصة لتكامل المنظمة مع المنصة فقط، ولا تعني ملكية تكاملات الناقلين أو عقودهم. بعض الإجراءات المتقدمة ما زالت عبر الواجهة البرمجية فقط، لكنك ستجد من هنا أين تبدأ وماذا يمكنك إنجازه من المتصفح.
+                        </p>
+                    </div>
+                        <a href="{{ route($developerEntryRoute) }}" class="btn btn-pr">فتح واجهة التكامل</a>
             </div>
 
             <div class="grid-auto-220">

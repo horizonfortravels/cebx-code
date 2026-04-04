@@ -27,6 +27,23 @@
     <x-toast type="error" :message="$errors->first()" />
 @endif
 
+@php
+    $accountStatusLabel = match ((string) ($account->status ?? '')) {
+        'active' => 'نشط',
+        'pending' => 'قيد التفعيل',
+        'suspended' => 'معلّق',
+        'closed' => 'مغلق',
+        default => (string) ($account->status ?? '—'),
+    };
+    $ownerStatusLabel = match ((string) ($owner->status ?? 'active')) {
+        'active' => 'نشط',
+        'pending' => 'قيد التفعيل',
+        'suspended' => 'معلّق',
+        'disabled' => 'معطّل',
+        default => (string) ($owner->status ?? 'نشط'),
+    };
+@endphp
+
 <form method="POST" action="{{ route('internal.accounts.update', $account) }}" class="grid-main-sidebar">
     @csrf
     @method('PUT')
@@ -43,7 +60,7 @@
             </div>
             <div>
                 <label style="display:block;font-size:12px;color:var(--tm);margin-bottom:6px">الحالة الحالية</label>
-                <div class="input" style="display:flex;align-items:center">{{ $account->status }}</div>
+                <div class="input" style="display:flex;align-items:center">{{ $accountStatusLabel }}</div>
             </div>
             <div>
                 <label for="language" style="display:block;font-size:12px;color:var(--tm);margin-bottom:6px">اللغة</label>
@@ -89,7 +106,7 @@
                 </div>
                 <div>
                     <div style="font-size:12px;color:var(--tm);margin-bottom:6px">حالة المستخدم</div>
-                    <div class="input" style="display:flex;align-items:center">{{ $owner->status ?: 'active' }}</div>
+                    <div class="input" style="display:flex;align-items:center">{{ $ownerStatusLabel }}</div>
                 </div>
             </div>
         @else

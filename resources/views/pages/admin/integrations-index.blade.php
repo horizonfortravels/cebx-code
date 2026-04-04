@@ -1,5 +1,5 @@
 @extends('layouts.app')
-@section('title', 'Internal integrations')
+@section('title', 'التكاملات الداخلية')
 
 @section('content')
 <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:24px">
@@ -7,79 +7,79 @@
         <div style="font-size:12px;color:var(--tm);margin-bottom:8px">
             <a href="{{ route('internal.home') }}" style="color:inherit;text-decoration:none">المساحة الداخلية</a>
             <span style="margin:0 6px">/</span>
-            <span>Integrations</span>
+            <span>التكاملات</span>
         </div>
-        <h1 style="font-size:28px;font-weight:800;color:var(--tx);margin:0">Internal integrations</h1>
+        <h1 style="font-size:28px;font-weight:800;color:var(--tx);margin:0">التكاملات الداخلية</h1>
         <p style="color:var(--td);font-size:14px;margin:8px 0 0;max-width:820px">
-            Read-only operational visibility for carrier providers, store connectors, and payment gateways, with masked credential summaries, recent health/activity signals, and feature-flag status.
+            رؤية تشغيلية للقراءة فقط لمزوّدي شركات الشحن وموصلات المتاجر وبوابات الدفع، مع ملخصات الاعتمادات المقنّعة وإشارات الصحة والنشاط الحديثة وحالة أعلام الميزات.
         </p>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <a href="{{ route('internal.integrations.index') }}" class="btn btn-s">Refresh</a>
-        <a href="{{ route('internal.home') }}" class="btn btn-pr">Back to internal home</a>
+        <a href="{{ route('internal.integrations.index') }}" class="btn btn-s">تحديث</a>
+        <a href="{{ route('internal.home') }}" class="btn btn-pr">العودة إلى الرئيسية الداخلية</a>
     </div>
 </div>
 
 <div class="stats-grid" style="margin-bottom:24px">
-    <x-stat-card icon="INT" label="Total integrations" :value="number_format($stats['total'])" />
-    <x-stat-card icon="ON" label="Enabled" :value="number_format($stats['enabled'])" />
-    <x-stat-card icon="ALT" label="Needs attention" :value="number_format($stats['attention'])" />
-    <x-stat-card icon="CAR" label="Carrier-facing" :value="number_format($stats['carrier'])" />
+    <x-stat-card icon="INT" label="إجمالي التكاملات" :value="number_format($stats['total'])" />
+    <x-stat-card icon="ON" label="المفعلة" :value="number_format($stats['enabled'])" />
+    <x-stat-card icon="ALT" label="بحاجة إلى متابعة" :value="number_format($stats['attention'])" />
+    <x-stat-card icon="CAR" label="المواجهة للناقل" :value="number_format($stats['carrier'])" />
 </div>
 
 <div class="card" style="margin-bottom:24px">
-    <div class="card-title">Search and filters</div>
+    <div class="card-title">بحث وفلاتر أساسية</div>
     <form method="GET" action="{{ route('internal.integrations.index') }}" class="filter-grid-fluid">
         <div class="filter-field-wide">
-            <label for="integration-search" style="display:block;font-size:12px;color:var(--tm);margin-bottom:6px">Search</label>
-            <input id="integration-search" type="text" name="q" value="{{ $filters['q'] }}" class="input" placeholder="Provider, store, gateway, or account">
+            <label for="integration-search" style="display:block;font-size:12px;color:var(--tm);margin-bottom:6px">بحث</label>
+            <input id="integration-search" type="text" name="q" value="{{ $filters['q'] }}" class="input" placeholder="ابحث بالمزوّد أو المتجر أو البوابة أو الحساب">
         </div>
         <div>
-            <label for="integration-type" style="display:block;font-size:12px;color:var(--tm);margin-bottom:6px">Type</label>
+            <label for="integration-type" style="display:block;font-size:12px;color:var(--tm);margin-bottom:6px">النوع</label>
             <select id="integration-type" name="type" class="input">
-                <option value="">All</option>
+                <option value="">كل الأنواع</option>
                 @foreach($typeOptions as $key => $label)
-                    <option value="{{ $key }}" @selected($filters['type'] === $key)>{{ $label }}</option>
+                    <option value="{{ $key }}" @selected($filters['type'] === $key)>{{ ['carrier' => 'ناقل', 'store' => 'متجر', 'gateway' => 'بوابة دفع'][$key] ?? $label }}</option>
                 @endforeach
             </select>
         </div>
         <div>
-            <label for="integration-state" style="display:block;font-size:12px;color:var(--tm);margin-bottom:6px">State</label>
+            <label for="integration-state" style="display:block;font-size:12px;color:var(--tm);margin-bottom:6px">الحالة</label>
             <select id="integration-state" name="state" class="input">
-                <option value="">All</option>
+                <option value="">كل الحالات</option>
                 @foreach($stateOptions as $key => $label)
-                    <option value="{{ $key }}" @selected($filters['state'] === $key)>{{ $label }}</option>
+                    <option value="{{ $key }}" @selected($filters['state'] === $key)>{{ ['enabled' => 'مفعلة', 'configured' => 'مهيأة', 'attention' => 'بحاجة إلى متابعة', 'disabled' => 'معطلة'][$key] ?? $label }}</option>
                 @endforeach
             </select>
         </div>
         <div>
-            <label for="integration-health" style="display:block;font-size:12px;color:var(--tm);margin-bottom:6px">Health</label>
+            <label for="integration-health" style="display:block;font-size:12px;color:var(--tm);margin-bottom:6px">الصحة التشغيلية</label>
             <select id="integration-health" name="health" class="input">
-                <option value="">All</option>
+                <option value="">كل الحالات</option>
                 @foreach($healthOptions as $key => $label)
-                    <option value="{{ $key }}" @selected($filters['health'] === $key)>{{ $label }}</option>
+                    <option value="{{ $key }}" @selected($filters['health'] === $key)>{{ ['healthy' => 'سليمة', 'degraded' => 'متدهورة', 'down' => 'متوقفة', 'unknown' => 'غير معروفة'][$key] ?? $label }}</option>
                 @endforeach
             </select>
         </div>
         <div class="filter-actions">
-            <button type="submit" class="btn btn-pr">Apply</button>
-            <a href="{{ route('internal.integrations.index') }}" class="btn btn-s">Reset</a>
+            <button type="submit" class="btn btn-pr">تطبيق الفلاتر</button>
+            <a href="{{ route('internal.integrations.index') }}" class="btn btn-s">إعادة الضبط</a>
         </div>
     </form>
 </div>
 
 <div class="card" data-testid="internal-integrations-table">
-    <div class="card-title">Visible integrations</div>
+    <div class="card-title">التكاملات الظاهرة</div>
     <div style="overflow:auto">
         <table class="table">
             <thead>
             <tr>
-                <th>Integration</th>
-                <th>Type and state</th>
-                <th>Health</th>
-                <th>Recent activity</th>
-                <th>Masked credentials</th>
-                <th>Feature flags</th>
+                <th>التكاملة</th>
+                <th>النوع والحالة</th>
+                <th>الصحة</th>
+                <th>النشاط الحديث</th>
+                <th>الاعتمادات المقنّعة</th>
+                <th>أعلام الميزات</th>
             </tr>
             </thead>
             <tbody>
@@ -117,7 +117,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="6" class="empty-state">No integrations match the current filters.</td>
+                    <td colspan="6" class="empty-state">لا توجد تكاملات مطابقة للفلاتر الحالية.</td>
                 </tr>
             @endforelse
             </tbody>

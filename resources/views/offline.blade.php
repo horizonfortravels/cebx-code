@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>غير متصل - Shipping Gateway</title>
+    <title>غير متصل - بوابة الشحن</title>
     <style>
         :root {
             --bg: #0B0F1A;

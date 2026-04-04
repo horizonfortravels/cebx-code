@@ -108,7 +108,7 @@
                             </div>
                             <div>
                                 <div style="font-size:12px;color:var(--tm);margin-bottom:4px">الحجم</div>
-                                <div style="font-weight:700;color:var(--tx)">{{ $document['size'] ? number_format(((int) $document['size']) / 1024, 1) . ' KB' : 'غير محدد' }}</div>
+                                <div style="font-weight:700;color:var(--tx)">{{ $document['size'] ? number_format(((int) $document['size']) / 1024, 1) . ' كيلوبايت' : 'غير محدد' }}</div>
                             </div>
                             <div>
                                 <div style="font-size:12px;color:var(--tm);margin-bottom:4px">تاريخ الإتاحة</div>

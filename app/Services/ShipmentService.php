@@ -90,7 +90,7 @@ class ShipmentService
             }
         }
 
-        throw new \RuntimeException('Shipment draft reference generation exhausted retries.');
+        throw new \RuntimeException('استنفدت إعادة المحاولة لتوليد مرجع مسودة الشحنة.');
     }
 
     // ═══════════════════════════════════════════════════════════════
@@ -277,13 +277,13 @@ class ShipmentService
             $selectedOption = $shipment->selectedRateOption;
             if ($selectedOption === null) {
                 throw new BusinessException(
-                    'Select a shipment offer before requesting wallet pre-flight reservation.',
+                    'يجب اختيار عرض شحنة قبل طلب الحجز المسبق للمحفظة.',
                     'ERR_SELECTED_OFFER_REQUIRED',
                     422,
                     [
                         'shipment_id' => (string) $shipment->id,
                         'current_status' => (string) $shipment->status,
-                        'next_action' => 'Select one offer for the shipment before continuing to wallet pre-flight.',
+                        'next_action' => 'اختر عرضًا واحدًا للشحنة قبل المتابعة إلى الحجز المسبق للمحفظة.',
                     ]
                 );
             }
@@ -295,7 +295,7 @@ class ShipmentService
                 Shipment::STATUS_PAYMENT_PENDING,
             ], true)) {
                 throw new BusinessException(
-                    'This shipment is not in the correct state for wallet pre-flight reservation.',
+                    'هذه الشحنة ليست في الحالة الصحيحة للحجز المسبق للمحفظة.',
                     'ERR_INVALID_STATE',
                     422,
                     [
@@ -305,7 +305,7 @@ class ShipmentService
                             Shipment::STATUS_DECLARATION_COMPLETE,
                             Shipment::STATUS_PAYMENT_PENDING,
                         ],
-                        'next_action' => 'Complete declaration and offer selection before requesting wallet pre-flight.',
+                        'next_action' => 'أكمل الإقرار واختيار العرض قبل طلب الحجز المسبق للمحفظة.',
                     ]
                 );
             }
@@ -321,13 +321,13 @@ class ShipmentService
 
             if (! $wallet instanceof BillingWallet) {
                 throw new BusinessException(
-                    'No wallet is available for the selected shipment currency.',
+                    'لا توجد محفظة متاحة لعملة الشحنة المحددة.',
                     'ERR_WALLET_NOT_AVAILABLE',
                     422,
                     [
                         'shipment_id' => (string) $shipment->id,
                         'currency' => $currency,
-                        'next_action' => 'Create or fund a wallet in the shipment currency before continuing.',
+                        'next_action' => 'أنشئ محفظة بعملة الشحنة أو موّلها قبل المتابعة.',
                     ]
                 );
             }
@@ -340,7 +340,7 @@ class ShipmentService
             if ($existingHold instanceof WalletHold) {
                 if (round((float) $existingHold->amount, 2) !== round($amount, 2)) {
                     throw new BusinessException(
-                        'An existing reservation no longer matches the selected offer total.',
+                        'لم يعد الحجز الحالي يطابق إجمالي العرض المحدد.',
                         'ERR_PREFLIGHT_AMOUNT_MISMATCH',
                         409,
                         [
@@ -349,7 +349,7 @@ class ShipmentService
                             'existing_amount' => (float) $existingHold->amount,
                             'expected_amount' => $amount,
                             'currency' => $currency,
-                            'next_action' => 'Release the stale reservation before creating a new wallet pre-flight hold.',
+                            'next_action' => 'حرر الحجز القديم قبل إنشاء حجز مسبق جديد للمحفظة.',
                         ]
                     );
                 }
@@ -387,7 +387,7 @@ class ShipmentService
             } catch (\RuntimeException $exception) {
                 if (str_contains($exception->getMessage(), 'ERR_INSUFFICIENT_BALANCE')) {
                     throw new BusinessException(
-                        'Wallet balance is insufficient for the selected shipment offer.',
+                        'رصيد المحفظة غير كافٍ لعرض الشحنة المحدد.',
                         'ERR_INSUFFICIENT_BALANCE',
                         422,
                         [
@@ -396,14 +396,14 @@ class ShipmentService
                             'required_amount' => $amount,
                             'currency' => $currency,
                             'effective_balance' => $wallet->fresh()->getEffectiveBalance(),
-                            'next_action' => 'Top up the wallet or select a lower-cost offer before continuing.',
+                            'next_action' => 'اشحن المحفظة أو اختر عرضًا أقل تكلفة قبل المتابعة.',
                         ]
                     );
                 }
 
                 if (str_contains($exception->getMessage(), 'ERR_HOLD_ALREADY_EXISTS')) {
                     throw new BusinessException(
-                        'A wallet reservation is already active for this shipment.',
+                        'يوجد حجز محفظة نشط بالفعل لهذه الشحنة.',
                         'ERR_HOLD_ALREADY_EXISTS',
                         409,
                         [
@@ -1292,7 +1292,7 @@ class ShipmentService
             'total_weight' => $totalWeight,
             'weight' => $chargeableWeight,
             'chargeable_weight' => $chargeableWeight,
-            'content_description' => $firstParcel['description'] ?? ($data['content_description'] ?? 'Shipment draft'),
+            'content_description' => $firstParcel['description'] ?? ($data['content_description'] ?? 'مسودة الشحنة'),
             'user_id' => $performer->id,
             'created_by' => $performer->id,
             'metadata' => array_filter([
@@ -1340,7 +1340,7 @@ class ShipmentService
 
         if ($amount <= 0) {
             throw new BusinessException(
-                'The selected shipment offer does not have a valid billable total for wallet pre-flight.',
+                'عرض الشحنة المحدد لا يملك إجماليًا صالحًا للفوترة للحجز المسبق للمحفظة.',
                 'ERR_INVALID_SELECTED_OFFER_TOTAL',
                 422,
                 [
@@ -1415,7 +1415,7 @@ class ShipmentService
                 Shipment::STATUS_PAYMENT_PENDING,
                 'system',
                 $performer->id,
-                'Wallet pre-flight reservation active'
+                'حجز المحفظة المسبق نشط'
             );
         }
 

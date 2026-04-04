@@ -20,17 +20,17 @@ class InternalExecutiveReportService
 
         return [
             'key' => 'executive',
-            'title' => 'Executive metrics',
-            'eyebrow' => 'Management snapshot',
-            'description' => 'Super-admin-only shipment economics, carrier performance, and liquidity visibility grounded in canonical shipment and wallet data.',
-            'summary' => 'Quoted commercial totals stay currency-scoped, realized activity stays limited to safe wallet signals, and no export or mutation controls are exposed from this slice.',
+            'title' => 'المؤشرات التنفيذية',
+            'eyebrow' => 'لقطة إدارية',
+            'description' => 'مؤشرات مخصّصة للإدارة العليا فقط تعرض اقتصاديات الشحنات وأداء شركات الشحن والسيولة اعتمادًا على بيانات الشحن والمحفظة المعيارية.',
+            'summary' => 'تبقى القيم التجارية المقتبسة محصورة حسب العملة، وتبقى الأنشطة المحققة محدودة بإشارات المحفظة الآمنة، ولا تتوفر هنا أي أدوات تصدير أو تعديل.',
             'route_name' => null,
             'cta_label' => null,
             'metrics' => [
-                $this->metric('Total shipments', $snapshot['total_shipments']),
-                $this->metric('Delivered (normalized)', $snapshot['delivered_shipments']),
-                $this->metric('Open exceptions', $snapshot['open_exception_backlog']),
-                $this->metric('Active holds', $snapshot['active_hold_count']),
+                $this->metric('إجمالي الشحنات', $snapshot['total_shipments']),
+                $this->metric('تم تسليمها (معياريًا)', $snapshot['delivered_shipments']),
+                $this->metric('الاستثناءات المفتوحة', $snapshot['open_exception_backlog']),
+                $this->metric('الحجوزات النشطة', $snapshot['active_hold_count']),
             ],
         ];
     }
@@ -44,45 +44,45 @@ class InternalExecutiveReportService
 
         return [
             'key' => 'executive',
-            'title' => 'Executive profitability dashboard',
-            'eyebrow' => 'Executive analytics / platform profitability',
-            'description' => 'Management-oriented shipment volume, quoted commercial snapshot, carrier performance, and safe wallet activity. Quoted economics come from shipment pricing snapshots; realized carrier settlement remains out of scope here.',
+            'title' => 'لوحة الربحية التنفيذية',
+            'eyebrow' => 'تحليلات تنفيذية / ربحية المنصة',
+            'description' => 'لوحة موجهة للإدارة تعرض حجم الشحنات، واللقطة التجارية المقتبسة، وأداء شركات الشحن، ونشاط المحفظة الآمن. تستند اقتصاديات الاقتباس إلى لقطات تسعير الشحنات، بينما تبقى التسويات الفعلية مع شركات الشحن خارج هذا النطاق.',
             'metrics' => [
-                $this->metric('Total shipments', $snapshot['total_shipments']),
-                $this->metric('Delivered (normalized)', $snapshot['delivered_shipments']),
-                $this->metric('Open exceptions', $snapshot['open_exception_backlog']),
-                $this->metric('Active holds', $snapshot['active_hold_count']),
+                $this->metric('إجمالي الشحنات', $snapshot['total_shipments']),
+                $this->metric('تم تسليمها (معياريًا)', $snapshot['delivered_shipments']),
+                $this->metric('الاستثناءات المفتوحة', $snapshot['open_exception_backlog']),
+                $this->metric('الحجوزات النشطة', $snapshot['active_hold_count']),
             ],
             'breakdowns' => [
                 [
-                    'title' => 'Quoted commercial snapshot',
+                    'title' => 'اللقطة التجارية المقتبسة',
                     'items' => $snapshot['quoted_items'],
                 ],
                 [
-                    'title' => 'Carrier performance snapshot',
+                    'title' => 'لقطة أداء شركات الشحن',
                     'items' => $snapshot['carrier_items'],
                 ],
                 [
-                    'title' => 'Safe wallet activity snapshot',
+                    'title' => 'لقطة نشاط المحفظة الآمن',
                     'items' => $snapshot['wallet_items'],
                 ],
             ],
             'trend' => [
-                'title' => 'Recent shipment volume',
-                'summary' => 'Shipments created during the last seven days.',
+                'title' => 'حجم الشحنات الحديثة',
+                'summary' => 'الشحنات التي أُنشئت خلال الأيام السبعة الماضية.',
                 'points' => $snapshot['trend_points'],
             ],
             'action_summaries' => [
                 [
-                    'title' => 'Quoted economics coverage',
+                    'title' => 'تغطية الاقتصاديات المقتبسة',
                     'detail' => $snapshot['quoted_summary'],
                 ],
                 [
-                    'title' => 'Carrier delivery posture',
+                    'title' => 'وضع التسليم لدى شركات الشحن',
                     'detail' => $snapshot['carrier_summary'],
                 ],
                 [
-                    'title' => 'Liquidity snapshot',
+                    'title' => 'لقطة السيولة',
                     'detail' => $snapshot['wallet_summary'],
                 ],
             ],
@@ -160,7 +160,7 @@ class InternalExecutiveReportService
                 return [
                     'label' => $carrierLabel,
                     'value' => $shipmentCount,
-                    'detail' => "{$deliveredCount} delivered · {$exceptionCount} exception · {$deliveryRate}% delivered · {$exceptionRate}% exception",
+                    'detail' => "{$deliveredCount} تم تسليمها • {$exceptionCount} بها استثناء • {$deliveryRate}% تم تسليمها • {$exceptionRate}% استثناءات",
                 ];
             })
             ->sortByDesc('value')
@@ -169,29 +169,29 @@ class InternalExecutiveReportService
             ->all();
 
         $quotedItems = $quotedByCurrency->flatMap(function (array $row): array {
-            $detail = number_format($row['shipment_count']) . ' shipment(s) currently carry quoted pricing snapshot fields in this currency.';
+            $detail = number_format($row['shipment_count']) . ' شحنة تحمل حاليًا حقول لقطة التسعير المقتبسة بهذه العملة.';
 
             return [
                 [
-                    'label' => $row['currency'] . ' quoted charge',
+                    'label' => $row['currency'] . ' إجمالي القيمة المقتبسة',
                     'value' => $row['quoted_charge'],
                     'display' => $this->formatMoney($row['currency'], $row['quoted_charge']),
                     'detail' => $detail,
                 ],
                 [
-                    'label' => $row['currency'] . ' carrier cost proxy',
+                    'label' => $row['currency'] . ' تقدير تكلفة شركة الشحن',
                     'value' => $row['carrier_cost_proxy'],
                     'display' => $this->formatMoney($row['currency'], $row['carrier_cost_proxy']),
                     'detail' => $detail,
                 ],
                 [
-                    'label' => $row['currency'] . ' platform fee',
+                    'label' => $row['currency'] . ' رسوم المنصة',
                     'value' => $row['platform_fee'],
                     'display' => $this->formatMoney($row['currency'], $row['platform_fee']),
                     'detail' => $detail,
                 ],
                 [
-                    'label' => $row['currency'] . ' quoted margin',
+                    'label' => $row['currency'] . ' الهامش المقتبس',
                     'value' => $row['quoted_margin'],
                     'display' => $this->formatMoney($row['currency'], $row['quoted_margin']),
                     'detail' => $detail,
@@ -201,9 +201,9 @@ class InternalExecutiveReportService
 
         if ($quotedItems === []) {
             $quotedItems = [[
-                'label' => 'Quoted shipments with pricing snapshot',
+                'label' => 'شحنات مقتبسة تحمل لقطة تسعير',
                 'value' => 0,
-                'detail' => 'No shipment rows currently carry the quoted economics fields needed for this executive slice.',
+                'detail' => 'لا توجد حاليًا شحنات تحمل حقول الاقتصاديات المقتبسة اللازمة لهذه اللوحة التنفيذية.',
             ]];
         }
 
@@ -265,28 +265,28 @@ class InternalExecutiveReportService
 
                 return array_values(array_filter([
                     $topups['count'] > 0 || $topups['amount'] > 0 ? [
-                        'label' => $currency . ' confirmed top-ups',
+                        'label' => $currency . ' عمليات شحن مؤكدة',
                         'value' => $topups['amount'],
                         'display' => $this->formatMoney($currency, $topups['amount']),
-                        'detail' => number_format($topups['count']) . ' successful top-up(s).',
+                        'detail' => number_format($topups['count']) . ' عملية شحن ناجحة.',
                     ] : null,
                     $holds['count'] > 0 || $holds['amount'] > 0 ? [
-                        'label' => $currency . ' active holds',
+                        'label' => $currency . ' حجوزات نشطة',
                         'value' => $holds['amount'],
                         'display' => $this->formatMoney($currency, $holds['amount']),
-                        'detail' => number_format($holds['count']) . ' active reservation(s).',
+                        'detail' => number_format($holds['count']) . ' حجز نشط.',
                     ] : null,
                     $charges['count'] > 0 || $charges['amount'] > 0 ? [
-                        'label' => $currency . ' captured shipment charges',
+                        'label' => $currency . ' رسوم شحنات محصّلة',
                         'value' => $charges['amount'],
                         'display' => $this->formatMoney($currency, $charges['amount']),
-                        'detail' => number_format($charges['count']) . ' shipment-linked debit entry/entries.',
+                        'detail' => number_format($charges['count']) . ' قيد خصم مرتبط بالشحنات.',
                     ] : null,
                     $refunds['count'] > 0 || $refunds['amount'] > 0 ? [
-                        'label' => $currency . ' refunds',
+                        'label' => $currency . ' مبالغ مستردة',
                         'value' => $refunds['amount'],
                         'display' => $this->formatMoney($currency, $refunds['amount']),
-                        'detail' => number_format($refunds['count']) . ' processed refund(s).',
+                        'detail' => number_format($refunds['count']) . ' عملية استرداد تمت معالجتها.',
                     ] : null,
                 ]));
             })
@@ -295,9 +295,9 @@ class InternalExecutiveReportService
 
         if ($walletItems === []) {
             $walletItems = [[
-                'label' => 'Wallet activity currently tracked',
+                'label' => 'نشاط المحفظة المتعقّب حاليًا',
                 'value' => 0,
-                'detail' => 'No safe shipment-linked ledger, top-up, hold, or refund activity is currently available for this executive slice.',
+                'detail' => 'لا يوجد حاليًا نشاط آمن مرتبط بالشحنات في السجل أو الشحن أو الحجز أو الاسترداد لهذه اللوحة التنفيذية.',
             ]];
         }
 
@@ -309,16 +309,16 @@ class InternalExecutiveReportService
             'active_hold_count' => $activeHoldCount,
             'quoted_items' => $quotedItems,
             'carrier_items' => $carrierItems === [] ? [[
-                'label' => 'Carrier performance currently tracked',
+                'label' => 'أداء الناقلين متعقَّب حاليًا',
                 'value' => 0,
-                'detail' => 'No shipment rows currently carry the carrier attributes needed for this snapshot.',
+                'detail' => 'لا توجد صفوف شحن تحمل حاليًا سمات الناقل المطلوبة لهذه اللقطة.',
             ]] : $carrierItems,
             'wallet_items' => $walletItems,
             'trend_points' => $this->dailyTrend($shipments->pluck('created_at')),
             'quoted_summary' => $this->quotedSummary($quotedByCurrency),
-            'carrier_summary' => number_format($deliveredShipments) . ' shipment(s) currently normalize to delivered, '
-                . number_format($normalizedExceptionCount) . ' normalize to exception, and '
-                . number_format($openExceptionBacklog) . ' shipment-exception record(s) remain open.',
+            'carrier_summary' => number_format($deliveredShipments) . ' شحنة تُصنّف حاليًا كمسلّمة، و'
+                . number_format($normalizedExceptionCount) . ' تُصنّف كاستثناء، و'
+                . number_format($openExceptionBacklog) . ' سجل استثناء شحنة ما زال مفتوحًا.',
             'wallet_summary' => $this->walletSummary(
                 $walletTopupsByCurrency,
                 $activeHoldsByCurrency,
@@ -332,7 +332,7 @@ class InternalExecutiveReportService
     {
         $label = trim((string) ($shipment->carrier_name ?: $shipment->carrier_code));
 
-        return $label !== '' ? $label : 'Unknown carrier';
+        return $label !== '' ? $label : 'شركة شحن غير معروفة';
     }
 
     /**
@@ -353,7 +353,7 @@ class InternalExecutiveReportService
                 $key = $date->toDateString();
 
                 return [
-                    'label' => $date->format('M d'),
+                    'label' => $date->format('d/m'),
                     'value' => (int) ($counts[$key] ?? 0),
                 ];
             })
@@ -392,20 +392,20 @@ class InternalExecutiveReportService
     private function quotedSummary(Collection $quotedByCurrency): string
     {
         if ($quotedByCurrency->isEmpty()) {
-            return 'No shipment rows currently carry the quoted pricing snapshot fields required for a safe profitability summary.';
+            return 'لا توجد حاليًا شحنات تحمل حقول لقطة التسعير المقتبسة اللازمة لملخص ربحية آمن.';
         }
 
         $segments = $quotedByCurrency
             ->map(function (array $row): string {
                 return $row['currency'] . ' '
-                    . number_format($row['shipment_count']) . ' shipment(s), '
-                    . 'charge ' . number_format($row['quoted_charge'], 2) . ', '
-                    . 'cost proxy ' . number_format($row['carrier_cost_proxy'], 2) . ', '
-                    . 'margin ' . number_format($row['quoted_margin'], 2);
+                    . number_format($row['shipment_count']) . ' شحنة، '
+                    . 'القيمة ' . number_format($row['quoted_charge'], 2) . '، '
+                    . 'التكلفة التقديرية ' . number_format($row['carrier_cost_proxy'], 2) . '، '
+                    . 'الهامش ' . number_format($row['quoted_margin'], 2);
             })
             ->all();
 
-        return 'Quoted economics stay currency-scoped: ' . implode(' · ', $segments) . '.';
+        return 'تبقى الاقتصاديات المقتبسة محصورة حسب العملة: ' . implode(' • ', $segments) . '.';
     }
 
     /**
@@ -430,7 +430,7 @@ class InternalExecutiveReportService
         sort($currencies);
 
         if ($currencies === []) {
-            return 'No safe shipment-linked wallet activity is currently available for executive visibility.';
+            return 'لا يوجد حاليًا نشاط محفظة آمن مرتبط بالشحنات يمكن عرضه في هذه اللوحة التنفيذية.';
         }
 
         $segments = collect($currencies)->map(function (string $currency) use ($topupsByCurrency, $holdsByCurrency, $chargesByCurrency, $refundsByCurrency): string {
@@ -439,13 +439,13 @@ class InternalExecutiveReportService
             $charges = $chargesByCurrency[$currency] ?? ['count' => 0, 'amount' => 0.0];
             $refunds = $refundsByCurrency[$currency] ?? ['count' => 0, 'amount' => 0.0];
 
-            return $currency . ' top-ups ' . number_format($topups['amount'], 2)
-                . ', held ' . number_format($holds['amount'], 2)
-                . ', captured ' . number_format($charges['amount'], 2)
-                . ', refunded ' . number_format($refunds['amount'], 2);
+            return $currency . ' شحن ' . number_format($topups['amount'], 2)
+                . '، محجوز ' . number_format($holds['amount'], 2)
+                . '، محصّل ' . number_format($charges['amount'], 2)
+                . '، مسترد ' . number_format($refunds['amount'], 2);
         })->all();
 
-        return 'Safe wallet activity stays currency-scoped: ' . implode(' · ', $segments) . '.';
+        return 'يبقى نشاط المحفظة الآمن محصورًا حسب العملة: ' . implode(' • ', $segments) . '.';
     }
 
     /**

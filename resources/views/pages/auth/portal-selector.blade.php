@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shipping Gateway - اختر البوابة المناسبة لنوع الحساب</title>
+    <title>بوابة الشحن - اختر البوابة المناسبة لنوع الحساب</title>
     @include('components.pwa-meta')
     <meta name="pwa-sw-url" content="{{ asset('sw.js') }}">
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
@@ -222,17 +222,17 @@
     <div class="portal-shell">
         <div class="portal-header">
             <div class="logo">
-                <img src="{{ asset('images/logo-auth.png') }}" alt="شعار Shipping Gateway" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                <span class="logo-fallback" style="display:none;">SG</span>
+                <img src="{{ asset('images/logo-auth.png') }}" alt="شعار بوابة الشحن" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <span class="logo-fallback" style="display:none;">ش</span>
             </div>
-            <h1>Shipping Gateway</h1>
+            <h1>بوابة الشحن</h1>
             <p>اختر البوابة المناسبة لنوع الحساب: بوابة الأفراد للحسابات الفردية، وبوابة الأعمال للحسابات المنظمة، والبوابة الداخلية لموظفي المنصة.</p>
         </div>
 
         <div class="portals-grid">
             <a href="{{ route('b2c.login') }}" class="portal-door b2c">
                 <div class="door-icon">👤</div>
-                <span class="door-badge">B2C</span>
+                <span class="door-badge">الأفراد</span>
                 <div class="door-title">بوابة الأفراد</div>
                 <div class="door-subtitle">الحسابات الفردية</div>
                 <div class="door-desc">للحسابات الفردية الخارجية فقط: إدارة الشحنات الشخصية، تتبع الطلبات، وإدارة العناوين والمحفظة ضمن التجربة المخصصة للأفراد.</div>
@@ -241,7 +241,7 @@
 
             <a href="{{ route('b2b.login') }}" class="portal-door b2b">
                 <div class="door-icon">🏢</div>
-                <span class="door-badge">B2B</span>
+                <span class="door-badge">الأعمال</span>
                 <div class="door-title">بوابة الأعمال</div>
                 <div class="door-subtitle">حسابات المنظمات</div>
                 <div class="door-desc">لحسابات المنظمات الخارجية فقط: إدارة شحنات المنظمة، فرق العمل، والتكاملات عبر شبكة الناقلين التابعة للمنصة.</div>
@@ -250,7 +250,7 @@
 
             <a href="{{ route('admin.login') }}" class="portal-door admin">
                 <div class="door-icon">🛡️</div>
-                <span class="door-badge">Admin</span>
+                <span class="door-badge">داخلي</span>
                 <div class="door-title">البوابة الداخلية</div>
                 <div class="door-subtitle">موظفو المنصة</div>
                 <div class="door-desc">مساحة مخصصة لموظفي المنصة وإدارة العمليات الداخلية، مع رؤية أوسع للحسابات الخارجية ومتابعة سياقات التشغيل.</div>
@@ -259,7 +259,7 @@
         </div>
 
         <div class="portal-footer">
-            <a href="{{ url('/') }}">CBEX Shipping Gateway</a>
+            <a href="{{ url('/') }}">بوابة الشحن</a>
         </div>
     </div>
 </div>

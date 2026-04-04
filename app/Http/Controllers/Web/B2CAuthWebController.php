@@ -11,18 +11,18 @@ use Illuminate\Support\Facades\Hash;
 /**
  * FIX P2-2: B2CAuthWebController
  *
- * ط¨ظˆط§ط¨ط© ط¯ط®ظˆظ„ B2C â€” ظ„ظ„ط­ط³ط§ط¨ط§طھ ط§ظ„ظپط±ط¯ظٹط©.
+ * بوابة دخول B2C للحسابات الفردية.
  *
- * ط§ظ„ظ…ط¯ط®ظ„ط§طھ: email + password
- * ط§ظ„ظ…ظ†ط·ظ‚:
- *   1. ط§ط¨ط­ط« ط¹ظ† ط§ظ„ظ…ط³طھط®ط¯ظ… ط¨ط§ظ„ط¨ط±ظٹط¯ ط­ظٹط« ط­ط³ط§ط¨ظ‡ individual
- *   2. ط¥ط°ط§ ظˆظڈط¬ط¯ ط£ظƒط«ط± ظ…ظ† ظˆط§ط­ط¯: ط£ظˆظ‚ظپ ط§ظ„ط¹ظ…ظ„ظٹط©
- *   3. طھط­ظ‚ظ‚ ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط«ظ… ط³ط¬ظ‘ظ„ ط§ظ„ط¯ط®ظˆظ„
+ * المدخلات: email + password
+ * المنطق:
+ *   1. ابحث عن المستخدم بالبريد داخل حساب individual.
+ *   2. إذا وُجد أكثر من مستخدم، أوقف العملية.
+ *   3. تحقّق من كلمة المرور ثم سجّل الدخول.
  */
 class B2CAuthWebController extends Controller
 {
     /**
-     * ط¹ط±ط¶ ظ†ظ…ظˆط°ط¬ طھط³ط¬ظٹظ„ ط¯ط®ظˆظ„ B2C.
+     * عرض نموذج تسجيل دخول B2C.
      */
     public function showLogin()
     {
@@ -38,7 +38,7 @@ class B2CAuthWebController extends Controller
     }
 
     /**
-     * ظ…ط¹ط§ظ„ط¬ط© طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„ ظ„ظ€ B2C.
+     * معالجة تسجيل الدخول لبوابة B2C.
      */
     public function login(Request $request)
     {
@@ -47,7 +47,7 @@ class B2CAuthWebController extends Controller
             'password' => 'required|string',
         ]);
 
-        // 1. ط§ظ„ط¨ط­ط« ط¹ظ† ظ…ط³طھط®ط¯ظ…ظٹظ† ط¨ظ‡ط°ط§ ط§ظ„ط¨ط±ظٹط¯ ظپظٹ ط­ط³ط§ط¨ط§طھ ظپط±ط¯ظٹط©
+        // 1. البحث عن مستخدمين بهذا البريد داخل حسابات فردية.
         $users = User::where('email', $request->email)
             ->whereHas('account', function ($query) {
                 $query->where('type', 'individual');
@@ -55,39 +55,39 @@ class B2CAuthWebController extends Controller
             ->with('account')
             ->get();
 
-        // 2. ظ„ط§ ظٹظˆط¬ط¯ ظ…ط³طھط®ط¯ظ…
+        // 2. لا يوجد مستخدم.
         if ($users->isEmpty()) {
             return back()
                 ->withInput($request->only('email'))
-                ->withErrors(['email' => 'ط§ظ„ط¨ط±ظٹط¯ ط§ظ„ط¥ظ„ظƒطھط±ظˆظ†ظٹ ط؛ظٹط± ظ…ط³ط¬ظ„.']);
+                ->withErrors(['email' => 'البريد الإلكتروني غير مسجل.']);
         }
 
-        // 3. ط£ظƒط«ط± ظ…ظ† ظ…ط³طھط®ط¯ظ… ط¨ظ†ظپط³ ط§ظ„ط¨ط±ظٹط¯ (ظ†ط§ط¯ط± ظ„ظƒظ† ظ…ظ…ظƒظ† ط¨ط³ط¨ط¨ طھطµظ…ظٹظ… DB)
+        // 3. يوجد أكثر من مستخدم بنفس البريد، وهو احتمال نادر لكنه ممكن بسبب تصميم قاعدة البيانات.
         if ($users->count() > 1) {
             return back()
                 ->withInput($request->only('email'))
                 ->withErrors([
-                    'email' => 'ظ‡ط°ط§ ط§ظ„ط¨ط±ظٹط¯ ظ…ط±طھط¨ط· ط¨ط£ظƒط«ط± ظ…ظ† ط­ط³ط§ط¨. طھظˆط§طµظ„ ظ…ط¹ ط§ظ„ط¯ط¹ظ… ط§ظ„ظپظ†ظٹ ط£ظˆ ط§ط³طھط®ط¯ظ… ط¨ظˆط§ط¨ط© B2B ظ…ط¹ ظ…ط¹ط±ظ‘ظپ ط§ظ„ظ…ظ†ط¸ظ…ط©.',
+                    'email' => 'هذا البريد مرتبط بأكثر من حساب. تواصل مع الدعم أو استخدم بوابة B2B مع معرّف المنظمة.',
                 ]);
         }
 
         $user = $users->first();
 
-        // 4. ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط±
+        // 4. التحقق من كلمة المرور.
         if (!Hash::check($request->password, $user->password)) {
             return back()
                 ->withInput($request->only('email'))
-                ->withErrors(['password' => 'ظƒظ„ظ…ط© ط§ظ„ظ…ط±ظˆط± ط؛ظٹط± طµط­ظٹط­ط©.']);
+                ->withErrors(['password' => 'كلمة المرور غير صحيحة.']);
         }
 
-        // 5. ط§ظ„طھط­ظ‚ظ‚ ظ…ظ† ط­ط§ظ„ط© ط§ظ„ظ…ط³طھط®ط¯ظ…
+        // 5. التحقق من حالة المستخدم.
         if (isset($user->status) && $user->status === 'suspended') {
             return back()
                 ->withInput($request->only('email'))
-                ->withErrors(['email' => 'طھظ… طھط¹ظ„ظٹظ‚ ط­ط³ط§ط¨ظƒ. طھظˆط§طµظ„ ظ…ط¹ ط§ظ„ط¯ط¹ظ….']);
+                ->withErrors(['email' => 'تم تعليق حسابك. تواصل مع الدعم.']);
         }
 
-        // 6. طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„
+        // 6. تسجيل الدخول.
         Auth::login($user, $request->boolean('remember'));
         $request->session()->regenerate();
 
@@ -95,7 +95,7 @@ class B2CAuthWebController extends Controller
     }
 
     /**
-     * طھط³ط¬ظٹظ„ ط§ظ„ط®ط±ظˆط¬.
+     * تسجيل الخروج.
      */
     public function logout(Request $request)
     {

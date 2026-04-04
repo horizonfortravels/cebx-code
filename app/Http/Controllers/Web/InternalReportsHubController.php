@@ -183,34 +183,34 @@ class InternalReportsHubController extends Controller
 
         $links = collect(match ($domain) {
             'shipments' => [
-                $this->linkIfAllowed($user, 'Shipments center', 'internal.shipments.index', 'shipments.read', InternalControlPlane::SURFACE_INTERNAL_SHIPMENTS_INDEX),
-                $this->linkIfAllowed($user, 'KYC center', 'internal.kyc.index', 'kyc.read', InternalControlPlane::SURFACE_INTERNAL_KYC_INDEX),
-                $this->linkIfAllowed($user, 'Tickets center', 'internal.tickets.index', 'tickets.read', InternalControlPlane::SURFACE_INTERNAL_TICKETS_INDEX),
+                $this->linkIfAllowed($user, 'مركز الشحنات', 'internal.shipments.index', 'shipments.read', InternalControlPlane::SURFACE_INTERNAL_SHIPMENTS_INDEX),
+                $this->linkIfAllowed($user, 'مركز KYC', 'internal.kyc.index', 'kyc.read', InternalControlPlane::SURFACE_INTERNAL_KYC_INDEX),
+                $this->linkIfAllowed($user, 'مركز التذاكر', 'internal.tickets.index', 'tickets.read', InternalControlPlane::SURFACE_INTERNAL_TICKETS_INDEX),
             ],
             'kyc' => [
-                $this->linkIfAllowed($user, 'KYC center', 'internal.kyc.index', 'kyc.read', InternalControlPlane::SURFACE_INTERNAL_KYC_INDEX),
-                $this->linkIfAllowed($user, 'Compliance center', 'internal.compliance.index', 'compliance.read', InternalControlPlane::SURFACE_INTERNAL_COMPLIANCE_INDEX, 'dg.read'),
-                $this->linkIfAllowed($user, 'Billing center', 'internal.billing.index', 'wallet.balance', InternalControlPlane::SURFACE_INTERNAL_BILLING_INDEX, 'wallet.ledger'),
+                $this->linkIfAllowed($user, 'مركز KYC', 'internal.kyc.index', 'kyc.read', InternalControlPlane::SURFACE_INTERNAL_KYC_INDEX),
+                $this->linkIfAllowed($user, 'مركز الامتثال', 'internal.compliance.index', 'compliance.read', InternalControlPlane::SURFACE_INTERNAL_COMPLIANCE_INDEX, 'dg.read'),
+                $this->linkIfAllowed($user, 'مركز الفوترة', 'internal.billing.index', 'wallet.balance', InternalControlPlane::SURFACE_INTERNAL_BILLING_INDEX, 'wallet.ledger'),
             ],
             'billing' => [
-                $this->linkIfAllowed($user, 'Billing center', 'internal.billing.index', 'wallet.balance', InternalControlPlane::SURFACE_INTERNAL_BILLING_INDEX, 'wallet.ledger'),
-                $this->linkIfAllowed($user, 'Shipments center', 'internal.shipments.index', 'shipments.read', InternalControlPlane::SURFACE_INTERNAL_SHIPMENTS_INDEX),
-                $this->linkIfAllowed($user, 'KYC center', 'internal.kyc.index', 'kyc.read', InternalControlPlane::SURFACE_INTERNAL_KYC_INDEX),
+                $this->linkIfAllowed($user, 'مركز الفوترة', 'internal.billing.index', 'wallet.balance', InternalControlPlane::SURFACE_INTERNAL_BILLING_INDEX, 'wallet.ledger'),
+                $this->linkIfAllowed($user, 'مركز الشحنات', 'internal.shipments.index', 'shipments.read', InternalControlPlane::SURFACE_INTERNAL_SHIPMENTS_INDEX),
+                $this->linkIfAllowed($user, 'مركز KYC', 'internal.kyc.index', 'kyc.read', InternalControlPlane::SURFACE_INTERNAL_KYC_INDEX),
             ],
             'compliance' => [
-                $this->linkIfAllowed($user, 'Compliance center', 'internal.compliance.index', 'compliance.read', InternalControlPlane::SURFACE_INTERNAL_COMPLIANCE_INDEX, 'dg.read'),
-                $this->linkIfAllowed($user, 'KYC center', 'internal.kyc.index', 'kyc.read', InternalControlPlane::SURFACE_INTERNAL_KYC_INDEX),
-                $this->linkIfAllowed($user, 'Billing center', 'internal.billing.index', 'wallet.balance', InternalControlPlane::SURFACE_INTERNAL_BILLING_INDEX, 'wallet.ledger'),
+                $this->linkIfAllowed($user, 'مركز الامتثال', 'internal.compliance.index', 'compliance.read', InternalControlPlane::SURFACE_INTERNAL_COMPLIANCE_INDEX, 'dg.read'),
+                $this->linkIfAllowed($user, 'مركز KYC', 'internal.kyc.index', 'kyc.read', InternalControlPlane::SURFACE_INTERNAL_KYC_INDEX),
+                $this->linkIfAllowed($user, 'مركز الفوترة', 'internal.billing.index', 'wallet.balance', InternalControlPlane::SURFACE_INTERNAL_BILLING_INDEX, 'wallet.ledger'),
             ],
             'tickets' => [
-                $this->linkIfAllowed($user, 'Tickets center', 'internal.tickets.index', 'tickets.read', InternalControlPlane::SURFACE_INTERNAL_TICKETS_INDEX),
-                $this->linkIfAllowed($user, 'Shipments center', 'internal.shipments.index', 'shipments.read', InternalControlPlane::SURFACE_INTERNAL_SHIPMENTS_INDEX),
+                $this->linkIfAllowed($user, 'مركز التذاكر', 'internal.tickets.index', 'tickets.read', InternalControlPlane::SURFACE_INTERNAL_TICKETS_INDEX),
+                $this->linkIfAllowed($user, 'مركز الشحنات', 'internal.shipments.index', 'shipments.read', InternalControlPlane::SURFACE_INTERNAL_SHIPMENTS_INDEX),
             ],
             'executive' => [
-                $this->linkIfAllowed($user, 'Shipments center', 'internal.shipments.index', 'shipments.read', InternalControlPlane::SURFACE_INTERNAL_SHIPMENTS_INDEX),
-                $this->linkIfAllowed($user, 'Billing center', 'internal.billing.index', 'wallet.balance', InternalControlPlane::SURFACE_INTERNAL_BILLING_INDEX, 'wallet.ledger'),
-                $this->linkIfAllowed($user, 'Compliance center', 'internal.compliance.index', 'compliance.read', InternalControlPlane::SURFACE_INTERNAL_COMPLIANCE_INDEX, 'dg.read'),
-                $this->linkIfAllowed($user, 'Tickets center', 'internal.tickets.index', 'tickets.read', InternalControlPlane::SURFACE_INTERNAL_TICKETS_INDEX),
+                $this->linkIfAllowed($user, 'مركز الشحنات', 'internal.shipments.index', 'shipments.read', InternalControlPlane::SURFACE_INTERNAL_SHIPMENTS_INDEX),
+                $this->linkIfAllowed($user, 'مركز الفوترة', 'internal.billing.index', 'wallet.balance', InternalControlPlane::SURFACE_INTERNAL_BILLING_INDEX, 'wallet.ledger'),
+                $this->linkIfAllowed($user, 'مركز الامتثال', 'internal.compliance.index', 'compliance.read', InternalControlPlane::SURFACE_INTERNAL_COMPLIANCE_INDEX, 'dg.read'),
+                $this->linkIfAllowed($user, 'مركز التذاكر', 'internal.tickets.index', 'tickets.read', InternalControlPlane::SURFACE_INTERNAL_TICKETS_INDEX),
             ],
             default => [],
         });

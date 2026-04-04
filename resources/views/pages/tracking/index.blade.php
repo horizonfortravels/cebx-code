@@ -37,7 +37,7 @@
                 @foreach([
                     ['الوزن', ($trackedShipment->weight ?? '—') . ' كغ'],
                     ['القطع', $trackedShipment->pieces ?? 1],
-                    ['COD', $trackedShipment->is_cod ? number_format($trackedShipment->cod_amount) . ' ر.س' : '—'],
+                    ['الدفع عند الاستلام', $trackedShipment->is_cod ? number_format($trackedShipment->cod_amount) . ' ر.س' : '—'],
                     ['التكلفة', number_format($trackedShipment->total_cost, 2) . ' ر.س'],
                 ] as $info)
                     <div style="padding:14px;background:var(--sf);border-radius:10px;text-align:center">

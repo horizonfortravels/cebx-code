@@ -1,38 +1,38 @@
 @extends('layouts.app')
-@section('title', 'Shipment Documents')
+@section('title', 'مستندات الشحنة')
 
 @section('content')
 <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:24px">
     <div>
         <div style="font-size:12px;color:var(--tm);margin-bottom:8px">
-            <a href="{{ route('internal.home') }}" style="color:inherit;text-decoration:none">Internal workspace</a>
+            <a href="{{ route('internal.home') }}" style="color:inherit;text-decoration:none">المساحة الداخلية</a>
             <span style="margin:0 6px">/</span>
-            <span>Shipment documents</span>
+            <span>مستندات الشحنة</span>
         </div>
-        <h1 style="font-size:28px;font-weight:800;color:var(--tx);margin:0">Shipment documents</h1>
+        <h1 style="font-size:28px;font-weight:800;color:var(--tx);margin:0">مستندات الشحنة</h1>
         <p style="color:var(--td);font-size:14px;margin:8px 0 0;max-width:920px">
-            Internal read-only document and label surface for carrier artifacts. This page keeps raw content storage coordinates, opaque payloads, and other unsafe metadata hidden while reusing the live shipment document contract.
+            مساحة داخلية للقراءة فقط للمستندات والملصقات الخاصة بمخرجات شركة الشحن. تبقي هذه الصفحة إحداثيات التخزين الخام والحمولات المعتمة وغيرها من البيانات الوصفية غير الآمنة مخفية مع إعادة استخدام عقد مستندات الشحنة الحي.
         </p>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
         @if($canViewShipmentDetail)
-            <a href="{{ route('internal.shipments.show', $shipment) }}" class="btn btn-s">Back to shipment detail</a>
+            <a href="{{ route('internal.shipments.show', $shipment) }}" class="btn btn-s">العودة إلى تفاصيل الشحنة</a>
         @endif
-        <a href="{{ route('internal.home') }}" class="btn btn-pr">Internal home</a>
+        <a href="{{ route('internal.home') }}" class="btn btn-pr">الرئيسية الداخلية</a>
     </div>
 </div>
 
 <div class="stats-grid" style="margin-bottom:24px">
-    <x-stat-card icon="REF" label="Reference" :value="$shipmentSummary['reference']" />
-    <x-stat-card icon="CAR" label="Carrier" :value="$shipmentSummary['carrier_label']" />
-    <x-stat-card icon="TRK" label="Tracking" :value="$shipmentSummary['tracking_number']" />
-    <x-stat-card icon="DOC" label="Artifacts" :value="number_format($documents->count())" />
+    <x-stat-card icon="REF" label="المرجع" :value="$shipmentSummary['reference']" />
+    <x-stat-card icon="CAR" label="شركة الشحن" :value="$shipmentSummary['carrier_label']" />
+    <x-stat-card icon="TRK" label="التتبع" :value="$shipmentSummary['tracking_number']" />
+    <x-stat-card icon="DOC" label="الملفات" :value="number_format($documents->count())" />
 </div>
 
 <section class="card" data-testid="internal-shipment-documents-workspace" style="margin-bottom:24px">
-    <div class="card-title">Document workspace</div>
+    <div class="card-title">مساحة المستندات</div>
     <p style="margin:0 0 12px;color:var(--td);font-size:13px">{{ $documentHeadline }}</p>
-    <div style="font-size:12px;color:var(--tm);margin-bottom:14px">AWB: {{ $shipmentSummary['awb_number'] }}</div>
+    <div style="font-size:12px;color:var(--tm);margin-bottom:14px">رقم بوليصة الشحن: {{ $shipmentSummary['awb_number'] }}</div>
 
     <div style="display:flex;flex-direction:column;gap:12px">
         @forelse($documents as $document)
@@ -46,24 +46,24 @@
                     <div data-testid="internal-shipment-document-filename" style="font-size:14px;color:var(--td)">{{ $document['filename'] }}</div>
                     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
                         <div>
-                            <div style="font-size:12px;color:var(--tm);margin-bottom:4px">Availability</div>
+                            <div style="font-size:12px;color:var(--tm);margin-bottom:4px">التوفر</div>
                             <div data-testid="internal-shipment-document-availability" style="font-weight:700;color:var(--tx)">{{ $document['availability_label'] }}</div>
                         </div>
                         <div>
-                            <div style="font-size:12px;color:var(--tm);margin-bottom:4px">Retrieval mode</div>
+                            <div style="font-size:12px;color:var(--tm);margin-bottom:4px">طريقة الجلب</div>
                             <div style="font-weight:700;color:var(--tx)">{{ $document['retrieval_mode_label'] }}</div>
                         </div>
                         <div>
-                            <div style="font-size:12px;color:var(--tm);margin-bottom:4px">Size</div>
+                            <div style="font-size:12px;color:var(--tm);margin-bottom:4px">الحجم</div>
                             <div style="font-weight:700;color:var(--tx)">{{ $document['size_label'] }}</div>
                         </div>
                         <div>
-                            <div style="font-size:12px;color:var(--tm);margin-bottom:4px">Created</div>
+                            <div style="font-size:12px;color:var(--tm);margin-bottom:4px">أُنشئ</div>
                             <div style="font-weight:700;color:var(--tx)">{{ $document['created_at_display'] }}</div>
                         </div>
                     </div>
                     @if(!empty($document['tracking_number']))
-                        <div data-testid="internal-shipment-document-tracking" style="font-size:12px;color:var(--td)">Tracking: {{ $document['tracking_number'] }}</div>
+                        <div data-testid="internal-shipment-document-tracking" style="font-size:12px;color:var(--td)">التتبع: {{ $document['tracking_number'] }}</div>
                     @endif
                     @if(!empty($document['notes']))
                         <div data-testid="internal-shipment-document-notes" style="font-size:12px;color:var(--td)">{{ collect($document['notes'])->implode(' | ') }}</div>
@@ -75,17 +75,17 @@
                            data-testid="internal-shipment-document-preview-link"
                            class="btn btn-s"
                            target="_blank"
-                           rel="noopener noreferrer">Preview PDF</a>
+                           rel="noopener noreferrer">معاينة المستند</a>
                     @endif
                     <a href="{{ $document['download_route'] }}"
                        data-testid="internal-shipment-document-download-link"
                        class="btn btn-pr"
-                       download="{{ $document['filename'] }}">Download document</a>
+                       download="{{ $document['filename'] }}">تنزيل المستند</a>
                 </div>
             </div>
         @empty
             <div data-testid="internal-shipment-documents-empty-state" class="empty-state">
-                No carrier documents are currently available for this shipment.
+                لا توجد مستندات شركة شحن متاحة حاليًا لهذه الشحنة.
             </div>
         @endforelse
     </div>

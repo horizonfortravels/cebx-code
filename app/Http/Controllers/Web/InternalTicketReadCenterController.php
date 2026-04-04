@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\InternalTicketReadService;
+use App\Services\InternalTicketWorkflowService;
 use App\Support\Internal\InternalControlPlane;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -13,6 +14,7 @@ class InternalTicketReadCenterController extends Controller
 {
     public function __construct(
         private readonly InternalTicketReadService $readService,
+        private readonly InternalTicketWorkflowService $workflowService,
     ) {}
 
     public function index(Request $request, InternalControlPlane $controlPlane): View
@@ -56,6 +58,11 @@ class InternalTicketReadCenterController extends Controller
             'canViewAccount' => $this->canViewAccount($request->user(), $controlPlane),
             'canViewShipment' => $this->canViewShipment($request->user(), $controlPlane),
             'canManageThread' => $this->canManageThread($request->user(), $controlPlane),
+            'canManageTicketActions' => $this->canManageTicketActions($request->user(), $controlPlane),
+            'manualStatusOptions' => $this->workflowService->manualStatusOptions(),
+            'triagePriorityOptions' => $this->workflowService->priorityOptions(),
+            'triageCategoryOptions' => $this->workflowService->categoryOptions(),
+            'assignableUsers' => $this->workflowService->assignableUsers(),
         ]);
     }
 
@@ -95,5 +102,12 @@ class InternalTicketReadCenterController extends Controller
         return $user instanceof User
             && $user->hasPermission('tickets.manage')
             && $controlPlane->canSeeSurface($user, InternalControlPlane::SURFACE_INTERNAL_TICKETS_THREAD_ACTIONS);
+    }
+
+    private function canManageTicketActions(?User $user, InternalControlPlane $controlPlane): bool
+    {
+        return $user instanceof User
+            && $user->hasPermission('tickets.manage')
+            && $controlPlane->canSeeSurface($user, InternalControlPlane::SURFACE_INTERNAL_TICKETS_ACTIONS);
     }
 }

@@ -91,7 +91,7 @@ test('internal support can update ticket workflow, assign a ticket, and add an i
   await page.waitForLoadState('networkidle');
 
   await expect(page.locator('body')).toContainText('The ticket workflow state was updated successfully.');
-  await expect(page.locator('[data-testid="internal-ticket-summary-card"]')).toContainText('Waiting on customer');
+  await expect(page.locator('[data-testid="internal-ticket-summary-card"]')).toContainText('بانتظار العميل');
   await expect(page.locator('[data-testid="internal-ticket-notes-card"]')).toContainText('Workflow update: Open -> Waiting on customer.');
 
   const selectedAssignee = await selectOptionByTextFragment(

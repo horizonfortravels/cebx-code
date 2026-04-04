@@ -5,9 +5,9 @@
 <div class="header-wrap" style="margin-bottom:24px">
     <div class="header-main">
         <div style="font-size:12px;color:var(--tm);margin-bottom:8px">
-            <a href="{{ route('internal.home') }}" style="color:inherit;text-decoration:none">Internal workspace</a>
+            <a href="{{ route('internal.home') }}" style="color:inherit;text-decoration:none">المساحة الداخلية</a>
             <span style="margin:0 6px">/</span>
-            <a href="{{ route('internal.reports.index') }}" style="color:inherit;text-decoration:none">Reports &amp; analytics</a>
+            <a href="{{ route('internal.reports.index') }}" style="color:inherit;text-decoration:none">التقارير والتحليلات</a>
             <span style="margin:0 6px">/</span>
             <span>{{ $dashboard['title'] }}</span>
         </div>
@@ -17,16 +17,16 @@
         </p>
     </div>
     <div class="header-actions">
-        <a href="{{ route('internal.reports.index') }}" class="btn btn-s">Back to reports hub</a>
+        <a href="{{ route('internal.reports.index') }}" class="btn btn-s">العودة إلى مركز التقارير</a>
         @if($canExport ?? false)
             <a href="{{ route('internal.reports.' . $dashboard['key'] . '.export', request()->query()) }}"
                class="btn btn-s"
                data-testid="internal-report-dashboard-export-link">
-                Export CSV
+                تصدير CSV
             </a>
         @endif
         @if($drilldowns->isNotEmpty())
-            <a href="{{ route($drilldowns->first()['route_name']) }}" class="btn btn-pr" data-testid="internal-report-dashboard-primary-link">Open linked center</a>
+            <a href="{{ route($drilldowns->first()['route_name']) }}" class="btn btn-pr" data-testid="internal-report-dashboard-primary-link">فتح المركز المرتبط</a>
         @endif
     </div>
 </div>
@@ -34,7 +34,7 @@
 <div class="card" data-testid="internal-report-dashboard" style="margin-bottom:24px;background:#f8fafc">
     <div class="card-title">{{ $dashboard['eyebrow'] }}</div>
     <p style="margin:0;color:var(--td);line-height:1.8">
-        These dashboard metrics are read-only operational summaries. No ticket, shipment, billing, compliance, or KYC mutations are exposed from this dashboard surface.
+        هذه المؤشرات التشغيلية مخصصة للقراءة فقط. لا تتيح هذه اللوحة أي تعديل على التذاكر أو الشحنات أو الفوترة أو الامتثال أو KYC.
     </p>
 </div>
 
@@ -80,7 +80,7 @@
 
 <div class="grid-main-sidebar-tight">
     <div class="card" data-testid="internal-report-actions-card">
-        <div class="card-title">Action-oriented summaries</div>
+        <div class="card-title">ملخصات موجهة للإجراء</div>
         <div style="display:grid;gap:12px">
             @foreach($dashboard['action_summaries'] as $summary)
                 <div style="padding:12px;border:1px solid var(--bd);border-radius:14px;background:#fff">
@@ -92,9 +92,9 @@
     </div>
 
     <div class="card" data-testid="internal-report-drilldown-card">
-        <div class="card-title">Safe drilldowns</div>
+        <div class="card-title">مسارات تفصيل آمنة</div>
         <p style="margin:0 0 14px;color:var(--td);line-height:1.8">
-            Open the linked internal centers for deeper queue handling. These links still respect each target center’s own role gates and stay read-only here.
+            افتح المراكز الداخلية المرتبطة لمراجعة الطوابير بمزيد من العمق. تظل هذه الروابط خاضعة لصلاحيات كل مركز وتبقى للقراءة فقط من هذه اللوحة.
         </p>
         <div style="display:flex;gap:10px;flex-wrap:wrap">
             @foreach($drilldowns as $index => $link)

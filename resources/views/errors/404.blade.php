@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ request()->is('b2c/*') || request()->is('b2b/*') || request()->is('notifications') ? __('portal_shipments.errors.external.404.heading') : 'Page unavailable' }} - CBEX Shipping Gateway</title>
+    <title>{{ request()->is('b2c/*') || request()->is('b2b/*') || request()->is('notifications') ? __('portal_shipments.errors.external.404.heading') : 'الصفحة غير متاحة' }} - بوابة الشحن CBEX</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
         :root {
@@ -104,19 +104,19 @@
 @endphp
     <div class="panel">
         <div class="hero">
-            <div class="eyebrow">{{ $isExternalPortal ? __('portal_shipments.errors.external.404.eyebrow') : '404 Page unavailable' }}</div>
-            <h1>{{ $isExternalPortal ? __('portal_shipments.errors.external.404.heading') : 'The requested page is not available.' }}</h1>
-            <p>{{ $isExternalPortal ? __('portal_shipments.errors.external.404.message') : 'The requested page may not exist or may no longer be available from this path.' }}</p>
+            <div class="eyebrow">{{ $isExternalPortal ? __('portal_shipments.errors.external.404.eyebrow') : '404 الصفحة غير متاحة' }}</div>
+            <h1>{{ $isExternalPortal ? __('portal_shipments.errors.external.404.heading') : 'الصفحة المطلوبة غير متاحة.' }}</h1>
+            <p>{{ $isExternalPortal ? __('portal_shipments.errors.external.404.message') : 'قد لا تكون الصفحة المطلوبة موجودة أو لم تعد متاحة عبر هذا المسار.' }}</p>
         </div>
         <div class="body">
             <div class="summary">
                 {{ $isExternalPortal
                     ? __('portal_shipments.errors.external.404.message')
-                    : 'Use the correct portal navigation and open the page again from a current, authorized path.' }}
+                    : 'استخدم تنقل البوابة الصحيح وافتح الصفحة مجددًا من مسار حالي ومصرّح به.' }}
             </div>
             <div class="actions">
-                <a href="{{ $primaryRoute && \Illuminate\Support\Facades\Route::has($primaryRoute) ? route($primaryRoute) : url('/') }}" class="button button-primary">{{ $isExternalPortal ? __('portal_shipments.errors.external.primary_action') : 'Back to home' }}</a>
-                <a href="{{ $secondaryRoute && \Illuminate\Support\Facades\Route::has($secondaryRoute) ? route($secondaryRoute) : url('/') }}" class="button button-secondary">{{ $isExternalPortal ? __('portal_shipments.errors.external.secondary_action') : 'Go back' }}</a>
+                <a href="{{ $primaryRoute && \Illuminate\Support\Facades\Route::has($primaryRoute) ? route($primaryRoute) : url('/') }}" class="button button-primary">{{ $isExternalPortal ? __('portal_shipments.errors.external.primary_action') : 'العودة إلى الرئيسية' }}</a>
+                <a href="{{ $secondaryRoute && \Illuminate\Support\Facades\Route::has($secondaryRoute) ? route($secondaryRoute) : url('/') }}" class="button button-secondary">{{ $isExternalPortal ? __('portal_shipments.errors.external.secondary_action') : 'عودة' }}</a>
             </div>
             <div class="meta">HTTP 404</div>
         </div>

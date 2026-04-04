@@ -19,7 +19,7 @@
     <div class="table-wrap">
         <table>
             <thead>
-                <tr><th>الفئة</th><th>الوصف</th><th>UN Number</th><th>مجموعة التعبئة</th><th>القيود</th><th>الحالة</th></tr>
+            <tr><th>الفئة</th><th>الوصف</th><th>رقم UN</th><th>مجموعة التعبئة</th><th>القيود</th><th>الحالة</th></tr>
             </thead>
             <tbody>
                 @forelse($classifications ?? [] as $cls)

@@ -19,7 +19,7 @@
     </div>
     <div class="header-actions">
         @if($canViewAccount)
-            <a href="{{ route('internal.accounts.show', $account) }}" class="btn btn-s" data-testid="kyc-account-summary-link">Account Summary</a>
+            <a href="{{ route('internal.accounts.show', $account) }}" class="btn btn-s" data-testid="kyc-account-summary-link">ملخص الحساب</a>
         @endif
         <a href="{{ route('internal.kyc.index') }}" class="btn btn-s">العودة إلى الطابور</a>
         <a href="{{ route('internal.kyc.show', $account) }}" class="btn btn-pr">تحديث الملف</a>

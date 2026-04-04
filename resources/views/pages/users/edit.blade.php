@@ -7,8 +7,23 @@
     <h1 style="font-size:22px;font-weight:700;color:var(--tx);margin:8px 0 0">✏️ تعديل مستخدم — {{ $user->name ?? '' }}</h1>
 </div>
 
+@php
+    $currentRoleName = trim((string) ($user->role_name ?? ''));
+    $currentRoleNameLabel = match (strtolower($currentRoleName)) {
+        'admin', 'administrator' => 'مدير النظام',
+        'super admin', 'superadmin' => 'مدير النظام الأعلى',
+        'manager' => 'مدير',
+        'operator', 'operations', 'ops' => 'مشغّل',
+        'support', 'customer support' => 'الدعم',
+        'viewer', 'read only', 'readonly' => 'مُطلع',
+        'member' => 'عضو',
+        'owner' => 'مالك',
+        default => preg_match('/[A-Za-z]/', $currentRoleName) ? 'غير معروف' : $currentRoleName,
+    };
+@endphp
+
 <div class="grid-main-sidebar-tight">
-    {{-- Main Form --}}
+    {{-- النموذج الرئيسي --}}
     <div>
         <x-card title="👤 المعلومات الأساسية">
             <form method="POST" action="{{ route('users.update', $user) }}">
@@ -40,7 +55,7 @@
                         <label class="form-label">الدور</label>
                         <select name="role_name" class="form-input">
                             @foreach(['مدير', 'مشرف', 'مشغّل', 'مُطلع'] as $role)
-                                <option {{ ($user->role_name ?? '') === $role ? 'selected' : '' }}>{{ $role }}</option>
+                                <option {{ $currentRoleNameLabel === $role ? 'selected' : '' }}>{{ $role }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -82,7 +97,7 @@
             </form>
         </x-card>
 
-        {{-- Password Reset --}}
+        {{-- إعادة تعيين كلمة المرور --}}
         <x-card title="🔑 إعادة تعيين كلمة المرور">
             <form method="POST" action="{{ route('users.update', $user) }}">
                 @csrf @method('PATCH')
@@ -104,7 +119,7 @@
         </x-card>
     </div>
 
-    {{-- Sidebar --}}
+    {{-- الشريط الجانبي --}}
     <div style="display:flex;flex-direction:column;gap:16px">
         <x-card title="📋 معلومات الحساب">
             <div style="text-align:center;margin-bottom:16px">
@@ -116,7 +131,7 @@
             </div>
             <x-info-row label="المعرّف" :value="'#' . $user->id" />
             <x-info-row label="الحالة" :value="$user->is_active ? '🟢 نشط' : '🔴 معطّل'" />
-            <x-info-row label="الدور" :value="$user->role_name ?? '—'" />
+            <x-info-row label="الدور" :value="$currentRoleNameLabel !== '' ? $currentRoleNameLabel : '—'" />
             <x-info-row label="تاريخ التسجيل" :value="$user->created_at->format('Y-m-d')" />
             <x-info-row label="آخر دخول" :value="$user->last_login_at?->diffForHumans() ?? 'لم يسجل دخول'" />
         </x-card>
@@ -127,7 +142,7 @@
             <x-info-row label="التذاكر" :value="$user->tickets_count ?? 0" />
         </x-card>
 
-        {{-- Danger Zone --}}
+        {{-- منطقة الخطر --}}
         <x-card>
             <div style="padding:4px 0">
                 <div style="font-weight:600;color:var(--dg);font-size:14px;margin-bottom:8px">⚠️ منطقة الخطر</div>

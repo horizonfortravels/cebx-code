@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>@yield('title', 'تسجيل الدخول') - Shipping Gateway</title>
+    <title>@yield('title', 'تسجيل الدخول') - بوابة الشحن</title>
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     @include('components.pwa-meta')
@@ -41,7 +41,7 @@
                         type="email"
                         name="email"
                         value="{{ old('email') }}"
-                        placeholder="@yield('email-placeholder', 'you@company.sa')"
+                placeholder="@yield('email-placeholder', 'name@company.sa')"
                         class="form-input"
                         inputmode="email"
                         autocomplete="username"

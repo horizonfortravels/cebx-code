@@ -18,7 +18,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
- * TrackingService â€” FR-TR-001â†’007 (7 requirements)
+ * TrackingService - FR-TR-001 to FR-TR-007 (7 requirements)
  *
  * FR-TR-001: Receive tracking events (Webhooks/Polling)
  * FR-TR-002: Verify webhook authenticity (signature, schema, replay)
@@ -577,4 +577,3 @@ class TrackingService
         return $events;
     }
 }
-

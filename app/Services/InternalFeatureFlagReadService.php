@@ -102,8 +102,8 @@ class InternalFeatureFlagReadService
     public function stateOptions(): array
     {
         return [
-            'enabled' => 'Enabled',
-            'disabled' => 'Disabled',
+            'enabled' => 'مفعّل',
+            'disabled' => 'معطّل',
         ];
     }
 
@@ -113,8 +113,8 @@ class InternalFeatureFlagReadService
     public function sourceOptions(): array
     {
         return [
-            'config_backed' => 'Config-backed key',
-            'database_only' => 'Database-only key',
+            'config_backed' => 'مفتاح معتمد على الإعدادات',
+            'database_only' => 'مفتاح من قاعدة البيانات فقط',
         ];
     }
 
@@ -169,26 +169,26 @@ class InternalFeatureFlagReadService
             'id' => (string) $flag->id,
             'key' => (string) $flag->key,
             'name' => (string) $flag->name,
-            'description' => trim((string) $flag->description) !== '' ? (string) $flag->description : 'No description recorded.',
+            'description' => trim((string) $flag->description) !== '' ? (string) $flag->description : 'لا يوجد وصف مسجل.',
             'state_key' => $flag->is_enabled ? 'enabled' : 'disabled',
-            'state_label' => $flag->is_enabled ? 'Enabled' : 'Disabled',
+            'state_label' => $flag->is_enabled ? 'مفعّل' : 'معطّل',
             'rollout_percentage' => max(0, min(100, (int) $flag->rollout_percentage)),
             'rollout_label' => $this->rolloutLabel((int) $flag->rollout_percentage),
             'target_account_count' => $targetAccounts->count(),
             'target_plan_count' => $targetPlans->count(),
             'targeting_summary' => $this->targetingSummary($targetAccounts->count(), $targetPlans->count()),
             'source_key' => $hasConfigDefault ? 'config_backed' : 'database_only',
-            'source_label' => $hasConfigDefault ? 'DB row + config default present' : 'Database-backed only',
+            'source_label' => $hasConfigDefault ? 'يوجد سجل قاعدة بيانات مع قيمة افتراضية من الإعدادات' : 'من قاعدة البيانات فقط',
             'config_default_label' => $hasConfigDefault
-                ? ($configDefaultState ? 'Enabled in config' : 'Disabled in config')
-                : 'No config default',
+                ? ($configDefaultState ? 'مفعّل في الإعدادات' : 'معطّل في الإعدادات')
+                : 'لا توجد قيمة افتراضية في الإعدادات',
             'config_default_present' => $hasConfigDefault,
             'config_default_state' => $configDefaultState,
             'runtime_note' => $hasConfigDefault
-                ? 'This key also has an environment-backed config default. The internal center shows the DB-backed flag record and does not act as a hidden environment override.'
-                : 'This key is tracked only in the DB-backed feature-flag catalog.',
-            'created_by' => trim((string) $flag->created_by) !== '' ? (string) $flag->created_by : 'Unknown',
-            'updated_at' => $this->displayDateTime($flag->updated_at) ?? 'Unknown',
+                ? 'لهذا المفتاح أيضًا قيمة افتراضية معتمدة على البيئة. تعرض الواجهة الداخلية سجل العلم في قاعدة البيانات فقط ولا تعمل كتجاوز خفي لإعدادات البيئة.'
+                : 'يتم تتبع هذا المفتاح فقط ضمن سجل أعلام الميزات المعتمد على قاعدة البيانات.',
+            'created_by' => trim((string) $flag->created_by) !== '' ? (string) $flag->created_by : 'غير معروف',
+            'updated_at' => $this->displayDateTime($flag->updated_at) ?? 'غير معروف',
             'latest_audit' => is_array($latestAudit) ? $latestAudit : null,
             'audit_items' => $auditItems,
         ];
@@ -219,20 +219,20 @@ class InternalFeatureFlagReadService
                 $enabledAfter = (bool) ($newValues['is_enabled'] ?? false);
 
                 return [
-                    'headline' => $enabledAfter ? 'Enabled by internal operator' : 'Disabled by internal operator',
+                    'headline' => $enabledAfter ? 'تم التفعيل بواسطة المشغل الداخلي' : 'تم التعطيل بواسطة المشغل الداخلي',
                     'detail' => implode(' • ', array_filter([
                         $enabledBefore === $enabledAfter ? null : sprintf(
                             '%s -> %s',
-                            $enabledBefore ? 'Enabled' : 'Disabled',
-                            $enabledAfter ? 'Enabled' : 'Disabled'
+                            $enabledBefore ? 'مفعّل' : 'معطّل',
+                            $enabledAfter ? 'مفعّل' : 'معطّل'
                         ),
                         trim((string) data_get($audit->metadata, 'reason', '')) ?: null,
                     ])),
-                    'reason' => trim((string) data_get($audit->metadata, 'reason', '')) ?: 'No reason recorded.',
+                    'reason' => trim((string) data_get($audit->metadata, 'reason', '')) ?: 'لا يوجد سبب مسجل.',
                     'performed_by' => $audit->performer?->name
                         ? $audit->performer->name . ' • ' . $audit->performer->email
-                        : 'System',
-                    'created_at' => $this->displayDateTime($audit->created_at) ?? 'Unknown',
+                        : 'النظام',
+                    'created_at' => $this->displayDateTime($audit->created_at) ?? 'غير معروف',
                 ];
             })
             ->values();
@@ -243,21 +243,21 @@ class InternalFeatureFlagReadService
         $percentage = max(0, min(100, $percentage));
 
         return match (true) {
-            $percentage >= 100 => 'Global rollout',
-            $percentage <= 0 => 'Disabled rollout',
-            default => sprintf('%d%% deterministic rollout', $percentage),
+            $percentage >= 100 => 'إطلاق عام',
+            $percentage <= 0 => 'إطلاق معطّل',
+            default => sprintf('إطلاق تدريجي محدد بنسبة %d%%', $percentage),
         };
     }
 
     private function targetingSummary(int $accountCount, int $planCount): string
     {
         if ($accountCount === 0 && $planCount === 0) {
-            return 'No account or plan targeting recorded.';
+            return 'لا يوجد استهداف مسجل للحسابات أو الخطط.';
         }
 
         return implode(' • ', array_filter([
-            $accountCount > 0 ? number_format($accountCount) . ' target account(s)' : null,
-            $planCount > 0 ? number_format($planCount) . ' target plan(s)' : null,
+            $accountCount > 0 ? number_format($accountCount) . ' حساب مستهدف' : null,
+            $planCount > 0 ? number_format($planCount) . ' خطة مستهدفة' : null,
         ]));
     }
 

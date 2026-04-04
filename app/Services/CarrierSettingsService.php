@@ -31,10 +31,10 @@ class CarrierSettingsService
             'config_path' => 'services.aramex',
             'required_fields' => ['username', 'password', 'account_number', 'account_pin'],
             'fields' => [
-                'username' => ['label' => 'Username', 'input_type' => 'text', 'mask' => 'credential', 'rotatable' => false],
-                'password' => ['label' => 'Password', 'input_type' => 'password', 'mask' => 'secret', 'rotatable' => false],
-                'account_number' => ['label' => 'Account number', 'input_type' => 'text', 'mask' => 'account', 'rotatable' => false],
-                'account_pin' => ['label' => 'Account PIN', 'input_type' => 'password', 'mask' => 'secret', 'rotatable' => false],
+                'username' => ['label' => 'اسم المستخدم', 'input_type' => 'text', 'mask' => 'credential', 'rotatable' => false],
+                'password' => ['label' => 'كلمة المرور', 'input_type' => 'password', 'mask' => 'secret', 'rotatable' => false],
+                'account_number' => ['label' => 'رقم الحساب', 'input_type' => 'text', 'mask' => 'account', 'rotatable' => false],
+                'account_pin' => ['label' => 'الرقم السري للحساب', 'input_type' => 'password', 'mask' => 'secret', 'rotatable' => false],
             ],
         ],
         'dhl' => [
@@ -43,9 +43,9 @@ class CarrierSettingsService
             'config_path' => 'services.dhl',
             'required_fields' => ['api_key', 'api_secret', 'account_number'],
             'fields' => [
-                'api_key' => ['label' => 'API key', 'input_type' => 'password', 'mask' => 'credential', 'rotatable' => true],
-                'api_secret' => ['label' => 'API secret', 'input_type' => 'password', 'mask' => 'secret', 'rotatable' => true],
-                'account_number' => ['label' => 'Account number', 'input_type' => 'text', 'mask' => 'account', 'rotatable' => false],
+                'api_key' => ['label' => 'مفتاح API', 'input_type' => 'password', 'mask' => 'credential', 'rotatable' => true],
+                'api_secret' => ['label' => 'سر API', 'input_type' => 'password', 'mask' => 'secret', 'rotatable' => true],
+                'account_number' => ['label' => 'رقم الحساب', 'input_type' => 'text', 'mask' => 'account', 'rotatable' => false],
             ],
         ],
         'fedex' => [
@@ -54,9 +54,9 @@ class CarrierSettingsService
             'config_path' => 'services.fedex',
             'required_fields' => ['client_id', 'client_secret', 'account_number'],
             'fields' => [
-                'client_id' => ['label' => 'Client ID', 'input_type' => 'password', 'mask' => 'credential', 'rotatable' => true],
-                'client_secret' => ['label' => 'Client secret', 'input_type' => 'password', 'mask' => 'secret', 'rotatable' => true],
-                'account_number' => ['label' => 'Account number', 'input_type' => 'text', 'mask' => 'account', 'rotatable' => false],
+                'client_id' => ['label' => 'معرّف العميل', 'input_type' => 'password', 'mask' => 'credential', 'rotatable' => true],
+                'client_secret' => ['label' => 'سر العميل', 'input_type' => 'password', 'mask' => 'secret', 'rotatable' => true],
+                'account_number' => ['label' => 'رقم الحساب', 'input_type' => 'text', 'mask' => 'account', 'rotatable' => false],
             ],
         ],
         'smsa' => [
@@ -65,8 +65,8 @@ class CarrierSettingsService
             'config_path' => 'services.smsa',
             'required_fields' => ['api_key', 'passkey'],
             'fields' => [
-                'api_key' => ['label' => 'API key', 'input_type' => 'password', 'mask' => 'credential', 'rotatable' => true],
-                'passkey' => ['label' => 'Passkey', 'input_type' => 'password', 'mask' => 'secret', 'rotatable' => true],
+                'api_key' => ['label' => 'مفتاح API', 'input_type' => 'password', 'mask' => 'credential', 'rotatable' => true],
+                'passkey' => ['label' => 'مفتاح المرور', 'input_type' => 'password', 'mask' => 'secret', 'rotatable' => true],
             ],
         ],
     ];
@@ -100,7 +100,7 @@ class CarrierSettingsService
 
         if (! is_array($definition)) {
             throw new BusinessException(
-                'This carrier is not available in the internal carrier center.',
+                'شركة الشحن هذه غير متاحة داخل مركز شركات الشحن الداخلي.',
                 'ERR_CARRIER_NOT_FOUND',
                 404
             );
@@ -246,7 +246,7 @@ class CarrierSettingsService
 
         if ($updatedFields === []) {
             throw new BusinessException(
-                'Enter at least one new credential value before saving carrier settings.',
+                'أدخل قيمة اعتماد جديدة واحدة على الأقل قبل حفظ إعدادات شركة الشحن.',
                 'ERR_CARRIER_CREDENTIALS_NO_CHANGE',
                 422
             );
@@ -316,13 +316,13 @@ class CarrierSettingsService
         $resolved = trim((string) $value);
 
         if ($resolved === '') {
-            return 'Not configured';
+            return 'غير مهيأ';
         }
 
         return match ($mask) {
             'account' => $this->maskAccountNumber($resolved),
             'credential' => $this->maskCredential($resolved),
-            default => 'Configured',
+            default => 'مهيأ',
         };
     }
 
@@ -332,10 +332,10 @@ class CarrierSettingsService
         $lastFour = substr($normalized, -4);
 
         if ($lastFour === false || $lastFour === '') {
-            return 'Configured';
+            return 'مهيأ';
         }
 
-        return 'Configured ending ' . $lastFour;
+        return 'مهيأ وينتهي بـ ' . $lastFour;
     }
 
     private function maskCredential(string $value): string

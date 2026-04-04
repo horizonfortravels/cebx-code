@@ -36,10 +36,19 @@
             </thead>
             <tbody>
             @forelse($users as $user)
+                @php
+                    $statusLabel = match ((string) ($user->status ?? 'active')) {
+                        'active' => 'نشط',
+                        'pending' => 'قيد التفعيل',
+                        'suspended' => 'معلّق',
+                        'disabled' => 'معطّل',
+                        default => (string) ($user->status ?? 'نشط'),
+                    };
+                @endphp
                 <tr>
                     <td>{{ $user->name }}</td>
                     <td>{{ $user->email }}</td>
-                    <td>{{ $user->status ?? 'active' }}</td>
+                    <td>{{ $statusLabel }}</td>
                     <td>{{ $user->roles->pluck('display_name')->filter()->implode('، ') ?: $user->roles->pluck('name')->implode('، ') ?: '—' }}</td>
                 </tr>
             @empty

@@ -4,7 +4,7 @@
 @section('content')
 <div class="header-wrap" style="margin-bottom:24px">
     <h1 style="font-size:24px;font-weight:800;color:var(--tx);margin:0">📊 التقارير</h1>
-    <a href="{{ route('reports.export', 'pdf') }}" class="btn btn-s">📥 تصدير PDF</a>
+    <a href="{{ route('reports.export', 'pdf') }}" class="btn btn-s">📥 تصدير ملف بي دي إف</a>
 </div>
 
 <div class="stats-grid" style="margin-bottom:24px">
