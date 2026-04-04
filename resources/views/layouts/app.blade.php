@@ -88,6 +88,10 @@
         && $canViewWalletLedger
         && $internalControlPlane?->canSeeSurface($currentUser, \App\Support\Internal\InternalControlPlane::SURFACE_INTERNAL_BILLING_INDEX)
         && Route::has('internal.billing.index');
+    $showInternalCarrierReadCenter = $isInternalUser
+        && $canReadIntegrations
+        && $internalControlPlane?->canSeeSurface($currentUser, \App\Support\Internal\InternalControlPlane::SURFACE_INTERNAL_CARRIERS_INDEX)
+        && Route::has('internal.carriers.index');
     $showInternalIntegrationsReadCenter = $isInternalUser
         && $canReadIntegrations
         && $internalControlPlane?->canSeeSurface($currentUser, \App\Support\Internal\InternalControlPlane::SURFACE_INTERNAL_INTEGRATIONS_INDEX)
@@ -149,8 +153,16 @@
             $menu[] = ['active' => ['internal.billing.*'], 'route' => 'internal.billing.index', 'icon' => 'WAL', 'label' => 'Wallet & billing'];
         }
 
-        if ($showInternalIntegrationsReadCenter) {
+        if ($showInternalCarrierReadCenter) {
             if (! $showExternalAccountsReadCenter && ! $showInternalBillingReadCenter) {
+                $menu[] = ['divider' => 'عمليات العملاء'];
+            }
+
+            $menu[] = ['active' => ['internal.carriers.*'], 'route' => 'internal.carriers.index', 'icon' => 'CAR', 'label' => 'Carrier integrations'];
+        }
+
+        if ($showInternalIntegrationsReadCenter) {
+            if (! $showExternalAccountsReadCenter && ! $showInternalBillingReadCenter && ! $showInternalCarrierReadCenter) {
                 $menu[] = ['divider' => 'عمليات العملاء'];
             }
 

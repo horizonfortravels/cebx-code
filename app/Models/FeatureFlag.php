@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * FeatureFlag — FR-ADM-010
@@ -52,5 +53,18 @@ class FeatureFlag extends Model
     {
         $flag = self::where('key', $key)->first();
         return $flag ? $flag->isEnabledFor($accountId) : false;
+    }
+
+    public static function runtimeEnabled(string $key, ?string $accountId = null): bool
+    {
+        if (Schema::hasTable('feature_flags')) {
+            $flag = self::query()->where('key', $key)->first();
+
+            if ($flag instanceof self) {
+                return $flag->isEnabledFor($accountId);
+            }
+        }
+
+        return (bool) config('features.' . $key, false);
     }
 }

@@ -20,6 +20,17 @@ class Handler extends ExceptionHandler
         'password_confirmation',
         'smtp_username',
         'smtp_password',
+        'api_key',
+        'api_secret',
+        'client_id',
+        'client_secret',
+        'username',
+        'account_number',
+        'shipper_account',
+        'bill_to_account',
+        'account_pin',
+        'passkey',
+        'app_password',
     ];
 
     public function render($request, Throwable $exception): Response

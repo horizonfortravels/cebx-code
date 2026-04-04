@@ -9,6 +9,8 @@ use App\Http\Controllers\Web\InternalAccountSupportActionsController;
 use App\Http\Controllers\Web\InternalAdminWebController;
 use App\Http\Controllers\Web\InternalBillingActionsController;
 use App\Http\Controllers\Web\InternalBillingReadCenterController;
+use App\Http\Controllers\Web\InternalCarrierActionsController;
+use App\Http\Controllers\Web\InternalCarrierReadCenterController;
 use App\Http\Controllers\Web\InternalComplianceActionsController;
 use App\Http\Controllers\Web\InternalComplianceReadCenterController;
 use App\Http\Controllers\Web\InternalApiKeyCenterController;
@@ -101,6 +103,13 @@ Route::middleware(['auth:web', 'userType:internal'])->prefix('internal')->name('
         'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_INTEGRATIONS_INDEX,
     ])->group(function (): void {
         Route::get('/integrations', [InternalIntegrationReadCenterController::class, 'index'])->name('integrations.index');
+    });
+
+    Route::middleware([
+        'permission:integrations.read',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_CARRIERS_INDEX,
+    ])->group(function (): void {
+        Route::get('/carriers', [InternalCarrierReadCenterController::class, 'index'])->name('carriers.index');
     });
 
     Route::middleware([
@@ -292,6 +301,27 @@ Route::middleware(['auth:web', 'userType:internal'])->prefix('internal')->name('
         'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_INTEGRATIONS_DETAIL,
     ])->group(function (): void {
         Route::get('/integrations/{integration}', [InternalIntegrationReadCenterController::class, 'show'])->name('integrations.show');
+    });
+
+    Route::middleware([
+        'permission:integrations.read',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_CARRIERS_DETAIL,
+    ])->group(function (): void {
+        Route::get('/carriers/{carrier}', [InternalCarrierReadCenterController::class, 'show'])->name('carriers.show');
+    });
+
+    Route::middleware([
+        'permission:integrations.manage',
+        'internalSurface:' . InternalControlPlane::SURFACE_INTERNAL_CARRIERS_ACTIONS,
+    ])->group(function (): void {
+        Route::post('/carriers/{carrier}/toggle', [InternalCarrierActionsController::class, 'toggle'])
+            ->name('carriers.toggle');
+        Route::post('/carriers/{carrier}/test', [InternalCarrierActionsController::class, 'test'])
+            ->name('carriers.test');
+        Route::post('/carriers/{carrier}/credentials', [InternalCarrierActionsController::class, 'updateCredentials'])
+            ->name('carriers.credentials.update');
+        Route::post('/carriers/{carrier}/credentials/rotate', [InternalCarrierActionsController::class, 'rotateCredentials'])
+            ->name('carriers.credentials.rotate');
     });
 
     Route::middleware([

@@ -34,6 +34,9 @@ class InternalControlPlane
     public const SURFACE_INTERNAL_BILLING_INDEX = 'internal_billing_index';
     public const SURFACE_INTERNAL_BILLING_DETAIL = 'internal_billing_detail';
     public const SURFACE_INTERNAL_BILLING_ACTIONS = 'internal_billing_actions';
+    public const SURFACE_INTERNAL_CARRIERS_INDEX = 'internal_carriers_index';
+    public const SURFACE_INTERNAL_CARRIERS_DETAIL = 'internal_carriers_detail';
+    public const SURFACE_INTERNAL_CARRIERS_ACTIONS = 'internal_carriers_actions';
     public const SURFACE_INTERNAL_INTEGRATIONS_INDEX = 'internal_integrations_index';
     public const SURFACE_INTERNAL_INTEGRATIONS_DETAIL = 'internal_integrations_detail';
     public const SURFACE_INTERNAL_FEATURE_FLAGS_INDEX = 'internal_feature_flags_index';
@@ -139,6 +142,9 @@ class InternalControlPlane
             self::SURFACE_INTERNAL_BILLING_INDEX,
             self::SURFACE_INTERNAL_BILLING_DETAIL,
             self::SURFACE_INTERNAL_BILLING_ACTIONS,
+            self::SURFACE_INTERNAL_CARRIERS_INDEX,
+            self::SURFACE_INTERNAL_CARRIERS_DETAIL,
+            self::SURFACE_INTERNAL_CARRIERS_ACTIONS,
             self::SURFACE_INTERNAL_INTEGRATIONS_INDEX,
             self::SURFACE_INTERNAL_INTEGRATIONS_DETAIL,
             self::SURFACE_INTERNAL_FEATURE_FLAGS_INDEX,
@@ -182,6 +188,8 @@ class InternalControlPlane
             self::SURFACE_INTERNAL_COMPLIANCE_DETAIL,
             self::SURFACE_INTERNAL_BILLING_INDEX,
             self::SURFACE_INTERNAL_BILLING_DETAIL,
+            self::SURFACE_INTERNAL_CARRIERS_INDEX,
+            self::SURFACE_INTERNAL_CARRIERS_DETAIL,
             self::SURFACE_INTERNAL_INTEGRATIONS_INDEX,
             self::SURFACE_INTERNAL_INTEGRATIONS_DETAIL,
             self::SURFACE_INTERNAL_FEATURE_FLAGS_INDEX,
@@ -214,6 +222,8 @@ class InternalControlPlane
             self::SURFACE_INTERNAL_COMPLIANCE_DETAIL,
             self::SURFACE_INTERNAL_BILLING_INDEX,
             self::SURFACE_INTERNAL_BILLING_DETAIL,
+            self::SURFACE_INTERNAL_CARRIERS_INDEX,
+            self::SURFACE_INTERNAL_CARRIERS_DETAIL,
             self::SURFACE_INTERNAL_INTEGRATIONS_INDEX,
             self::SURFACE_INTERNAL_INTEGRATIONS_DETAIL,
             self::SURFACE_INTERNAL_FEATURE_FLAGS_INDEX,
@@ -236,6 +246,9 @@ class InternalControlPlane
         ],
         self::ROLE_CARRIER_MANAGER => [
             self::SURFACE_SMTP_SETTINGS,
+            self::SURFACE_INTERNAL_CARRIERS_INDEX,
+            self::SURFACE_INTERNAL_CARRIERS_DETAIL,
+            self::SURFACE_INTERNAL_CARRIERS_ACTIONS,
             self::SURFACE_INTERNAL_INTEGRATIONS_INDEX,
             self::SURFACE_INTERNAL_INTEGRATIONS_DETAIL,
             self::SURFACE_INTERNAL_SHIPMENTS_DOCUMENTS,
@@ -269,6 +282,9 @@ class InternalControlPlane
         self::SURFACE_INTERNAL_BILLING_INDEX,
         self::SURFACE_INTERNAL_BILLING_DETAIL,
         self::SURFACE_INTERNAL_BILLING_ACTIONS,
+        self::SURFACE_INTERNAL_CARRIERS_INDEX,
+        self::SURFACE_INTERNAL_CARRIERS_DETAIL,
+        self::SURFACE_INTERNAL_CARRIERS_ACTIONS,
         self::SURFACE_INTERNAL_INTEGRATIONS_INDEX,
         self::SURFACE_INTERNAL_INTEGRATIONS_DETAIL,
         self::SURFACE_INTERNAL_FEATURE_FLAGS_INDEX,

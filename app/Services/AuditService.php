@@ -502,6 +502,10 @@ class AuditService
             'carrier.creation_retried'      => ['category' => 'carrier', 'severity' => 'info'],
             'carrier.error_logged'          => ['category' => 'carrier', 'severity' => 'error'],
             'carrier.document_downloaded'   => ['category' => 'carrier', 'severity' => 'info'],
+            'carrier.integration_enabled'   => ['category' => 'carrier', 'severity' => 'info'],
+            'carrier.integration_disabled'  => ['category' => 'carrier', 'severity' => 'warning'],
+            'carrier.credentials_updated'   => ['category' => 'carrier', 'severity' => 'warning'],
+            'carrier.credentials_rotated'   => ['category' => 'carrier', 'severity' => 'warning'],
 
             // TR Module: Tracking (FR-TR-001→007)
             'tracking.webhook_received'     => ['category' => 'tracking', 'severity' => 'info'],

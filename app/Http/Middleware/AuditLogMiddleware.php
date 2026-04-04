@@ -24,7 +24,9 @@ class AuditLogMiddleware
                     'token', 'access_token', 'refresh_token',
                     'card_number', 'cvv', 'cvc', 'expiry',
                     'api_key', 'api_secret', 'secret', 'webhook_secret',
-                    'client_secret', 'connection_config',
+                    'client_id', 'client_secret', 'connection_config',
+                    'username', 'account_number', 'shipper_account',
+                    'bill_to_account', 'account_pin', 'passkey', 'app_password',
                 ]),
             ]);
         }

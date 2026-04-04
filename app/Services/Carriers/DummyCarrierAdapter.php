@@ -2,6 +2,7 @@
 
 namespace App\Services\Carriers;
 
+use App\Models\FeatureFlag;
 use App\Services\Contracts\CarrierInterface;
 use Illuminate\Support\Str;
 
@@ -41,7 +42,7 @@ class DummyCarrierAdapter implements CarrierInterface
 
     public function isEnabled(): bool
     {
-        return (bool) config("features.carrier_{$this->carrierCode}", false);
+        return FeatureFlag::runtimeEnabled("carrier_{$this->carrierCode}");
     }
 
     // ═════════════════════════════════════════════════════════

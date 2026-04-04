@@ -7,6 +7,7 @@ use App\Models\ApiKey;
 use App\Models\AuditLog;
 use App\Models\BillingWallet;
 use App\Models\CarrierDocument;
+use App\Models\CarrierError;
 use App\Models\CarrierShipment;
 use App\Models\ContentDeclaration;
 use App\Models\DgAuditLog;
@@ -921,6 +922,40 @@ class E2EUserMatrixSeeder extends Seeder
                     'rejection_reason' => 'Signature validation failed for the stored webhook delivery.',
                     'events_extracted' => 0,
                     'processing_time_ms' => 92,
+                ]
+            );
+        }
+
+        if (Schema::hasTable('carrier_errors')) {
+            CarrierError::query()->updateOrCreate(
+                [
+                    'carrier_code' => 'fedex',
+                    'correlation_id' => 'i8a-fedex-error-001',
+                    'operation' => CarrierError::OP_FETCH_RATES,
+                ],
+                [
+                    'shipment_id' => null,
+                    'carrier_shipment_id' => null,
+                    'carrier_code' => 'fedex',
+                    'correlation_id' => 'i8a-fedex-error-001',
+                    'operation' => CarrierError::OP_FETCH_RATES,
+                    'internal_code' => CarrierError::ERR_SERVICE_UNAVAILABLE,
+                    'carrier_error_code' => '503',
+                    'carrier_error_message' => 'Upstream response masked in seeded fixture.',
+                    'internal_message' => CarrierError::getInternalMessage(CarrierError::ERR_SERVICE_UNAVAILABLE),
+                    'http_status' => 503,
+                    'http_method' => 'POST',
+                    'endpoint_url' => 'https://apis-sandbox.fedex.com/rate/v1/rates/quotes',
+                    'is_retriable' => true,
+                    'retry_attempt' => 1,
+                    'max_retries' => 3,
+                    'next_retry_at' => now()->addMinutes(10),
+                    'was_resolved' => false,
+                    'resolved_at' => null,
+                    'request_context' => ['safe' => true],
+                    'response_body' => ['safe' => 'masked'],
+                    'created_at' => now()->subMinutes(14),
+                    'updated_at' => now()->subMinutes(12),
                 ]
             );
         }

@@ -3,6 +3,7 @@
 namespace App\Services\Carriers;
 
 use App\Exceptions\BusinessException;
+use App\Models\FeatureFlag;
 use App\Services\Carriers\Contracts\CarrierRateProvider;
 use App\Support\FedexEndpointResolver;
 use Illuminate\Http\Client\Response;
@@ -20,7 +21,7 @@ class FedexRateProvider implements CarrierRateProvider
 
     public function isEnabled(): bool
     {
-        return (bool) config('features.carrier_fedex', false)
+        return FeatureFlag::runtimeEnabled('carrier_fedex')
             && filled((string) config('services.fedex.client_id'))
             && filled((string) config('services.fedex.client_secret'))
             && filled((string) config('services.fedex.account_number'));

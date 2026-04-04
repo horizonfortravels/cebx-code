@@ -2,6 +2,7 @@
 
 namespace App\Services\Carriers;
 
+use App\Models\FeatureFlag;
 use App\Services\Contracts\CarrierInterface;
 
 /**
@@ -93,7 +94,7 @@ class CarrierAdapterFactory
         $enabled = [];
 
         foreach (self::$names as $code => $name) {
-            if (config("features.carrier_{$code}", false)) {
+            if (FeatureFlag::runtimeEnabled("carrier_{$code}")) {
                 $enabled[$code] = $name;
             }
         }

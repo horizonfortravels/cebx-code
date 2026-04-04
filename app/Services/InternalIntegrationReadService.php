@@ -139,6 +139,19 @@ class InternalIntegrationReadService
             'attention' => $rows->where('needs_attention', true)->count(),
             'carrier' => $rows->where('visibility_scope', 'carrier')->count(),
         ];
+
+        $requestSummary = sprintf(
+            '%s total â€¢ %s failed',
+            number_format((int) $log->total_requests),
+            number_format((int) $log->failed_requests)
+        );
+
+        return [
+            'total' => $rows->count(),
+            'enabled' => $rows->where('is_enabled', true)->count(),
+            'attention' => $rows->where('needs_attention', true)->count(),
+            'carrier' => $rows->where('visibility_scope', 'carrier')->count(),
+        ];
     }
 
     /**
@@ -691,9 +704,16 @@ class InternalIntegrationReadService
                 'label' => 'Unknown',
                 'checked_at' => '—',
                 'response_time' => '—',
-                'request_summary' => 'No recent health check summary',
+            'request_summary' => 'No recent health check summary',
+            'status_detail' => 'No recent health check summary',
             ];
         }
+
+        $requestSummary = sprintf(
+            '%s total â€¢ %s failed',
+            number_format((int) $log->total_requests),
+            number_format((int) $log->failed_requests)
+        );
 
         return [
             'label' => $this->healthOptions()[$log->status] ?? 'Unknown',
