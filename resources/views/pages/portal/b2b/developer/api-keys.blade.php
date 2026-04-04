@@ -30,7 +30,7 @@
         </section>
     @endif
 
-    <section style="display:grid;grid-template-columns:minmax(0,1.1fr) minmax(320px,.9fr);gap:18px">
+    <section class="grid-2-1">
         <article class="card">
             <div class="card-title">المفاتيح الحالية</div>
             <div style="overflow:auto">

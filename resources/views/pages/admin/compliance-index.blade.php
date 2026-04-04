@@ -29,8 +29,8 @@
 
 <div class="card" style="margin-bottom:24px">
     <div class="card-title">Search and filters</div>
-    <form method="GET" action="{{ route('internal.compliance.index') }}" style="display:grid;grid-template-columns:2fr repeat(3,minmax(0,1fr)) auto;gap:12px;align-items:end">
-        <div>
+    <form method="GET" action="{{ route('internal.compliance.index') }}" class="filter-grid-fluid">
+        <div class="filter-field-wide">
             <label for="compliance-search" style="display:block;font-size:12px;color:var(--tm);margin-bottom:6px">Search</label>
             <input id="compliance-search" type="text" name="q" value="{{ $filters['q'] }}" class="input" placeholder="Shipment reference, account, owner, or organization">
         </div>
@@ -64,7 +64,7 @@
             </select>
         </div>
 
-        <div style="display:flex;gap:8px">
+        <div class="filter-actions">
             <button type="submit" class="btn btn-pr">Apply</button>
             <a href="{{ route('internal.compliance.index') }}" class="btn btn-s">Reset</a>
         </div>

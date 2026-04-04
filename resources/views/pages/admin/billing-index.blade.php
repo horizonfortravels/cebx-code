@@ -22,8 +22,8 @@
 
 <div class="card" style="margin-bottom:24px">
     <div class="card-title">Search and filters</div>
-    <form method="GET" action="{{ route('internal.billing.index') }}" data-testid="internal-billing-filter-form" style="display:grid;grid-template-columns:2fr repeat(4,minmax(0,1fr));gap:12px;align-items:end">
-        <div>
+    <form method="GET" action="{{ route('internal.billing.index') }}" data-testid="internal-billing-filter-form" class="filter-grid-fluid">
+        <div class="filter-field-wide">
             <label for="internal-billing-search" style="display:block;font-size:12px;color:var(--tm);margin-bottom:6px">Search</label>
             <input id="internal-billing-search" data-testid="internal-billing-search-input" type="text" name="q" value="{{ $filters['q'] }}" class="input" placeholder="Account, slug, organization, or email">
         </div>
@@ -57,7 +57,7 @@
             </select>
         </div>
 
-        <div style="display:flex;gap:8px">
+        <div class="filter-actions">
             <button type="submit" class="btn btn-pr">Apply</button>
             <a href="{{ route('internal.billing.index') }}" class="btn btn-s">Reset</a>
         </div>

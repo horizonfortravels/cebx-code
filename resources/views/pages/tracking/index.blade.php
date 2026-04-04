@@ -8,9 +8,9 @@
     <p style="color:var(--td);font-size:15px">أدخل رقم التتبع لمعرفة حالة شحنتك</p>
 </div>
 
-<div class="content-narrow" style="margin-bottom:40px">
-    <form action="{{ route('tracking.index') }}" method="GET" style="display:flex;gap:12px;flex-wrap:wrap">
-        <div style="flex:1">
+<div class="content-wide" style="margin-bottom:40px">
+    <form action="{{ route('tracking.index') }}" method="GET" class="quick-search-row">
+        <div class="quick-search-input">
             <input type="text" name="tracking_number" value="{{ request('tracking_number') }}"
                    placeholder="أدخل رقم التتبع... مثال: SHP-20261847"
                    class="form-input" style="width:100%;height:56px;font-size:18px">
@@ -21,7 +21,7 @@
 
 @if($trackedShipment)
     <x-card>
-        <div class="content-medium">
+        <div class="content-wide">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
                 <div>
                     <div style="font-family:monospace;color:var(--pr);font-weight:700;font-size:20px">{{ $trackedShipment->reference_number }}</div>

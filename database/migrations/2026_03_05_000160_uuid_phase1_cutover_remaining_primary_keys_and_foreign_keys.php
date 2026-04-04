@@ -40,6 +40,7 @@ return new class extends Migration
         } finally {
             DB::statement('SET FOREIGN_KEY_CHECKS=1');
         }
+
     }
 
     public function down(): void

@@ -23,8 +23,8 @@
     </div>
 </div>
 
-<form method="GET" action="{{ route('internal.accounts.index') }}" class="card" style="margin-bottom:24px;display:grid;grid-template-columns:2fr repeat(4,minmax(0,1fr)) auto;gap:12px;align-items:end">
-    <div>
+<form method="GET" action="{{ route('internal.accounts.index') }}" class="card filter-grid-fluid" style="margin-bottom:24px">
+    <div class="filter-field-wide">
         <label for="accounts-search" style="display:block;font-size:12px;color:var(--tm);margin-bottom:6px">بحث</label>
         <input id="accounts-search" type="text" name="q" value="{{ $filters['q'] }}" placeholder="ابحث بالاسم أو البريد أو السجل التجاري" class="input">
     </div>
@@ -67,7 +67,7 @@
         </select>
     </div>
 
-    <div style="display:flex;gap:8px">
+    <div class="filter-actions">
         <button type="submit" class="btn btn-pr">تطبيق</button>
         <a href="{{ route('internal.accounts.index') }}" class="btn btn-s">إعادة ضبط</a>
     </div>

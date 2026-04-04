@@ -33,8 +33,8 @@
 
 <div class="card" style="margin-bottom:24px">
     <div class="card-title">Search and filters</div>
-    <form method="GET" action="{{ route('internal.api-keys.index') }}" style="display:grid;grid-template-columns:2fr repeat(3,minmax(0,1fr)) auto;gap:12px;align-items:end">
-        <div>
+    <form method="GET" action="{{ route('internal.api-keys.index') }}" class="filter-grid-fluid">
+        <div class="filter-field-wide">
             <label for="api-key-search" style="display:block;font-size:12px;color:var(--tm);margin-bottom:6px">Search</label>
             <input id="api-key-search" type="text" name="q" value="{{ $filters['q'] }}" class="input" placeholder="Key name, prefix, account, or scope">
         </div>
@@ -65,7 +65,7 @@
                 @endforeach
             </select>
         </div>
-        <div style="display:flex;gap:8px">
+        <div class="filter-actions">
             <button type="submit" class="btn btn-pr">Apply</button>
             <a href="{{ route('internal.api-keys.index') }}" class="btn btn-s">Reset</a>
         </div>
@@ -75,7 +75,7 @@
 @if($canManageKeys)
     <section class="card" data-testid="internal-api-key-create-form" style="margin-bottom:24px">
         <div class="card-title">Create internal API key</div>
-        <form method="POST" action="{{ route('internal.api-keys.store') }}" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px">
+        <form method="POST" action="{{ route('internal.api-keys.store') }}" class="form-grid-2">
             @csrf
             <div>
                 <label for="api-key-account-id" style="display:block;font-size:12px;color:var(--tm);margin-bottom:6px">Account</label>

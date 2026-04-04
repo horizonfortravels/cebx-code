@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Web;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\InternalTicketReadService;
-use App\Services\InternalTicketWorkflowService;
 use App\Support\Internal\InternalControlPlane;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -47,24 +46,15 @@ class InternalTicketReadCenterController extends Controller
         Request $request,
         string $ticket,
         InternalControlPlane $controlPlane,
-        InternalTicketWorkflowService $workflowService,
     ): View
     {
         $detail = $this->readService->findVisibleDetail($request->user(), $ticket);
         abort_if(! is_array($detail), 404);
 
-        $user = $request->user();
-        $canManageTickets = $this->canManageTickets($user, $controlPlane);
-
         return view('pages.admin.tickets-show', [
             'detail' => $detail,
-            'canViewAccount' => $this->canViewAccount($user, $controlPlane),
-            'canViewShipment' => $this->canViewShipment($user, $controlPlane),
-            'canManageTickets' => $canManageTickets,
-            'workflowStatusOptions' => $workflowService->manualStatusOptions(),
-            'triagePriorityOptions' => $workflowService->priorityOptions(),
-            'triageCategoryOptions' => $workflowService->categoryOptions(),
-            'assignableUsers' => $canManageTickets ? $workflowService->assignableUsers() : collect(),
+            'canViewAccount' => $this->canViewAccount($request->user(), $controlPlane),
+            'canViewShipment' => $this->canViewShipment($request->user(), $controlPlane),
         ]);
     }
 
@@ -97,12 +87,5 @@ class InternalTicketReadCenterController extends Controller
         return $user instanceof User
             && $user->hasPermission('tickets.manage')
             && $controlPlane->canSeeSurface($user, InternalControlPlane::SURFACE_INTERNAL_TICKETS_CREATE);
-    }
-
-    private function canManageTickets(?User $user, InternalControlPlane $controlPlane): bool
-    {
-        return $user instanceof User
-            && $user->hasPermission('tickets.manage')
-            && $controlPlane->canSeeSurface($user, InternalControlPlane::SURFACE_INTERNAL_TICKETS_ACTIONS);
     }
 }

@@ -2,7 +2,6 @@
 
 namespace Database\Seeders;
 
-use App\Models\Role;
 use App\Models\Permission;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -241,29 +240,61 @@ class RolesAndPermissionsSeeder extends Seeder
 
         foreach ($accounts as $account) {
             foreach ($this->tenantRoleDefinitions($permissionsByKey, (string) ($account->type ?? 'organization')) as $roleDefinition) {
-                $role = Role::withoutGlobalScopes()->updateOrCreate(
-                    [
-                        'account_id' => (string) $account->id,
-                        'name' => $roleDefinition['name'],
-                    ],
-                    array_filter([
-                        'slug' => $hasRoleSlug ? Str::slug($roleDefinition['name'], '_') : null,
-                        'display_name' => $roleDefinition['display_name'],
-                        'description' => $roleDefinition['description'],
-                        'is_system' => $roleDefinition['is_system'],
-                        'template' => $roleDefinition['template'],
-                    ], static fn ($value) => $value !== null)
+                $roleId = $this->upsertTenantRole(
+                    accountId: (string) $account->id,
+                    roleDefinition: $roleDefinition,
+                    hasRoleSlug: $hasRoleSlug,
                 );
 
                 $this->syncRolePermissionPivot(
                     table: 'role_permission',
                     roleColumn: 'role_id',
                     permissionColumn: 'permission_id',
-                    roleId: (string) $role->id,
+                    roleId: $roleId,
                     permissionIds: $roleDefinition['permissions']
                 );
             }
         }
+    }
+
+    /**
+     * @param array{name: string, display_name: string, description: string, is_system: bool, template: string, permissions: array<int, string>} $roleDefinition
+     */
+    private function upsertTenantRole(string $accountId, array $roleDefinition, bool $hasRoleSlug): string
+    {
+        $query = DB::table('roles')
+            ->where('account_id', $accountId)
+            ->where('name', $roleDefinition['name']);
+
+        $existingRoleId = $query->value('id');
+
+        $values = array_filter([
+            'slug' => $hasRoleSlug ? Str::slug($roleDefinition['name'], '_') : null,
+            'display_name' => $roleDefinition['display_name'],
+            'description' => $roleDefinition['description'],
+            'is_system' => $roleDefinition['is_system'],
+            'template' => $roleDefinition['template'],
+            'updated_at' => now(),
+        ], static fn ($value) => $value !== null);
+
+        if ($existingRoleId) {
+            DB::table('roles')
+                ->where('id', (string) $existingRoleId)
+                ->update($values);
+
+            return (string) $existingRoleId;
+        }
+
+        $roleId = (string) Str::uuid();
+
+        DB::table('roles')->insert(array_merge($values, [
+            'id' => $roleId,
+            'account_id' => $accountId,
+            'name' => $roleDefinition['name'],
+            'created_at' => now(),
+        ]));
+
+        return $roleId;
     }
 
     /**

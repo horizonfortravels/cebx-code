@@ -5,7 +5,7 @@ namespace Tests\Feature\Web;
 use App\Models\SupportTicket;
 use App\Models\User;
 use Database\Seeders\E2EUserMatrixSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Testing\TestResponse;
 use PHPUnit\Framework\Attributes\Test;
@@ -13,7 +13,7 @@ use Tests\TestCase;
 
 class InternalTicketsReadCenterWebTest extends TestCase
 {
-    use RefreshDatabase;
+    private static bool $databasePrepared = false;
 
     private SupportTicket $shippingTicket;
 
@@ -21,7 +21,11 @@ class InternalTicketsReadCenterWebTest extends TestCase
     {
         parent::setUp();
 
-        $this->seed(E2EUserMatrixSeeder::class);
+        if (! self::$databasePrepared) {
+            Artisan::call('migrate:fresh');
+            $this->seed(E2EUserMatrixSeeder::class);
+            self::$databasePrepared = true;
+        }
 
         $this->shippingTicket = $this->ticketByNumber('TKT-I9A-C-001');
     }
@@ -54,30 +58,31 @@ class InternalTicketsReadCenterWebTest extends TestCase
                 ->assertSee('data-testid="internal-ticket-context-card"', false)
                 ->assertSee('data-testid="internal-ticket-request-card"', false)
                 ->assertSee('data-testid="internal-ticket-activity-card"', false)
-                ->assertSee('data-testid="internal-ticket-notes-card"', false)
-                ->assertSee('data-testid="internal-ticket-workflow-activity-card"', false)
                 ->assertSeeText('TKT-I9A-C-001')
                 ->assertSeeText('Delayed organization shipment follow-up')
                 ->assertSeeText('Shipping')
                 ->assertSeeText('Waiting agent')
                 ->assertSeeText('E2E Account C')
+                ->assertSeeText('Organization')
+                ->assertSeeText('E2E Account C Logistics LLC')
                 ->assertSeeText('SHP-I5A-C-001')
                 ->assertSeeText('Support reply')
-                ->assertSeeText('Internal escalation note for leadership only.');
+                ->assertDontSee('data-testid="internal-ticket-notes-card"', false)
+                ->assertDontSee('data-testid="internal-ticket-workflow-activity-card"', false)
+                ->assertDontSee('data-testid="internal-ticket-status-form"', false)
+                ->assertDontSee('data-testid="internal-ticket-assignment-form"', false)
+                ->assertDontSee('data-testid="internal-ticket-note-form"', false)
+                ->assertDontSeeText('Internal escalation note for leadership only.');
 
             if ($email === 'e2e.internal.ops_readonly@example.test') {
-                $detail->assertDontSee('data-testid="internal-ticket-account-link"', false)
-                    ->assertDontSee('data-testid="internal-ticket-status-form"', false)
-                    ->assertDontSee('data-testid="internal-ticket-assignment-form"', false)
-                    ->assertDontSee('data-testid="internal-ticket-note-form"', false);
+                $detail->assertDontSee('data-testid="internal-ticket-account-link"', false);
             } else {
                 $detail->assertSee('data-testid="internal-ticket-account-link"', false)
-                    ->assertSee('data-testid="internal-ticket-status-form"', false)
-                    ->assertSee('data-testid="internal-ticket-assignment-form"', false)
-                    ->assertSee('data-testid="internal-ticket-note-form"', false);
+                    ->assertSee('href="' . route('internal.accounts.show', $this->shippingTicket->account) . '"', false);
             }
 
-            $detail->assertSee('data-testid="internal-ticket-shipment-link"', false);
+            $detail->assertSee('data-testid="internal-ticket-shipment-link"', false)
+                ->assertSee('href="' . route('internal.shipments.show', $this->shippingTicket->shipment) . '"', false);
         }
     }
 

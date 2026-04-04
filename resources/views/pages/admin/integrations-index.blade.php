@@ -29,8 +29,8 @@
 
 <div class="card" style="margin-bottom:24px">
     <div class="card-title">Search and filters</div>
-    <form method="GET" action="{{ route('internal.integrations.index') }}" style="display:grid;grid-template-columns:2fr repeat(3,minmax(0,1fr)) auto;gap:12px;align-items:end">
-        <div>
+    <form method="GET" action="{{ route('internal.integrations.index') }}" class="filter-grid-fluid">
+        <div class="filter-field-wide">
             <label for="integration-search" style="display:block;font-size:12px;color:var(--tm);margin-bottom:6px">Search</label>
             <input id="integration-search" type="text" name="q" value="{{ $filters['q'] }}" class="input" placeholder="Provider, store, gateway, or account">
         </div>
@@ -61,7 +61,7 @@
                 @endforeach
             </select>
         </div>
-        <div style="display:flex;gap:8px">
+        <div class="filter-actions">
             <button type="submit" class="btn btn-pr">Apply</button>
             <a href="{{ route('internal.integrations.index') }}" class="btn btn-s">Reset</a>
         </div>

@@ -139,7 +139,7 @@
     margin-bottom: 16px;
 }
 .login-brand .brand-title { font-size: 22px; font-weight: 800; margin: 0 0 8px; }
-.login-brand .brand-desc { font-size: 14px; opacity: .9; line-height: 1.6; margin: 0 0 24px; max-width: 320px; }
+.login-brand .brand-desc { font-size: 14px; opacity: .9; line-height: 1.6; margin: 0 0 24px; max-width: 380px; }
 .login-brand .brand-features { list-style: none; margin: 0; padding: 0; text-align: right; }
 .login-brand .brand-features li { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 13px; opacity: .95; }
 .login-brand .brand-features li span { font-size: 18px; }
@@ -153,7 +153,7 @@
         }
         .login-form-card {
             width: 100%;
-            max-width: 460px;
+            max-width: clamp(460px, 33vw, 520px);
             background: #fff;
             border-radius: 16px;
             padding: 36px 32px;

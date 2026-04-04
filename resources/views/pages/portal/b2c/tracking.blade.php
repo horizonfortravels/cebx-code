@@ -18,7 +18,7 @@
 </div>
 
 <x-card title="بحث سريع">
-    <form method="GET" action="{{ route('b2c.tracking.index') }}" style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+    <form method="GET" action="{{ route('b2c.tracking.index') }}" class="quick-search-row">
         <input type="text" name="q" value="{{ $searchQuery }}" placeholder="رقم تتبع أو مرجع" class="form-input" style="max-width:320px">
         <button type="submit" class="btn btn-pr">بحث</button>
     </form>

@@ -11,13 +11,10 @@
         </div>
         <h1 style="font-size:28px;font-weight:800;color:var(--tx);margin:0">Internal tickets</h1>
         <p style="color:var(--td);font-size:14px;margin:8px 0 0;max-width:820px">
-            Operational visibility into customer helpdesk tickets, linked accounts, linked shipments, assignees, and recent safe activity. Super-admin and support can also create new internal tickets from this center.
+            Operational visibility into customer helpdesk tickets, linked accounts, linked shipments, assignees, and safe customer conversation history.
         </p>
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap">
-        @if($canCreateTickets)
-            <a href="{{ route('internal.tickets.create') }}" class="btn btn-pr" data-testid="internal-tickets-create-link">Create ticket</a>
-        @endif
         <a href="{{ route('internal.tickets.index') }}" class="btn btn-s">Refresh</a>
         <a href="{{ route('internal.home') }}" class="btn btn-pr">Back to internal home</a>
     </div>
@@ -32,8 +29,8 @@
 
 <div class="card" style="margin-bottom:24px">
     <div class="card-title">Search and filters</div>
-    <form method="GET" action="{{ route('internal.tickets.index') }}" style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;align-items:end">
-        <div>
+    <form method="GET" action="{{ route('internal.tickets.index') }}" class="filter-grid-fluid">
+        <div class="filter-field-wide">
             <label for="ticket-search" style="display:block;font-size:12px;color:var(--tm);margin-bottom:6px">Search</label>
             <input id="ticket-search" type="text" name="q" value="{{ $filters['q'] }}" class="input" placeholder="Ticket number, subject, requester, account, shipment, or assignee">
         </div>
@@ -92,7 +89,7 @@
                 @endforeach
             </select>
         </div>
-        <div style="display:flex;gap:8px">
+        <div class="filter-actions">
             <button type="submit" class="btn btn-pr">Apply</button>
             <a href="{{ route('internal.tickets.index') }}" class="btn btn-s">Reset</a>
         </div>

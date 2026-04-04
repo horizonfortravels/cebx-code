@@ -16,11 +16,17 @@
         }
         .header {
             background: rgba(255,255,255,0.95);
-            padding: 14px 24px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+        .header-inner {
+            width: min(1560px, calc(100% - 48px));
+            min-height: 64px;
+            margin: 0 auto;
+            padding: 14px 0;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            gap: 16px;
         }
         .header-left {
             display: flex;
@@ -50,14 +56,14 @@
         }
         .btn-logout:hover { background: #d1d5db; }
         .container {
-            width: min(1520px, calc(100% - 48px));
+            width: min(1560px, calc(100% - 48px));
             margin: 0 auto;
-            padding: 36px 0 40px;
+            padding: clamp(28px, 3vw, 40px) 0 40px;
         }
         .card {
             background: #fff;
             border-radius: 16px;
-            padding: 28px;
+            padding: clamp(24px, 2vw, 30px);
             margin-bottom: 20px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.1);
         }
@@ -105,10 +111,21 @@
             text-decoration: none;
             font-weight: 600;
         }
+        @media (max-width: 768px) {
+            .header-inner,
+            .container {
+                width: min(100%, calc(100% - 32px));
+            }
+            .header-inner {
+                flex-wrap: wrap;
+                justify-content: space-between;
+            }
+        }
     </style>
 </head>
 <body>
     <header class="header">
+        <div class="header-inner">
         <div class="header-left">
             <span class="badge-b2b">B2B — بوابة الأعمال</span>
             <h1>لوحة حساب المنظمة</h1>
@@ -118,6 +135,7 @@
                 @csrf
                 <button type="submit" class="btn-logout">تسجيل الخروج</button>
             </form>
+        </div>
         </div>
     </header>
 

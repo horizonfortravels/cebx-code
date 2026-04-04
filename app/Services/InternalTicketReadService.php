@@ -460,7 +460,7 @@ class InternalTicketReadService
                         'ticket_id' => (string) $reply->support_ticket_id,
                         'actor_label' => (bool) $reply->is_agent ? 'Support reply' : 'Requester reply',
                         'actor_name' => $reply->user?->name ? (string) $reply->user->name : 'Unknown user',
-                        'excerpt' => Str::limit($this->safeText((string) ($reply->body ?? '')), 180),
+                        'body' => $this->safeText((string) ($reply->body ?? '')),
                         'created_at' => $reply->created_at,
                         'created_at_label' => $this->displayDateTime($reply->created_at) ?? 'N/A',
                     ];
@@ -485,7 +485,7 @@ class InternalTicketReadService
                         'ticket_id' => (string) $reply->ticket_id,
                         'actor_label' => $actorLabel,
                         'actor_name' => $reply->user?->name ? (string) $reply->user->name : 'Unknown user',
-                        'excerpt' => Str::limit($this->safeText((string) ($reply->body ?? '')), 180),
+                        'body' => $this->safeText((string) ($reply->body ?? '')),
                         'created_at' => $reply->created_at,
                         'created_at_label' => $this->displayDateTime($reply->created_at) ?? 'N/A',
                     ];
@@ -497,16 +497,16 @@ class InternalTicketReadService
         return $items
             ->groupBy('ticket_id')
             ->map(function (Collection $rows): array {
-                $sorted = $rows->sortByDesc('created_at')->values();
-                $latest = $sorted->first();
+                $latest = $rows->sortByDesc('created_at')->values()->first();
+                $thread = $rows->sortBy('created_at')->values();
 
                 return [
                     'summary' => is_array($latest)
                         ? sprintf('%s - %s', $latest['actor_label'], $latest['created_at_label'])
                         : 'No reply activity recorded yet',
                     'latest_at_label' => is_array($latest) ? $latest['created_at_label'] : 'N/A',
-                    'count' => $sorted->count(),
-                    'items' => $sorted->take(5)->values(),
+                    'count' => $thread->count(),
+                    'items' => $thread,
                 ];
             });
     }
@@ -524,7 +524,7 @@ class InternalTicketReadService
                 [
                     'actor_label' => 'Ticket created',
                     'actor_name' => $ticket->user?->name ? (string) $ticket->user->name : 'Unknown user',
-                    'excerpt' => Str::limit($this->ticketBody($ticket), 180),
+                    'body' => $this->ticketBody($ticket),
                     'created_at_label' => $this->displayDateTime($ticket->created_at) ?? 'N/A',
                 ],
             ]),

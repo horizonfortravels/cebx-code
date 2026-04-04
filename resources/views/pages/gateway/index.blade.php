@@ -11,14 +11,22 @@
     @endif
     <style>
         .gateway-page {
+            width: 100%;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             background: linear-gradient(160deg, #0B0F1A 0%, #0F172A 40%, #131B2E 100%);
-            padding: 40px 20px;
+            padding: clamp(32px, 4vw, 64px) 24px;
             text-align: center;
+        }
+
+        .gateway-shell {
+            width: min(1560px, 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
 
         /* ── Main Logo ── */
@@ -43,16 +51,15 @@
 
         /* ── Portal Cards Grid ── */
         .portal-grid {
-            display: flex;
+            width: 100%;
+            display: grid;
+            grid-template-columns: repeat(3, minmax(280px, 1fr));
             gap: 24px;
-            justify-content: center;
-            flex-wrap: wrap;
-            max-width: 960px;
         }
 
         /* ── Individual Portal Card ── */
         .portal-card {
-            width: 260px;
+            width: 100%;
             border-radius: 20px;
             padding: 36px 24px 32px;
             text-decoration: none;
@@ -60,6 +67,7 @@
             transition: all 0.3s ease;
             position: relative;
             overflow: hidden;
+            min-height: 100%;
         }
         .portal-card::before {
             content: '';
@@ -161,14 +169,19 @@
         }
 
         /* ── Responsive ── */
+        @media (max-width: 1200px) {
+            .portal-grid { grid-template-columns: repeat(2, minmax(280px, 1fr)); }
+        }
+
         @media (max-width: 860px) {
-            .portal-grid { flex-direction: column; align-items: center; }
-            .portal-card { width: 100%; max-width: 320px; }
+            .gateway-shell { width: 100%; }
+            .portal-grid { grid-template-columns: 1fr; }
         }
     </style>
 </head>
 <body>
     <div class="gateway-page">
+        <div class="gateway-shell">
 
         {{-- ═══ Main CBEX Logo (from PWA icons) ═══ --}}
         <img src="{{ asset('images/gateway-icon-xl.png') }}"
@@ -221,6 +234,7 @@
                 </div>
             </a>
 
+        </div>
         </div>
     </div>
 

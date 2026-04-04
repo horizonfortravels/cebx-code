@@ -9,6 +9,8 @@ const USERS = {
   internalSupport: 'e2e.internal.support@example.test',
 };
 
+let supportDetailPath = null;
+
 function loadRouteMap() {
   const raw = execSync('php artisan route:list --json', { encoding: 'utf8' });
   const rows = JSON.parse(raw);
@@ -81,14 +83,20 @@ test('internal support can open tickets list and detail', async ({ page }) => {
   await expect(page.locator('[data-testid="internal-ticket-context-card"]')).toBeVisible();
   await expect(page.locator('[data-testid="internal-ticket-request-card"]')).toBeVisible();
   await expect(page.locator('[data-testid="internal-ticket-activity-card"]')).toBeVisible();
-  await expect(page.locator('[data-testid="internal-ticket-notes-card"]')).toBeVisible();
-  await expect(page.locator('[data-testid="internal-ticket-workflow-activity-card"]')).toBeVisible();
   await expect(page.locator('[data-testid="internal-ticket-account-link"]')).toBeVisible();
   await expect(page.locator('[data-testid="internal-ticket-shipment-link"]')).toBeVisible();
+  await expect(page.locator('body')).toContainText('Organization');
+  await expect(page.locator('body')).toContainText('E2E Account C Logistics LLC');
   await expect(page.locator('body')).toContainText('SHP-I5A-C-001');
   await expect(page.locator('body')).toContainText('Support reply');
-  await expect(page.locator('body')).toContainText('Internal escalation note for leadership only.');
+  await expect(page.locator('[data-testid="internal-ticket-status-form"]')).toHaveCount(0);
+  await expect(page.locator('[data-testid="internal-ticket-assignment-form"]')).toHaveCount(0);
+  await expect(page.locator('[data-testid="internal-ticket-note-form"]')).toHaveCount(0);
+  await expect(page.locator('[data-testid="internal-ticket-notes-card"]')).toHaveCount(0);
+  await expect(page.locator('[data-testid="internal-ticket-workflow-activity-card"]')).toHaveCount(0);
+  await expect(page.locator('body')).not.toContainText('Internal escalation note for leadership only.');
   await expect(page.locator('body')).not.toContainText('Internal Server Error');
+  supportDetailPath = new URL(page.url()).pathname;
 });
 
 test('internal ops_readonly can open tickets list and detail read-only', async ({ page }) => {
@@ -101,15 +109,15 @@ test('internal ops_readonly can open tickets list and detail read-only', async (
   await expect(page.locator('[data-testid="internal-ticket-context-card"]')).toBeVisible();
   await expect(page.locator('[data-testid="internal-ticket-request-card"]')).toBeVisible();
   await expect(page.locator('[data-testid="internal-ticket-activity-card"]')).toBeVisible();
-  await expect(page.locator('[data-testid="internal-ticket-notes-card"]')).toBeVisible();
-  await expect(page.locator('[data-testid="internal-ticket-workflow-activity-card"]')).toBeVisible();
   await expect(page.locator('[data-testid="internal-ticket-account-link"]')).toHaveCount(0);
   await expect(page.locator('[data-testid="internal-ticket-shipment-link"]')).toBeVisible();
   await expect(page.locator('[data-testid="internal-ticket-status-form"]')).toHaveCount(0);
   await expect(page.locator('[data-testid="internal-ticket-assignment-form"]')).toHaveCount(0);
   await expect(page.locator('[data-testid="internal-ticket-note-form"]')).toHaveCount(0);
+  await expect(page.locator('[data-testid="internal-ticket-notes-card"]')).toHaveCount(0);
+  await expect(page.locator('[data-testid="internal-ticket-workflow-activity-card"]')).toHaveCount(0);
   await expect(page.locator('body')).toContainText('SHP-I5A-C-001');
-  await expect(page.locator('body')).toContainText('Internal escalation note for leadership only.');
+  await expect(page.locator('body')).not.toContainText('Internal escalation note for leadership only.');
   await expect(page.locator('body')).not.toContainText('Internal Server Error');
 });
 
@@ -123,4 +131,14 @@ test('external organization user is denied from internal ticket routes', async (
   await expect(page.locator('.panel .meta')).toContainText('403');
   await expect(page.locator('[data-testid="internal-tickets-table"]')).toHaveCount(0);
   await expect(page.locator('body')).not.toContainText('Internal Server Error');
+
+  if (supportDetailPath) {
+    const detailResponse = await page.goto(supportDetailPath);
+    expect(detailResponse).not.toBeNull();
+    expect(detailResponse.status()).toBe(403);
+    await expect(page.locator('.panel')).toBeVisible();
+    await expect(page.locator('.panel .meta')).toContainText('403');
+    await expect(page.locator('[data-testid="internal-ticket-summary-card"]')).toHaveCount(0);
+    await expect(page.locator('body')).not.toContainText('Internal Server Error');
+  }
 });
