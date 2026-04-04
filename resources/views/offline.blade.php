@@ -28,9 +28,15 @@
             justify-content: center;
         }
         .offline-container {
+            width: min(100%, 1560px);
             text-align: center;
             padding: 40px 24px;
-            max-width: 620px;
+        }
+        h1,
+        p,
+        .cached-pages {
+            width: min(100%, 620px);
+            margin-inline: auto;
         }
         .offline-icon {
             width: 120px;

@@ -18,8 +18,8 @@
             --primary-strong: #115e59;
             --accent: #0f172a;
             --warning: #b45309;
-            --page-max: 1520px;
-            --page-gutter: 24px;
+            --page-max: 1600px;
+            --page-gutter: clamp(16px, 1.25vw, 20px);
         }
 
         * { box-sizing: border-box; }

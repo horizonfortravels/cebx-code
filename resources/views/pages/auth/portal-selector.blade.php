@@ -16,7 +16,7 @@
             align-items: center;
             justify-content: center;
             background: linear-gradient(145deg, #0F172A 0%, #1E293B 50%, #0F172A 100%);
-            padding: clamp(28px, 3vw, 56px) 24px;
+            padding: clamp(28px, 3vw, 56px) 20px;
             position: relative;
             overflow: hidden;
         }
@@ -37,7 +37,7 @@
             pointer-events: none;
         }
         .portal-shell {
-            width: min(1560px, 100%);
+            width: min(1600px, 100%);
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -48,7 +48,7 @@
         .portal-header {
             text-align: center;
             width: 100%;
-            max-width: 1560px;
+            max-width: 1600px;
             position: relative;
             z-index: 1;
         }
@@ -94,7 +94,7 @@
             display: grid;
             grid-template-columns: repeat(3, minmax(280px, 1fr));
             gap: clamp(20px, 2vw, 28px);
-            max-width: 1560px;
+            max-width: 1600px;
             width: 100%;
             position: relative;
             z-index: 1;
@@ -198,7 +198,7 @@
 
         .portal-footer {
             width: 100%;
-            max-width: 1560px;
+            max-width: 1600px;
             text-align: center;
             color: #475569;
             font-size: 13px;

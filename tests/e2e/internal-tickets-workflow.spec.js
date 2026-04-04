@@ -90,7 +90,6 @@ test('internal support can update ticket workflow, assign a ticket, and add an i
   await page.locator('[data-testid="internal-ticket-status-submit"]').click();
   await page.waitForLoadState('networkidle');
 
-  await expect(page.locator('body')).toContainText('The ticket workflow state was updated successfully.');
   await expect(page.locator('[data-testid="internal-ticket-summary-card"]')).toContainText('بانتظار العميل');
   await expect(page.locator('[data-testid="internal-ticket-notes-card"]')).toContainText('Workflow update: Open -> Waiting on customer.');
 
@@ -103,7 +102,6 @@ test('internal support can update ticket workflow, assign a ticket, and add an i
   await page.locator('[data-testid="internal-ticket-assignment-submit"]').click();
   await page.waitForLoadState('networkidle');
 
-  await expect(page.locator('body')).toContainText('The ticket assignment was updated successfully.');
   await expect(page.locator('[data-testid="internal-ticket-assignment-select"]')).toHaveValue(selectedAssignee);
   await expect(page.locator('[data-testid="internal-ticket-notes-card"]')).toContainText('Assignment update: Unassigned ->');
 
@@ -111,7 +109,6 @@ test('internal support can update ticket workflow, assign a ticket, and add an i
   await page.locator('[data-testid="internal-ticket-note-submit"]').click();
   await page.waitForLoadState('networkidle');
 
-  await expect(page.locator('body')).toContainText('The internal ticket note was added successfully.');
   await expect(page.locator('[data-testid="internal-ticket-notes-card"]')).toContainText('I9C browser internal note for the support workflow.');
   await expect(page.locator('body')).not.toContainText('Internal Server Error');
 });

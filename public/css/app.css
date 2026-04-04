@@ -20,8 +20,8 @@
     --radius: 14px;
     --shadow-sm: 0 1px 3px rgba(0,0,0,.04);
     --shadow: 0 4px 12px rgba(0,0,0,.05);
-    --page-max: 1560px;
-    --page-gutter: clamp(20px, 1.9vw, 32px);
+    --page-max: 1600px;
+    --page-gutter: clamp(16px, 1.25vw, 20px);
     --page-gutter-sm: 16px;
 }
 
@@ -415,9 +415,9 @@ select.form-input { cursor: pointer; }
 .filter-actions-wide { grid-column: 1 / -1; }
 .filter-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .filter-actions > * { flex: 0 0 auto; }
-.content-wide { width: min(100%, 1440px); margin-inline: auto; }
-.standalone-shell { width: min(100%, 1120px); margin-inline: auto; }
-.standalone-shell-wide { width: min(100%, 1280px); margin-inline: auto; }
+.content-wide { width: min(100%, var(--page-max)); margin-inline: auto; }
+.standalone-shell { width: min(100%, 1480px); margin-inline: auto; }
+.standalone-shell-wide { width: min(100%, var(--page-max)); margin-inline: auto; }
 .form-grid-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .form-grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .field-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
@@ -431,7 +431,7 @@ select.form-input { cursor: pointer; }
 .quick-search-input { flex: 1 1 360px; min-width: min(100%, 280px); }
 .quick-search-row > input.form-input { flex: 1 1 360px; min-width: min(100%, 280px); max-width: none !important; }
 .content-narrow { width: min(100%, 760px); margin-inline: auto; }
-.content-medium { width: min(100%, 1040px); margin-inline: auto; }
+.content-medium { width: min(100%, 1360px); margin-inline: auto; }
 
 .filter-grid > *,
 .filter-grid-fluid > *,
@@ -584,17 +584,7 @@ nav[aria-label="Pagination Navigation"] span {
 }
 
 @media (min-width: 1440px) {
-    :root {
-        --page-gutter: clamp(24px, 1.5vw, 40px);
-    }
-
     .stats-grid {
         grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    }
-}
-
-@media (min-width: 1600px) {
-    :root {
-        --page-max: 1600px;
     }
 }

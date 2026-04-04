@@ -18,12 +18,12 @@
             align-items: center;
             justify-content: center;
             background: linear-gradient(160deg, #0B0F1A 0%, #0F172A 40%, #131B2E 100%);
-            padding: clamp(32px, 4vw, 64px) 24px;
+            padding: clamp(32px, 4vw, 64px) 20px;
             text-align: center;
         }
 
         .gateway-shell {
-            width: min(1560px, 100%);
+            width: min(1600px, 100%);
             display: flex;
             flex-direction: column;
             align-items: center;

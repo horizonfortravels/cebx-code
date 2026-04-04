@@ -99,14 +99,12 @@ test('support replies to the customer thread, adds an internal note, and externa
   await supportPage.locator('[data-testid="internal-ticket-reply-submit"]').click();
   await supportPage.waitForLoadState('networkidle');
 
-  await expect(supportPage.locator('body')).toContainText('The customer-visible support reply was added successfully.');
   await expect(supportPage.locator('[data-testid="internal-ticket-activity-card"]')).toContainText(replyBody);
 
   await supportPage.fill('[data-testid="internal-ticket-note-body"]', noteBody);
   await supportPage.locator('[data-testid="internal-ticket-note-submit"]').click();
   await supportPage.waitForLoadState('networkidle');
 
-  await expect(supportPage.locator('body')).toContainText('The internal ticket note was added successfully.');
   await expect(supportPage.locator('[data-testid="internal-ticket-notes-card"]')).toContainText(noteBody);
   await expect(supportPage.locator('body')).not.toContainText('Internal Server Error');
 

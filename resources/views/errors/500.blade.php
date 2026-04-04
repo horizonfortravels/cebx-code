@@ -35,12 +35,17 @@
         }
 
         .card {
-            width: min(100%, 1120px);
+            width: min(100%, 1560px);
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 24px;
             padding: 32px;
             box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
+        }
+        .card > p,
+        .card > .actions,
+        .card > .meta {
+            max-width: 820px;
         }
 
         .eyebrow {
