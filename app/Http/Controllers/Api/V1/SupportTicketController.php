@@ -138,16 +138,23 @@ class SupportTicketController extends Controller
         $this->authorize('reply', $ticket);
 
         $data = $request->validate([
-            'message' => 'required|string|max:5000',
-            'is_internal' => 'boolean',
+            'message' => 'nullable|string|max:5000',
+            'body' => 'nullable|string|max:5000',
+            'is_internal' => 'nullable|boolean',
         ]);
+
+        $body = trim((string) ($data['message'] ?? $data['body'] ?? ''));
+        abort_if($body === '', 422, 'A reply message is required.');
+
+        $isInternalNote = $request->boolean('is_internal')
+            && strtolower(trim((string) ($request->user()->user_type ?? ''))) === 'internal';
 
         $reply = SupportTicketReply::create([
             'id' => Str::uuid()->toString(),
             'ticket_id' => $ticket->id,
             'user_id' => $request->user()->id,
-            'body' => $data['message'],
-            'is_internal_note' => $data['is_internal'] ?? false,
+            'body' => $body,
+            'is_internal_note' => $isInternalNote,
         ]);
 
         $isAgent = method_exists($request->user(), 'hasPermission')

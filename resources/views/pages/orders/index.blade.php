@@ -8,12 +8,13 @@
 </div>
 
 <x-card>
-    <form method="GET" style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap">
-        @foreach(['' => 'الكل', 'new' => 'جديد', 'processing' => 'قيد المعالجة', 'shipped' => 'تم الشحن', 'delivered' => 'مسلّم'] as $val => $label)
-            <button type="submit" name="status" value="{{ $val }}" class="btn {{ request('status','') === $val ? 'btn-pr' : 'btn-s' }}" style="font-size:13px">{{ $label }}</button>
-        @endforeach
-        <div style="flex:1"></div>
-        <input type="text" name="search" value="{{ request('search') }}" placeholder="بحث..." class="form-input" style="width:200px">
+    <form method="GET" class="quick-search-row" style="margin-bottom:18px">
+        <div class="quick-search-actions">
+            @foreach(['' => 'الكل', 'new' => 'جديد', 'processing' => 'قيد المعالجة', 'shipped' => 'تم الشحن', 'delivered' => 'مسلّم'] as $val => $label)
+                <button type="submit" name="status" value="{{ $val }}" class="btn {{ request('status','') === $val ? 'btn-pr' : 'btn-s' }}" style="font-size:13px">{{ $label }}</button>
+            @endforeach
+        </div>
+        <input type="text" name="search" value="{{ request('search') }}" placeholder="بحث..." class="form-input quick-search-input">
     </form>
 
     <div class="table-wrap">

@@ -29,15 +29,15 @@
 
 <div class="card" style="margin-bottom:24px">
     <div class="card-title">بحث وفلاتر أساسية</div>
-    <form method="GET" action="{{ route('internal.staff.index') }}" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px">
-        <label style="display:flex;flex-direction:column;gap:8px">
-            <span style="font-size:12px;color:var(--tm)">بحث بالاسم أو البريد</span>
-            <input type="search" name="q" value="{{ $filters['q'] }}" placeholder="مثال: support أو ahmed@example.test">
+    <form method="GET" action="{{ route('internal.staff.index') }}" class="filter-grid-fluid">
+        <label class="filter-field filter-field-wide">
+            <span class="form-label">بحث بالاسم أو البريد</span>
+            <input type="search" name="q" value="{{ $filters['q'] }}" placeholder="مثال: support أو ahmed@example.test" class="form-input">
         </label>
 
-        <label style="display:flex;flex-direction:column;gap:8px">
-            <span style="font-size:12px;color:var(--tm)">الدور المعتمد</span>
-            <select name="role">
+        <label class="filter-field">
+            <span class="form-label">الدور المعتمد</span>
+            <select name="role" class="form-input">
                 <option value="">كل الأدوار</option>
                 @foreach($roleOptions as $roleKey => $roleLabel)
                     <option value="{{ $roleKey }}" @selected($filters['role'] === $roleKey)>{{ $roleLabel }}</option>
@@ -45,9 +45,9 @@
             </select>
         </label>
 
-        <label style="display:flex;flex-direction:column;gap:8px">
-            <span style="font-size:12px;color:var(--tm)">الحالة</span>
-            <select name="status">
+        <label class="filter-field">
+            <span class="form-label">الحالة</span>
+            <select name="status" class="form-input">
                 <option value="">كل الحالات</option>
                 @foreach($statusOptions as $statusKey => $statusLabel)
                     <option value="{{ $statusKey }}" @selected($filters['status'] === $statusKey)>{{ $statusLabel }}</option>
@@ -55,16 +55,16 @@
             </select>
         </label>
 
-        <label style="display:flex;flex-direction:column;gap:8px">
-            <span style="font-size:12px;color:var(--tm)">التعيينات القديمة</span>
-            <select name="deprecated">
+        <label class="filter-field">
+            <span class="form-label">التعيينات القديمة</span>
+            <select name="deprecated" class="form-input">
                 <option value="">الكل</option>
                 <option value="clean" @selected($filters['deprecated'] === 'clean')>متوافق فقط</option>
                 <option value="flagged" @selected($filters['deprecated'] === 'flagged')>يحتوي تعيينات قديمة</option>
             </select>
         </label>
 
-        <div style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap">
+        <div class="filter-actions filter-actions-wide">
             <button type="submit" class="btn btn-pr">تطبيق الفلاتر</button>
             <a href="{{ route('internal.staff.index') }}" class="btn btn-s">إعادة الضبط</a>
         </div>

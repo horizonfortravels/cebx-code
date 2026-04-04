@@ -15,16 +15,16 @@
 </div>
 
 <x-card>
-    <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
-        <input type="text" placeholder="بحث برقم الحاوية..." class="form-input" style="flex:1;min-width:200px">
-        <select class="form-input" style="width:auto">
+    <div class="filter-grid-fluid" style="margin-bottom:16px">
+        <input type="text" placeholder="بحث برقم الحاوية..." class="form-input filter-field-wide">
+        <select class="form-input">
             <option value="">جميع الأنواع</option>
             <option>20ft Standard</option>
             <option>40ft Standard</option>
             <option>40ft High Cube</option>
             <option>Reefer</option>
         </select>
-        <select class="form-input" style="width:auto">
+        <select class="form-input">
             <option value="">جميع الحالات</option>
             <option>متاحة</option>
             <option>محملة</option>

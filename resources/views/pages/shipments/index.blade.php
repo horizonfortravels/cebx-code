@@ -20,22 +20,23 @@
 
 {{-- Filters + Table --}}
 <x-card>
-    <form method="GET" action="{{ route('shipments.index') }}" style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;align-items:center">
-        @foreach([
-            ['' , 'الكل'],
-            ['pending', 'قيد الانتظار'],
-            ['in_transit', 'في الطريق'],
-            ['delivered', 'تم التسليم'],
-            ['cancelled', 'ملغي'],
-        ] as [$val, $label])
-            <button type="submit" name="status" value="{{ $val }}"
-                class="btn {{ request('status', '') === $val ? 'btn-pr' : 'btn-s' }}" style="font-size:13px">
-                {{ $label }}
-            </button>
-        @endforeach
-        <div style="flex:1"></div>
+    <form method="GET" action="{{ route('shipments.index') }}" class="quick-search-row" style="margin-bottom:18px">
+        <div class="quick-search-actions">
+            @foreach([
+                ['' , 'الكل'],
+                ['pending', 'قيد الانتظار'],
+                ['in_transit', 'في الطريق'],
+                ['delivered', 'تم التسليم'],
+                ['cancelled', 'ملغي'],
+            ] as [$val, $label])
+                <button type="submit" name="status" value="{{ $val }}"
+                    class="btn {{ request('status', '') === $val ? 'btn-pr' : 'btn-s' }}" style="font-size:13px">
+                    {{ $label }}
+                </button>
+            @endforeach
+        </div>
         <input type="text" name="search" value="{{ request('search') }}" placeholder="بحث برقم التتبع..."
-            class="form-input" style="width:220px">
+            class="form-input quick-search-input">
     </form>
 
     <div class="table-wrap">

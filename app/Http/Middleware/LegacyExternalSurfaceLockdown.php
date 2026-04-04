@@ -17,6 +17,10 @@ class LegacyExternalSurfaceLockdown
             return $next($request);
         }
 
+        if ($this->isAllowedSupportRoute($routeName)) {
+            return $next($request);
+        }
+
         $redirect = $this->redirectFor($request, $routeName);
         if ($redirect !== null) {
             return $redirect;
@@ -31,6 +35,17 @@ class LegacyExternalSurfaceLockdown
             'notifications.index',
             'notifications.read',
             'notifications.readAll',
+        ], true);
+    }
+
+    private function isAllowedSupportRoute(string $routeName): bool
+    {
+        return in_array($routeName, [
+            'support.index',
+            'support.store',
+            'support.show',
+            'support.reply',
+            'support.resolve',
         ], true);
     }
 

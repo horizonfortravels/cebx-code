@@ -63,12 +63,19 @@ class InternalTicketsReadCenterWebTest extends TestCase
                 ->assertSeeText('E2E Account C Logistics LLC')
                 ->assertSeeText('SHP-I5A-C-001')
                 ->assertSeeText('Support reply')
-                ->assertDontSee('data-testid="internal-ticket-notes-card"', false)
+                ->assertSee('data-testid="internal-ticket-notes-card"', false)
+                ->assertSeeText('Internal escalation note for leadership only.')
                 ->assertDontSee('data-testid="internal-ticket-workflow-activity-card"', false)
                 ->assertDontSee('data-testid="internal-ticket-status-form"', false)
-                ->assertDontSee('data-testid="internal-ticket-assignment-form"', false)
-                ->assertDontSee('data-testid="internal-ticket-note-form"', false)
-                ->assertDontSeeText('Internal escalation note for leadership only.');
+                ->assertDontSee('data-testid="internal-ticket-assignment-form"', false);
+
+            if ($email === 'e2e.internal.ops_readonly@example.test') {
+                $detail->assertDontSee('data-testid="internal-ticket-reply-form"', false)
+                    ->assertDontSee('data-testid="internal-ticket-note-form"', false);
+            } else {
+                $detail->assertSee('data-testid="internal-ticket-reply-form"', false)
+                    ->assertSee('data-testid="internal-ticket-note-form"', false);
+            }
 
             if ($email === 'e2e.internal.ops_readonly@example.test') {
                 $detail->assertDontSee('data-testid="internal-ticket-account-link"', false);

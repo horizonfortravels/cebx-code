@@ -8,20 +8,22 @@
 </div>
 
 <x-card>
-    <form method="GET" action="{{ route('hscodes.index') }}" style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
-        <input type="text" name="search" value="{{ request('search') }}" placeholder="بحث بالكود أو الوصف..." class="form-input" style="flex:2;min-width:250px">
-        <select name="chapter" class="form-input" style="width:auto">
+    <form method="GET" action="{{ route('hscodes.index') }}" class="filter-grid-fluid" style="margin-bottom:16px">
+        <input type="text" name="search" value="{{ request('search') }}" placeholder="بحث بالكود أو الوصف..." class="form-input filter-field-wide">
+        <select name="chapter" class="form-input">
             <option value="">جميع الأقسام</option>
             @for($i = 1; $i <= 97; $i++)
                 <option value="{{ $i }}" {{ request('chapter') == $i ? 'selected' : '' }}>القسم {{ $i }}</option>
             @endfor
         </select>
-        <select name="restricted" class="form-input" style="width:auto">
+        <select name="restricted" class="form-input">
             <option value="">الكل</option>
             <option value="1" {{ request('restricted') === '1' ? 'selected' : '' }}>مقيّد</option>
             <option value="0" {{ request('restricted') === '0' ? 'selected' : '' }}>غير مقيّد</option>
         </select>
-        <button type="submit" class="btn btn-pr" style="height:42px">بحث</button>
+        <div class="filter-actions filter-actions-wide">
+            <button type="submit" class="btn btn-pr">بحث</button>
+        </div>
     </form>
 
     <div class="table-wrap">

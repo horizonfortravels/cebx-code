@@ -17,16 +17,18 @@
 </div>
 
 <x-card>
-    <form method="GET" action="{{ route('customs.index') }}" style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
-        <input type="text" name="search" value="{{ request('search') }}" placeholder="بحث برقم البيان الجمركي أو الشحنة..." class="form-input" style="flex:2;min-width:200px">
-        <select name="status" class="form-input" style="width:auto">
+    <form method="GET" action="{{ route('customs.index') }}" class="filter-grid-fluid" style="margin-bottom:16px">
+        <input type="text" name="search" value="{{ request('search') }}" placeholder="بحث برقم البيان الجمركي أو الشحنة..." class="form-input filter-field-wide">
+        <select name="status" class="form-input">
             <option value="">جميع الحالات</option>
             <option value="pending" {{ request('status') === 'pending' ? 'selected' : '' }}>قيد التخليص</option>
             <option value="cleared" {{ request('status') === 'cleared' ? 'selected' : '' }}>تم التخليص</option>
             <option value="held" {{ request('status') === 'held' ? 'selected' : '' }}>محتجزة</option>
             <option value="inspection" {{ request('status') === 'inspection' ? 'selected' : '' }}>قيد الفحص</option>
         </select>
-        <button type="submit" class="btn btn-pr" style="height:42px">بحث</button>
+        <div class="filter-actions filter-actions-wide">
+            <button type="submit" class="btn btn-pr">بحث</button>
+        </div>
     </form>
 
     <div class="table-wrap">

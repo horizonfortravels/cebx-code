@@ -187,7 +187,7 @@
             </div>
         </div>
 
-        <form method="GET" action="{{ route($portalConfig['create_route']) }}" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;align-items:end">
+        <form method="GET" action="{{ route($portalConfig['create_route']) }}" class="filter-grid-fluid">
             @foreach($addressSelectionBaseQuery as $queryKey => $queryValue)
                 <input type="hidden" name="{{ $queryKey }}" value="{{ $queryValue }}">
             @endforeach
@@ -216,7 +216,7 @@
                 </select>
             </label>
 
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <div class="filter-actions filter-actions-wide">
                 <button type="submit" class="btn btn-s" data-testid="saved-address-apply">{{ __('portal_addresses.common.use_saved_cta') }}</button>
                 @if(request()->filled('sender_address') || request()->filled('recipient_address'))
                     <a href="{{ route($portalConfig['create_route'], $addressSelectionBaseQuery) }}" class="btn btn-s" data-testid="saved-address-clear">{{ __('portal_addresses.common.clear_saved_cta') }}</a>

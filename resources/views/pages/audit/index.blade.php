@@ -9,8 +9,8 @@
 
 {{-- Filters --}}
 <x-card>
-    <form method="GET" action="{{ route('audit.index') }}" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
-        <div style="flex:1;min-width:160px">
+    <form method="GET" action="{{ route('audit.index') }}" class="filter-grid-fluid">
+        <div class="filter-field">
             <label class="form-label">المستخدم</label>
             <select name="user_id" class="form-input">
                 <option value="">الكل</option>
@@ -19,7 +19,7 @@
                 @endforeach
             </select>
         </div>
-        <div style="flex:1;min-width:160px">
+        <div class="filter-field">
             <label class="form-label">الحدث</label>
             <select name="event" class="form-input">
                 <option value="">الكل</option>
@@ -28,15 +28,17 @@
                 @endforeach
             </select>
         </div>
-        <div style="flex:1;min-width:140px">
+        <div class="filter-field">
             <label class="form-label">من تاريخ</label>
             <input type="date" name="from" value="{{ request('from') }}" class="form-input">
         </div>
-        <div style="flex:1;min-width:140px">
+        <div class="filter-field">
             <label class="form-label">إلى تاريخ</label>
             <input type="date" name="to" value="{{ request('to') }}" class="form-input">
         </div>
-        <button type="submit" class="btn btn-pr" style="height:42px">بحث</button>
+        <div class="filter-actions filter-actions-wide">
+            <button type="submit" class="btn btn-pr">بحث</button>
+        </div>
     </form>
 </x-card>
 

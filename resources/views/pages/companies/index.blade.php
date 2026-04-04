@@ -15,15 +15,17 @@
 </div>
 
 <x-card>
-    <form method="GET" action="{{ route('companies.index') }}" style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
-        <input type="text" name="search" value="{{ request('search') }}" placeholder="بحث بالاسم أو الكود..." class="form-input" style="flex:2;min-width:200px">
-        <select name="type" class="form-input" style="width:auto">
+    <form method="GET" action="{{ route('companies.index') }}" class="filter-grid-fluid" style="margin-bottom:16px">
+        <input type="text" name="search" value="{{ request('search') }}" placeholder="بحث بالاسم أو الكود..." class="form-input filter-field-wide">
+        <select name="type" class="form-input">
             <option value="">جميع الأنواع</option>
             <option value="carrier" {{ request('type') === 'carrier' ? 'selected' : '' }}>ناقل</option>
             <option value="agent" {{ request('type') === 'agent' ? 'selected' : '' }}>وكيل</option>
             <option value="partner" {{ request('type') === 'partner' ? 'selected' : '' }}>شريك</option>
         </select>
-        <button type="submit" class="btn btn-pr" style="height:42px">بحث</button>
+        <div class="filter-actions filter-actions-wide">
+            <button type="submit" class="btn btn-pr">بحث</button>
+        </div>
     </form>
 
     <div class="table-wrap">

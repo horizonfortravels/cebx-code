@@ -16,18 +16,18 @@
 
 {{-- Search --}}
 <x-card>
-    <form method="GET" action="{{ route('organizations.index') }}" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end">
-        <div style="flex:2;min-width:200px">
+    <form method="GET" action="{{ route('organizations.index') }}" class="filter-grid-fluid">
+        <div class="filter-field filter-field-wide">
             <input type="text" name="search" value="{{ request('search') }}" placeholder="بحث بالاسم أو السجل التجاري..." class="form-input">
         </div>
-        <div style="flex:1;min-width:140px">
+        <div class="filter-field">
             <select name="type" class="form-input">
                 <option value="">جميع الأنواع</option>
                 <option value="individual" {{ request('type') === 'individual' ? 'selected' : '' }}>فرد</option>
                 <option value="business" {{ request('type') === 'business' ? 'selected' : '' }}>شركة</option>
             </select>
         </div>
-        <div style="flex:1;min-width:140px">
+        <div class="filter-field">
             <select name="status" class="form-input">
                 <option value="">جميع الحالات</option>
                 <option value="active" {{ request('status') === 'active' ? 'selected' : '' }}>نشطة</option>
@@ -35,7 +35,9 @@
                 <option value="suspended" {{ request('status') === 'suspended' ? 'selected' : '' }}>معلقة</option>
             </select>
         </div>
-        <button type="submit" class="btn btn-pr" style="height:42px">بحث</button>
+        <div class="filter-actions filter-actions-wide">
+            <button type="submit" class="btn btn-pr">بحث</button>
+        </div>
     </form>
 </x-card>
 
