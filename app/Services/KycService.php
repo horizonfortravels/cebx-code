@@ -44,6 +44,7 @@ class KycService
 
             return [
                 'status'              => 'unverified',
+                'is_verified'         => false,
                 'status_display'      => $default->statusDisplay(),
                 'verification_type'   => $account->type,
                 'verification_level'  => 'basic',
@@ -61,6 +62,7 @@ class KycService
 
         return [
             'status'              => $kyc->status,
+            'is_verified'         => $kyc->isApproved(),
             'status_display'      => $kyc->statusDisplay(),
             'verification_type'   => $kyc->verification_type,
             'verification_level'  => $kyc->verification_level ?? 'basic',

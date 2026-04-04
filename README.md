@@ -64,7 +64,7 @@ It includes:
 composer install
 ```
 
-Create a local `.env` file before booting the app. This repository does not currently include a committed `.env.example`, so use a team-provided environment file or create one manually with your local database, cache, mail, and app settings.
+Create a local `.env` file before booting the app. The repository now includes a committed `.env.example` you can copy and adjust for your environment.
 
 Then generate the app key, run migrations, and seed demo data:
 
@@ -151,6 +151,47 @@ Start here for deeper project references:
 
 Feature-specific requirement notes also exist in the repository root and `docs/` as `FR-*.md` files.
 
-## Docker Note
+## Server Deployment
 
-This repository includes a `Dockerfile` and `docker-compose.yml`, but the current compose file references a `frontend/` directory that is not present in this checkout. For now, the native PHP/Composer setup above is the reliable documented path unless the Docker configuration is updated alongside the missing frontend service.
+### Transfer-And-Run Workspace Checklist
+
+If you plan to move the workspace to a server and run it there without downloading application dependencies again:
+
+- keep `vendor/` with the transferred files
+- keep `.env` or prepare it from `.env.example`
+- provide a MySQL database and Redis instance, or use the included Docker Compose stack
+- run migrations on the target environment
+
+The checked-in public assets already live under `public/css` and `public/js`, so there is no frontend build step required for production web pages.
+
+### Docker Compose
+
+The repository now includes a server-ready `Dockerfile`, `docker-compose.yml`, and `docker/entrypoint.sh`.
+
+Quick start:
+
+```bash
+cp .env.example .env
+docker compose up --build -d
+docker compose exec app php artisan migrate --force
+docker compose exec app php artisan preflight:check
+```
+
+Notes:
+
+- the `app` container serves HTTP on port `8000`
+- the `queue` container runs `php artisan queue:work`
+- MySQL and Redis are included in the Compose stack
+- set `RUN_MIGRATIONS=true` in the environment if you want the app container to auto-run migrations on start
+
+### Native PHP Server
+
+If you are not using Docker on the server:
+
+```bash
+php artisan migrate --force
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+php artisan preflight:check
+```

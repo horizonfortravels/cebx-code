@@ -52,7 +52,7 @@ class KycComplianceApiTest extends TestCase
     public function test_api_get_status(): void
     {
         VerificationCase::factory()->create(['account_id' => $this->account->id]);
-        $response = $this->actingAs($this->user)->getJson('/api/v1/kyc/status');
+        $response = $this->actingAs($this->user)->getJson('/api/v1/kyc/verification-status');
         $response->assertOk()->assertJsonStructure(['data' => ['status', 'is_verified']]);
     }
 

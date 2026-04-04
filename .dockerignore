@@ -1,0 +1,15 @@
+.git
+.github
+.env
+.env.testing
+node_modules
+test-results
+playwright-report
+tmp
+docs/browser_*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/testing/*
+storage/framework/views/*
+storage/logs/*.log
+

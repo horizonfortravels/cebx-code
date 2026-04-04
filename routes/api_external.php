@@ -990,9 +990,9 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'userType:external', 'tenantCon
          ->middleware('permission:kyc.read')
          ->name('api.v1.kyc.get-case');
 
-    Route::get('/kyc/status', [KycComplianceController::class, 'getStatus'])
+    Route::get('/kyc/verification-status', [KycComplianceController::class, 'getStatus'])
          ->middleware('permission:kyc.read')
-         ->name('api.v1.kyc.status');
+         ->name('api.v1.kyc.verification-status');
 
     // FR-KYC-002: Documents
     Route::post('/kyc/cases/{caseId}/documents', [KycComplianceController::class, 'uploadDocument'])
@@ -1215,14 +1215,6 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'userType:external', 'tenantCon
     // ═══════════════════════════════════════════════════════════════
 
     // ── Companies ────────────────────────────────────────────────
-    Route::apiResource('companies', \App\Http\Controllers\Api\V1\CompanyController::class)
-         ->middleware('permission:companies.read', ['only' => ['index', 'show']])
-         ->middleware('permission:companies.manage', ['except' => ['index', 'show']])
-         ->names('api.v1.companies');
-    Route::get('/companies/stats', [\App\Http\Controllers\Api\V1\CompanyController::class, 'stats'])
-         ->middleware('permission:companies.read')
-         ->name('api.v1.companies.stats');
-
     // ── Branches ─────────────────────────────────────────────────
     Route::get('/branches/stats', [BranchController::class, 'stats'])
          ->middleware('permission:branches.read')
@@ -1287,13 +1279,13 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'userType:external', 'tenantCon
     Route::get('/risk/stats', [RiskController::class, 'stats'])->middleware('permission:risk.read')->name('api.v1.risk.stats');
 
     // ── Support Tickets ──────────────────────────────────────────
-    Route::get('/support-tickets/stats', [\App\Http\Controllers\Api\V1\SupportTicketController::class, 'stats'])->middleware('permission:tickets.read')->name('api.v1.tickets.stats');
+    Route::get('/support-tickets/stats', [\App\Http\Controllers\Api\V1\SupportTicketController::class, 'stats'])->middleware('permission:tickets.read')->name('api.v1.support-tickets.stats');
     Route::apiResource('support-tickets', \App\Http\Controllers\Api\V1\SupportTicketController::class)
          ->middleware('permission:tickets.read', ['only' => ['index', 'show']])
          ->middleware('permission:tickets.manage', ['except' => ['index', 'show']]);
-    Route::post('/support-tickets/{ticketId}/replies', [\App\Http\Controllers\Api\V1\SupportTicketController::class, 'reply'])->middleware('permission:tickets.manage')->name('api.v1.tickets.reply');
-    Route::patch('/support-tickets/{ticketId}/close', [\App\Http\Controllers\Api\V1\SupportTicketController::class, 'close'])->middleware('permission:tickets.manage')->name('api.v1.tickets.close');
-    Route::patch('/support-tickets/{ticketId}/assign', [\App\Http\Controllers\Api\V1\SupportTicketController::class, 'assign'])->middleware('permission:tickets.manage')->name('api.v1.tickets.assign');
+    Route::post('/support-tickets/{ticketId}/replies', [\App\Http\Controllers\Api\V1\SupportTicketController::class, 'reply'])->middleware('permission:tickets.manage')->name('api.v1.support-tickets.reply');
+    Route::patch('/support-tickets/{ticketId}/close', [\App\Http\Controllers\Api\V1\SupportTicketController::class, 'close'])->middleware('permission:tickets.manage')->name('api.v1.support-tickets.close');
+    Route::patch('/support-tickets/{ticketId}/assign', [\App\Http\Controllers\Api\V1\SupportTicketController::class, 'assign'])->middleware('permission:tickets.manage')->name('api.v1.support-tickets.assign');
 
     // ── Drivers & Last Mile ──────────────────────────────────────
     Route::get('/drivers/stats', [DriverController::class, 'stats'])->middleware('permission:drivers.read')->name('api.v1.drivers.stats');
@@ -1344,22 +1336,9 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'userType:external', 'tenantCon
     // ═══════════════════════════════════════════════════════════════
     // PHASE 2: VESSELS & SCHEDULES
     // ═══════════════════════════════════════════════════════════════
-    Route::prefix('vessels')->group(function () {
-        Route::get('/', [VesselScheduleController::class, 'listVessels'])->middleware('permission:vessels.read')->name('api.v1.vessels.index');
-        Route::post('/', [VesselScheduleController::class, 'createVessel'])->middleware('permission:vessels.manage')->name('api.v1.vessels.store');
-        Route::get('/{id}', [VesselScheduleController::class, 'showVessel'])->middleware('permission:vessels.read')->name('api.v1.vessels.show');
-        Route::put('/{id}', [VesselScheduleController::class, 'updateVessel'])->middleware('permission:vessels.manage')->name('api.v1.vessels.update');
-        Route::delete('/{id}', [VesselScheduleController::class, 'deleteVessel'])->middleware('permission:vessels.manage')->name('api.v1.vessels.destroy');
-    });
-
     Route::prefix('vessel-schedules')->group(function () {
-        Route::get('/', [VesselScheduleController::class, 'listSchedules'])->middleware('permission:vessel_schedules.read')->name('api.v1.schedules.index');
-        Route::post('/', [VesselScheduleController::class, 'createSchedule'])->middleware('permission:vessel_schedules.manage')->name('api.v1.schedules.store');
         Route::get('/search', [VesselScheduleController::class, 'search'])->middleware('permission:vessel_schedules.read')->name('api.v1.schedules.search');
         Route::get('/stats', [VesselScheduleController::class, 'scheduleStats'])->middleware('permission:vessel_schedules.read')->name('api.v1.schedules.stats');
-        Route::get('/{id}', [VesselScheduleController::class, 'showSchedule'])->middleware('permission:vessel_schedules.read')->name('api.v1.schedules.show');
-        Route::put('/{id}', [VesselScheduleController::class, 'updateSchedule'])->middleware('permission:vessel_schedules.manage')->name('api.v1.schedules.update');
-        Route::delete('/{id}', [VesselScheduleController::class, 'deleteSchedule'])->middleware('permission:vessel_schedules.manage')->name('api.v1.schedules.destroy');
     });
 
     // ═══════════════════════════════════════════════════════════════
@@ -1601,4 +1580,3 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'userType:external', 'tenantCon
     });
 
 });
-

@@ -1,45 +1,89 @@
-version: '3.8'
 services:
   app:
     build:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8000:8000"
-    volumes:
-      - .:/var/www/html
+      - "${APP_PORT:-8000}:8000"
+    env_file:
+      - .env
     depends_on:
-      - postgres
-      - redis
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
     environment:
-      - DB_HOST=postgres
-      - REDIS_HOST=redis
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_URL: "${APP_URL:-http://localhost:8000}"
+      DB_CONNECTION: "${DB_CONNECTION:-mysql}"
+      DB_HOST: "${DB_HOST:-mysql}"
+      DB_PORT: "${DB_PORT:-3306}"
+      DB_DATABASE: "${DB_DATABASE:-shipping_gateway}"
+      DB_USERNAME: "${DB_USERNAME:-shipping}"
+      DB_PASSWORD: "${DB_PASSWORD:-secret}"
+      REDIS_HOST: "${REDIS_HOST:-redis}"
+      REDIS_PORT: "${REDIS_PORT:-6379}"
+      CACHE_DRIVER: "${CACHE_DRIVER:-redis}"
+      QUEUE_CONNECTION: "${QUEUE_CONNECTION:-redis}"
+      RUN_MIGRATIONS: "${RUN_MIGRATIONS:-false}"
+    restart: unless-stopped
 
-  frontend:
+  queue:
     build:
-      context: ./frontend
+      context: .
       dockerfile: Dockerfile
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
-
-  postgres:
-    image: postgres:16-alpine
-    ports:
-      - "5432:5432"
+    env_file:
+      - .env
+    command: ["php", "artisan", "queue:work", "--verbose", "--tries=3", "--timeout=90"]
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
     environment:
-      POSTGRES_DB: shipping_gateway
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: secret
+      APP_ENV: production
+      APP_DEBUG: "false"
+      APP_URL: "${APP_URL:-http://localhost:8000}"
+      DB_CONNECTION: "${DB_CONNECTION:-mysql}"
+      DB_HOST: "${DB_HOST:-mysql}"
+      DB_PORT: "${DB_PORT:-3306}"
+      DB_DATABASE: "${DB_DATABASE:-shipping_gateway}"
+      DB_USERNAME: "${DB_USERNAME:-shipping}"
+      DB_PASSWORD: "${DB_PASSWORD:-secret}"
+      REDIS_HOST: "${REDIS_HOST:-redis}"
+      REDIS_PORT: "${REDIS_PORT:-6379}"
+      CACHE_DRIVER: "${CACHE_DRIVER:-redis}"
+      QUEUE_CONNECTION: "${QUEUE_CONNECTION:-redis}"
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:8.4
+    ports:
+      - "${DB_FORWARD_PORT:-3306}:3306"
+    environment:
+      MYSQL_DATABASE: "${DB_DATABASE:-shipping_gateway}"
+      MYSQL_USER: "${DB_USERNAME:-shipping}"
+      MYSQL_PASSWORD: "${DB_PASSWORD:-secret}"
+      MYSQL_ROOT_PASSWORD: "${DB_ROOT_PASSWORD:-root}"
+    command: ["--default-authentication-plugin=mysql_native_password"]
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -uroot -p$${MYSQL_ROOT_PASSWORD} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
 
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "${REDIS_FORWARD_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
 
 volumes:
-  pgdata:
+  mysql-data:
+  redis-data:

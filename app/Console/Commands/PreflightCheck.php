@@ -2,33 +2,9 @@
 
 namespace App\Console\Commands;
 
-use App\Services\Observability\CircuitBreaker;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
-/**
- * PreflightCheck — F-1: Go-Live Safeguards
- *
- * Runs pre-flight validation before going live.
- * Aborts with clear message if any critical check fails.
- *
- * Usage:
- *   php artisan preflight:check              # Run all checks
- *   php artisan preflight:check --strict     # Fail on warnings too
- *   php artisan preflight:check --json       # Output as JSON
- *
- * Checks performed:
- *   1. Environment sanity (APP_ENV, APP_DEBUG, APP_KEY)
- *   2. Database connectivity
- *   3. Critical ENV variables
- *   4. Feature flags state
- *   5. Backup existence (last 24h)
- *   6. Circuit breaker states
- *   7. Storage permissions
- *   8. Queue health
- *
- * Returns exit code 0 (pass) or 1 (fail).
- */
 class PreflightCheck extends Command
 {
     protected $signature = 'preflight:check
@@ -38,232 +14,246 @@ class PreflightCheck extends Command
     protected $description = 'Run pre-flight checks before go-live';
 
     private array $results = [];
-    private int $passed  = 0;
+    private int $passed = 0;
     private int $warnings = 0;
-    private int $failed  = 0;
+    private int $failed = 0;
 
     public function handle(): int
     {
-        $this->info('');
-        $this->info('═══════════════════════════════════════');
-        $this->info('  PRE-FLIGHT CHECK — Go-Live Safeguards');
-        $this->info('═══════════════════════════════════════');
-        $this->info('');
+        $this->line('');
+        $this->line(str_repeat('=', 48));
+        $this->line('  PRE-FLIGHT CHECK');
+        $this->line(str_repeat('=', 48));
+        $this->line('');
 
-        // ── 1. Environment Sanity ────────────────────────────
         $this->check('ENV: APP_ENV', function () {
-            $env = config('app.env');
-            if ($env === 'production') return [true, "APP_ENV = production ✓"];
+            $env = (string) config('app.env');
+
+            if ($env === 'production') {
+                return [true, 'APP_ENV = production'];
+            }
+
             return [false, "APP_ENV = {$env} (expected: production)", 'critical'];
         });
 
         $this->check('ENV: APP_DEBUG', function () {
-            $debug = config('app.debug');
-            if (!$debug) return [true, "APP_DEBUG = false ✓"];
-            return [false, "APP_DEBUG = true — MUST be false in production", 'critical'];
+            $debug = (bool) config('app.debug');
+
+            if (! $debug) {
+                return [true, 'APP_DEBUG = false'];
+            }
+
+            return [false, 'APP_DEBUG = true (must be false in production)', 'critical'];
         });
 
         $this->check('ENV: APP_KEY', function () {
-            $key = config('app.key');
-            if (!empty($key) && strlen($key) >= 32) return [true, "APP_KEY is set ✓"];
-            return [false, "APP_KEY is missing or too short", 'critical'];
+            $key = $this->normalizeConfigValue(config('app.key'));
+
+            if ($key !== null && strlen($key) >= 32) {
+                return [true, 'APP_KEY is set'];
+            }
+
+            return [false, 'APP_KEY is missing or too short', 'critical'];
         });
 
-        // ── 2. Database Connectivity ─────────────────────────
         $this->check('Database Connection', function () {
             try {
                 DB::connection()->getPdo();
-                $dbName = DB::connection()->getDatabaseName();
-                return [true, "Connected to: {$dbName} ✓"];
+
+                return [true, 'Connected to: ' . DB::connection()->getDatabaseName()];
             } catch (\Throwable $e) {
-                return [false, "Cannot connect: " . substr($e->getMessage(), 0, 100), 'critical'];
+                return [false, 'Cannot connect: ' . substr($e->getMessage(), 0, 120), 'critical'];
             }
         });
 
-        // ── 3. Critical ENV Variables ────────────────────────
-        $criticalEnvs = [
-            'DB_HOST', 'DB_DATABASE', 'DB_USERNAME',
-        ];
+        foreach (['DB_HOST', 'DB_DATABASE', 'DB_USERNAME'] as $key) {
+            $this->check("ENV: {$key}", function () use ($key) {
+                $value = $this->configuredCriticalValue($key);
 
-        foreach ($criticalEnvs as $envKey) {
-            $this->check("ENV: {$envKey}", function () use ($envKey) {
-                $val = env($envKey);
-                if (!empty($val)) return [true, "{$envKey} is set ✓"];
-                return [false, "{$envKey} is not set", 'critical'];
+                if ($value !== null) {
+                    return [true, "{$key} is set"];
+                }
+
+                return [false, "{$key} is not set", 'critical'];
             });
         }
 
-        // Optional but recommended
-        $optionalEnvs = ['MAIL_MAILER', 'QUEUE_CONNECTION', 'CACHE_DRIVER'];
-        foreach ($optionalEnvs as $envKey) {
-            $this->check("ENV: {$envKey} (optional)", function () use ($envKey) {
-                $val = env($envKey);
-                if (!empty($val)) return [true, "{$envKey} = {$val} ✓"];
-                return [false, "{$envKey} is not set (recommended)", 'warning'];
+        foreach (['MAIL_MAILER', 'QUEUE_CONNECTION', 'CACHE_DRIVER'] as $key) {
+            $this->check("ENV: {$key} (optional)", function () use ($key) {
+                $value = $this->configuredOptionalValue($key);
+
+                if ($value !== null) {
+                    return [true, "{$key} = {$value}"];
+                }
+
+                return [false, "{$key} is not set (recommended)", 'warning'];
             });
         }
 
-        // ── 4. Feature Flags State ───────────────────────────
         $this->check('Feature Flags Config', function () {
             $flags = config('features', []);
-            if (empty($flags)) {
-                return [false, "config/features.php not loaded or empty", 'warning'];
+
+            if (! is_array($flags) || $flags === []) {
+                return [false, 'config/features.php is empty or unavailable', 'warning'];
             }
-            $count = count($flags);
-            $enabled = count(array_filter($flags));
-            return [true, "{$count} flags loaded, {$enabled} enabled ✓"];
+
+            return [true, count($flags) . ' flags loaded, ' . count(array_filter($flags)) . ' enabled'];
         });
 
         $this->check('Sandbox Mode', function () {
-            $sandbox = config('features.sandbox_mode', null);
-            if ($sandbox === true && config('app.env') === 'production') {
-                return [false, "sandbox_mode is ON in production — disable for go-live", 'warning'];
+            $sandbox = config('features.sandbox_mode');
+            $environment = (string) config('app.env');
+
+            if ($sandbox === true && $environment === 'production') {
+                return [false, 'sandbox_mode is enabled in production', 'warning'];
             }
-            return [true, "Sandbox mode appropriate for environment ✓"];
+
+            return [true, 'Sandbox mode is appropriate for the current environment'];
         });
 
         $this->check('Maintenance Mode', function () {
             if (app()->isDownForMaintenance()) {
-                return [false, "Application is in maintenance mode", 'warning'];
+                return [false, 'Application is in maintenance mode', 'warning'];
             }
-            return [true, "Not in maintenance mode ✓"];
+
+            return [true, 'Application is not in maintenance mode'];
         });
 
-        // ── 5. Backup Existence (last 24h) ───────────────────
         $this->check('Recent Backup (24h)', function () {
             $backupDir = storage_path('app/backups');
 
-            if (!is_dir($backupDir)) {
+            if (! is_dir($backupDir)) {
                 return [false, "No backups directory found at {$backupDir}", 'warning'];
             }
 
-            $files = glob("{$backupDir}/backup_*.sql*");
-            if (empty($files)) {
-                return [false, "No backup files found", 'warning'];
+            $files = glob($backupDir . DIRECTORY_SEPARATOR . 'backup_*.sql*') ?: [];
+            if ($files === []) {
+                return [false, 'No backup files found', 'warning'];
             }
 
-            // Check most recent
-            $latestTime = 0;
-            $latestFile = '';
+            $latestFile = null;
+            $latestTimestamp = 0;
+
             foreach ($files as $file) {
-                $mtime = filemtime($file);
-                if ($mtime > $latestTime) {
-                    $latestTime = $mtime;
+                $timestamp = (int) filemtime($file);
+
+                if ($timestamp > $latestTimestamp) {
+                    $latestTimestamp = $timestamp;
                     $latestFile = basename($file);
                 }
             }
 
-            $hoursAgo = round((time() - $latestTime) / 3600, 1);
+            $hoursAgo = round((time() - $latestTimestamp) / 3600, 1);
 
             if ($hoursAgo <= 24) {
-                return [true, "Latest backup: {$latestFile} ({$hoursAgo}h ago) ✓"];
+                return [true, "Latest backup: {$latestFile} ({$hoursAgo}h ago)"];
             }
 
-            return [false, "Latest backup is {$hoursAgo}h old (max: 24h). Run: php artisan db:backup", 'warning'];
+            return [false, "Latest backup is {$hoursAgo}h old (max: 24h)", 'warning'];
         });
 
-        // ── 6. Circuit Breaker States ────────────────────────
         $this->check('Circuit Breakers', function () {
-            try {
-                $statuses = CircuitBreaker::allStatuses();
-                $tripped = array_filter($statuses, fn($s) => $s['state'] === 'open');
+            $circuitBreakerClass = 'App\\Services\\Observability\\CircuitBreaker';
 
-                if (!empty($tripped)) {
-                    $names = implode(', ', array_keys($tripped));
-                    return [false, "Tripped circuit breakers: {$names}", 'warning'];
+            if (! class_exists($circuitBreakerClass) || ! method_exists($circuitBreakerClass, 'allStatuses')) {
+                return [false, 'Circuit breaker service is not available in this build', 'warning'];
+            }
+
+            try {
+                $statuses = $circuitBreakerClass::allStatuses();
+                $tripped = array_filter($statuses, static fn ($status) => ($status['state'] ?? null) === 'open');
+
+                if ($tripped !== []) {
+                    return [false, 'Tripped circuit breakers: ' . implode(', ', array_keys($tripped)), 'warning'];
                 }
 
-                return [true, count($statuses) . " services monitored, all healthy ✓"];
+                return [true, count($statuses) . ' services monitored, all healthy'];
             } catch (\Throwable $e) {
-                return [false, "Cannot check circuit breakers: " . $e->getMessage(), 'warning'];
+                return [false, 'Cannot inspect circuit breakers: ' . $e->getMessage(), 'warning'];
             }
         });
 
-        // ── 7. Storage Permissions ───────────────────────────
         $this->check('Storage Writable', function () {
-            $dirs = [
+            $directories = [
                 storage_path('logs'),
                 storage_path('app'),
                 storage_path('framework/cache'),
             ];
 
             $unwritable = [];
-            foreach ($dirs as $dir) {
-                if (!is_writable($dir)) {
-                    $unwritable[] = $dir;
+
+            foreach ($directories as $directory) {
+                if (! is_writable($directory)) {
+                    $unwritable[] = $directory;
                 }
             }
 
-            if (!empty($unwritable)) {
-                return [false, "Not writable: " . implode(', ', $unwritable), 'critical'];
+            if ($unwritable !== []) {
+                return [false, 'Not writable: ' . implode(', ', $unwritable), 'critical'];
             }
 
-            return [true, "All storage directories writable ✓"];
+            return [true, 'All storage directories are writable'];
         });
 
-        // ── 8. Queue Health ──────────────────────────────────
         $this->check('Queue Connection', function () {
-            $driver = config('queue.default');
+            $driver = (string) config('queue.default');
 
-            if ($driver === 'sync') {
-                if (config('app.env') === 'production') {
-                    return [false, "Queue driver is 'sync' — not suitable for production", 'warning'];
-                }
+            if ($driver === 'sync' && config('app.env') === 'production') {
+                return [false, "Queue driver is 'sync' in production", 'warning'];
             }
 
-            return [true, "Queue driver: {$driver} ✓"];
+            return [true, "Queue driver: {$driver}"];
         });
 
-        // ── OUTPUT ───────────────────────────────────────────
-        $this->info('');
-        $this->info('═══════════════════════════════════════');
-        $this->info("  RESULTS: ✅ {$this->passed} passed  ⚠️ {$this->warnings} warnings  ❌ {$this->failed} failed");
-        $this->info('═══════════════════════════════════════');
+        $payload = [
+            'passed' => $this->passed,
+            'warnings' => $this->warnings,
+            'failed' => $this->failed,
+            'go_live' => $this->failed === 0 && (! $this->option('strict') || $this->warnings === 0),
+            'checks' => $this->results,
+        ];
+
+        $this->line('');
+        $this->line(str_repeat('=', 48));
+        $this->line("  RESULTS: {$this->passed} passed, {$this->warnings} warnings, {$this->failed} failed");
+        $this->line(str_repeat('=', 48));
 
         if ($this->option('json')) {
-            $this->line(json_encode([
-                'passed'   => $this->passed,
-                'warnings' => $this->warnings,
-                'failed'   => $this->failed,
-                'go_live'  => $this->failed === 0 && (!$this->option('strict') || $this->warnings === 0),
-                'checks'   => $this->results,
-            ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+            $this->line(json_encode($payload, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
         }
 
         if ($this->failed > 0) {
             $this->error('');
-            $this->error('❌ GO-LIVE BLOCKED — Fix critical failures before proceeding.');
+            $this->error('GO-LIVE BLOCKED: fix critical failures first.');
+
             return self::FAILURE;
         }
 
         if ($this->warnings > 0 && $this->option('strict')) {
             $this->warn('');
-            $this->warn('⚠️ GO-LIVE BLOCKED (strict mode) — Resolve all warnings.');
+            $this->warn('GO-LIVE BLOCKED (strict mode): resolve all warnings.');
+
             return self::FAILURE;
         }
 
         if ($this->warnings > 0) {
             $this->warn('');
-            $this->warn('⚠️ GO-LIVE POSSIBLE with warnings — Review before proceeding.');
+            $this->warn('GO-LIVE POSSIBLE WITH WARNINGS: review before deploying.');
         } else {
             $this->info('');
-            $this->info('✅ ALL CHECKS PASSED — Ready for go-live!');
+            $this->info('ALL CHECKS PASSED: ready for go-live.');
         }
 
         return self::SUCCESS;
     }
 
-    // ═════════════════════════════════════════════════════════
-    // CHECK RUNNER
-    // ═════════════════════════════════════════════════════════
-
-    private function check(string $name, callable $fn): void
+    private function check(string $name, callable $callback): void
     {
         try {
-            [$passed, $message, $severity] = array_pad($fn(), 3, null);
+            [$passed, $message, $severity] = array_pad($callback(), 3, null);
         } catch (\Throwable $e) {
-            $passed   = false;
-            $message  = 'Exception: ' . $e->getMessage();
+            $passed = false;
+            $message = 'Exception: ' . $e->getMessage();
             $severity = 'critical';
         }
 
@@ -271,22 +261,65 @@ class PreflightCheck extends Command
 
         if ($passed) {
             $this->passed++;
-            $icon = '  ✅';
+            $prefix = '[OK]';
         } elseif ($severity === 'warning') {
             $this->warnings++;
-            $icon = '  ⚠️';
+            $prefix = '[WARN]';
         } else {
             $this->failed++;
-            $icon = '  ❌';
+            $prefix = '[FAIL]';
         }
 
-        $this->line("{$icon} {$name}: {$message}");
+        $this->line("{$prefix} {$name}: {$message}");
 
         $this->results[] = [
-            'check'    => $name,
-            'passed'   => $passed,
+            'check' => $name,
+            'passed' => $passed,
             'severity' => $severity,
-            'message'  => $message,
+            'message' => $message,
         ];
+    }
+
+    private function configuredCriticalValue(string $key): ?string
+    {
+        $connection = (string) config('database.default');
+
+        $map = [
+            'DB_HOST' => config("database.connections.{$connection}.host"),
+            'DB_DATABASE' => config("database.connections.{$connection}.database"),
+            'DB_USERNAME' => config("database.connections.{$connection}.username"),
+        ];
+
+        return $this->normalizeConfigValue($map[$key] ?? null);
+    }
+
+    private function configuredOptionalValue(string $key): ?string
+    {
+        $map = [
+            'MAIL_MAILER' => config('mail.default'),
+            'QUEUE_CONNECTION' => config('queue.default'),
+            'CACHE_DRIVER' => config('cache.default'),
+        ];
+
+        return $this->normalizeConfigValue($map[$key] ?? null);
+    }
+
+    private function normalizeConfigValue(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+
+        if (is_bool($value)) {
+            return $value ? 'true' : 'false';
+        }
+
+        if (! is_scalar($value)) {
+            return null;
+        }
+
+        $normalized = trim((string) $value);
+
+        return $normalized === '' ? null : $normalized;
     }
 }
