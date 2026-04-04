@@ -66,7 +66,7 @@ class InternalTicketsReadCenterWebTest extends TestCase
                 ->assertSeeText((string) data_get($visibleDetail, 'account_summary.type_label'))
                 ->assertSeeText('E2E Account C Logistics LLC')
                 ->assertSeeText('SHP-I5A-C-001')
-                ->assertSeeText('Support reply')
+                ->assertSeeText('We are checking the latest carrier handoff and will update the customer once the scan settles.')
                 ->assertSee('data-testid="internal-ticket-notes-card"', false)
                 ->assertSeeText('Internal escalation note for leadership only.')
                 ->assertSee('data-testid="internal-ticket-workflow-activity-card"', false);
