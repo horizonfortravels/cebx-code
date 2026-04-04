@@ -8,7 +8,7 @@
     <x-badge :status="$ticket->status" />
 </div>
 
-<div style="display:grid;grid-template-columns:2fr 1fr;gap:18px">
+<div class="grid-2-1">
     {{-- Messages --}}
     <div>
         {{-- Original --}}

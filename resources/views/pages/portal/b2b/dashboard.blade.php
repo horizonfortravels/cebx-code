@@ -20,7 +20,7 @@
         @endforeach
     </section>
 
-    <section style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:18px">
+    <section class="grid-auto-220" style="gap:18px">
         @foreach([
             ['title' => 'الشحنات', 'desc' => 'متابعة الشحنات الجارية وأولوية العمل اليومي.', 'route' => 'b2b.shipments.index', 'cta' => 'فتح الشحنات'],
             ['title' => 'الطلبات', 'desc' => 'مراجعة الطلبات الواردة قبل الشحن أو المزامنة.', 'route' => 'b2b.orders.index', 'cta' => 'فتح الطلبات'],
@@ -50,7 +50,7 @@
                 <a href="{{ route($developerEntryRoute) }}" class="btn btn-pr">فتح واجهة المطور</a>
             </div>
 
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px">
+            <div class="grid-auto-220">
                 @foreach($developerTools as $tool)
                     <article style="padding:18px;border:1px solid var(--bd);border-radius:18px;background:#fff">
                         <div style="font-weight:700;color:var(--tx);margin-bottom:8px">{{ $tool['label'] }}</div>

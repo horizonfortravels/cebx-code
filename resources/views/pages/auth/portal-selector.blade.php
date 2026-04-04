@@ -3,19 +3,20 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Shipping Gateway — اختر البوابة المناسبة لنوع الحساب</title>
+    <title>Shipping Gateway â€” ط§ط®طھط± ط§ظ„ط¨ظˆط§ط¨ط© ط§ظ„ظ…ظ†ط§ط³ط¨ط© ظ„ظ†ظˆط¹ ط§ظ„ط­ط³ط§ط¨</title>
     @include('components.pwa-meta')
     <meta name="pwa-sw-url" content="{{ asset('sw.js') }}">
     <link rel="stylesheet" href="{{ asset('css/app.css') }}">
     <style>
         .portal-page {
+            width: 100%;
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             background: linear-gradient(145deg, #0F172A 0%, #1E293B 50%, #0F172A 100%);
-            padding: 32px 20px;
+            padding: clamp(28px, 3vw, 56px) 24px;
             position: relative;
             overflow: hidden;
         }
@@ -35,9 +36,19 @@
             bottom: -150px; right: -100px;
             pointer-events: none;
         }
+        .portal-shell {
+            width: min(1560px, 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 48px;
+            position: relative;
+            z-index: 1;
+        }
         .portal-header {
             text-align: center;
-            margin-bottom: 48px;
+            width: 100%;
+            max-width: 1560px;
             position: relative;
             z-index: 1;
         }
@@ -81,9 +92,9 @@
         }
         .portals-grid {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 24px;
-            max-width: 900px;
+            grid-template-columns: repeat(3, minmax(280px, 1fr));
+            gap: clamp(20px, 2vw, 28px);
+            max-width: 1560px;
             width: 100%;
             position: relative;
             z-index: 1;
@@ -116,15 +127,12 @@
             box-shadow: 0 20px 60px rgba(0,0,0,0.4);
         }
         .portal-door:hover::before { height: 6px; }
-        /* B2C */
         .portal-door.b2c::before { background: linear-gradient(90deg, #0D9488, #14B8A6); }
         .portal-door.b2c:hover { border-color: rgba(13,148,136,0.4); background: rgba(13,148,136,0.08); }
         .portal-door.b2c .door-icon { background: linear-gradient(135deg, #0D9488, #065F56); box-shadow: 0 6px 24px rgba(13,148,136,0.3); }
-        /* B2B */
         .portal-door.b2b::before { background: linear-gradient(90deg, #3B82F6, #2563EB); }
         .portal-door.b2b:hover { border-color: rgba(59,130,246,0.4); background: rgba(59,130,246,0.08); }
         .portal-door.b2b .door-icon { background: linear-gradient(135deg, #3B82F6, #1D4ED8); box-shadow: 0 6px 24px rgba(59,130,246,0.3); }
-        /* Admin */
         .portal-door.admin::before { background: linear-gradient(90deg, #7C3AED, #6D28D9); }
         .portal-door.admin:hover { border-color: rgba(124,58,237,0.4); background: rgba(124,58,237,0.08); }
         .portal-door.admin .door-icon { background: linear-gradient(135deg, #7C3AED, #4C1D95); box-shadow: 0 6px 24px rgba(124,58,237,0.3); }
@@ -189,7 +197,8 @@
         .admin .door-badge { background: rgba(124,58,237,0.15); color: #A78BFA; }
 
         .portal-footer {
-            margin-top: 48px;
+            width: 100%;
+            max-width: 1560px;
             text-align: center;
             color: #475569;
             font-size: 13px;
@@ -198,7 +207,11 @@
         }
         .portal-footer a { color: #64748B; text-decoration: none; }
 
+        @media (max-width: 1200px) {
+            .portals-grid { grid-template-columns: repeat(2, minmax(280px, 1fr)); }
+        }
         @media (max-width: 768px) {
+            .portal-shell { gap: 32px; }
             .portals-grid { grid-template-columns: 1fr; max-width: 400px; }
             .portal-header h1 { font-size: 24px; }
         }
@@ -206,49 +219,48 @@
 </head>
 <body>
 <div class="portal-page">
-    <div class="portal-header">
-        <div class="logo">
-            <img src="{{ asset('images/logo-auth.png') }}" alt="شعار Shipping Gateway" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-            <span class="logo-fallback" style="display:none;">SG</span>
+    <div class="portal-shell">
+        <div class="portal-header">
+            <div class="logo">
+                <img src="{{ asset('images/logo-auth.png') }}" alt="ط´ط¹ط§ط± Shipping Gateway" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <span class="logo-fallback" style="display:none;">SG</span>
+            </div>
+            <h1>Shipping Gateway</h1>
+            <p>ط§ط®طھط± ط§ظ„ط¨ظˆط§ط¨ط© ط§ظ„ظ…ظ†ط§ط³ط¨ط© ظ„ظ†ظˆط¹ ط§ظ„ط­ط³ط§ط¨: ط§ظ„ط£ظپط±ط§ط¯ ظ„ظ„ط­ط³ط§ط¨ط§طھ ط§ظ„ظپط±ط¯ظٹط©طŒ ظˆط§ظ„ط£ط¹ظ…ط§ظ„ ظ„ط­ط³ط§ط¨ط§طھ ط§ظ„ظ…ظ†ط¸ظ…ط§طھطŒ ظˆط§ظ„ط¯ط§ط®ظ„ظٹط© ظ„ظ…ظˆط¸ظپظٹ ط§ظ„ظ…ظ†طµط©.</p>
         </div>
-        <h1>Shipping Gateway</h1>
-        <p>اختر البوابة المناسبة لنوع الحساب: الأفراد للحسابات الفردية، والأعمال لحسابات المنظمات، والداخلية لموظفي المنصة.</p>
-    </div>
 
-    <div class="portals-grid">
-        {{-- B2C --}}
-        <a href="{{ route('b2c.login') }}" class="portal-door b2c">
-            <div class="door-icon">👤</div>
-            <span class="door-badge">B2C</span>
-            <div class="door-title">بوابة الأفراد</div>
-            <div class="door-subtitle">الحسابات الفردية</div>
-            <div class="door-desc">للحسابات الفردية الخارجية فقط: شحناتك الشخصية، التتبع، المحفظة، والعناوين عبر شبكة الناقلين التابعة للمنصة.</div>
-            <div class="door-cta">دخول الحساب الفردي ←</div>
-        </a>
+        <div class="portals-grid">
+            <a href="{{ route('b2c.login') }}" class="portal-door b2c">
+                <div class="door-icon">ًں‘¤</div>
+                <span class="door-badge">B2C</span>
+                <div class="door-title">ط¨ظˆط§ط¨ط© ط§ظ„ط£ظپط±ط§ط¯</div>
+                <div class="door-subtitle">ط§ظ„ط­ط³ط§ط¨ط§طھ ط§ظ„ظپط±ط¯ظٹط©</div>
+                <div class="door-desc">ظ„ظ„ط­ط³ط§ط¨ط§طھ ط§ظ„ظپط±ط¯ظٹط© ط§ظ„ط®ط§ط±ط¬ظٹط© ظپظ‚ط·: ط´ط­ظ†ط§طھظƒ ط§ظ„ط´ط®طµظٹط©طŒ ط§ظ„طھطھط¨ط¹طŒ ط§ظ„ظ…ط­ظپط¸ط©طŒ ظˆط§ظ„ط¹ظ†ط§ظˆظٹظ† ط¹ط¨ط± ط´ط¨ظƒط© ط§ظ„ظ†ط§ظ‚ظ„ظٹظ† ط§ظ„طھط§ط¨ط¹ط© ظ„ظ„ظ…ظ†طµط©.</div>
+                <div class="door-cta">ط¯ط®ظˆظ„ ط§ظ„ط­ط³ط§ط¨ ط§ظ„ظپط±ط¯ظٹ â†گ</div>
+            </a>
 
-        {{-- B2B --}}
-        <a href="{{ route('b2b.login') }}" class="portal-door b2b">
-            <div class="door-icon">🏢</div>
-            <span class="door-badge">B2B</span>
-            <div class="door-title">بوابة الأعمال</div>
-            <div class="door-subtitle">حسابات المنظمات</div>
-            <div class="door-desc">لحسابات المنظمات الخارجية فقط: إدارة شحنات المنظمة وفريقها وتقاريرها عبر شبكة الناقلين التابعة للمنصة.</div>
-            <div class="door-cta">دخول حساب المنظمة ←</div>
-        </a>
+            <a href="{{ route('b2b.login') }}" class="portal-door b2b">
+                <div class="door-icon">ًںڈ¢</div>
+                <span class="door-badge">B2B</span>
+                <div class="door-title">ط¨ظˆط§ط¨ط© ط§ظ„ط£ط¹ظ…ط§ظ„</div>
+                <div class="door-subtitle">ط­ط³ط§ط¨ط§طھ ط§ظ„ظ…ظ†ط¸ظ…ط§طھ</div>
+                <div class="door-desc">ظ„ط­ط³ط§ط¨ط§طھ ط§ظ„ظ…ظ†ط¸ظ…ط§طھ ط§ظ„ط®ط§ط±ط¬ظٹط© ظپظ‚ط·: ط¥ط¯ط§ط±ط© ط´ط­ظ†ط§طھ ط§ظ„ظ…ظ†ط¸ظ…ط© ظˆظپط±ظٹظ‚ظ‡ط§ ظˆطھظ‚ط§ط±ظٹط±ظ‡ط§ ط¹ط¨ط± ط´ط¨ظƒط© ط§ظ„ظ†ط§ظ‚ظ„ظٹظ† ط§ظ„طھط§ط¨ط¹ط© ظ„ظ„ظ…ظ†طµط©.</div>
+                <div class="door-cta">ط¯ط®ظˆظ„ ط­ط³ط§ط¨ ط§ظ„ظ…ظ†ط¸ظ…ط© â†گ</div>
+            </a>
 
-        {{-- Admin --}}
-        <a href="{{ route('admin.login') }}" class="portal-door admin">
-            <div class="door-icon">🛡️</div>
-            <span class="door-badge">Admin</span>
-            <div class="door-title">البوابة الداخلية</div>
-            <div class="door-subtitle">موظفو المنصة</div>
-            <div class="door-desc">مساحة منفصلة لموظفي المنصة والإدارة الداخلية، وليست بوابة للعملاء الخارجيين.</div>
-            <div class="door-cta">دخول البوابة الداخلية ←</div>
-        </a>
-    </div>
+            <a href="{{ route('admin.login') }}" class="portal-door admin">
+                <div class="door-icon">ًں›،ï¸ڈ</div>
+                <span class="door-badge">Admin</span>
+                <div class="door-title">ط§ظ„ط¨ظˆط§ط¨ط© ط§ظ„ط¯ط§ط®ظ„ظٹط©</div>
+                <div class="door-subtitle">ظ…ظˆط¸ظپظˆ ط§ظ„ظ…ظ†طµط©</div>
+                <div class="door-desc">ظ…ط³ط§ط­ط© ظ…ظ†ظپطµظ„ط© ظ„ظ…ظˆط¸ظپظٹ ط§ظ„ظ…ظ†طµط© ظˆط§ظ„ط¥ط¯ط§ط±ط© ط§ظ„ط¯ط§ط®ظ„ظٹط©طŒ ظˆظ„ظٹط³طھ ط¨ظˆط§ط¨ط© ظ„ظ„ط¹ظ…ظ„ط§ط، ط§ظ„ط®ط§ط±ط¬ظٹظٹظ†.</div>
+                <div class="door-cta">ط¯ط®ظˆظ„ ط§ظ„ط¨ظˆط§ط¨ط© ط§ظ„ط¯ط§ط®ظ„ظٹط© â†گ</div>
+            </a>
+        </div>
 
-    <div class="portal-footer">
-        <p>© {{ date('Y') }} Shipping Gateway — بوابة إدارة الشحن للحسابات الفردية والمنظمات والفرق الداخلية</p>
+        <div class="portal-footer">
+            <p>آ© {{ date('Y') }} Shipping Gateway â€” ط¨ظˆط§ط¨ط© ط¥ط¯ط§ط±ط© ط§ظ„ط´ط­ظ† ظ„ظ„ط­ط³ط§ط¨ط§طھ ط§ظ„ظپط±ط¯ظٹط© ظˆط§ظ„ظ…ظ†ظ¸ظ…ط§طھ ظˆط§ظ„ظپط±ظ‚ ط§ظ„ط¯ط§ط®ظ„ظٹط©</p>
+        </div>
     </div>
 </div>
 <script>window.PWA={swUrl:'{{ asset("sw.js") }}',scope:'{{ rtrim(url("/"), "/") }}/'};</script>

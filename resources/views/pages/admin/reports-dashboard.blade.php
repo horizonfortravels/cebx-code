@@ -44,7 +44,7 @@
     @endforeach
 </div>
 
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;margin-bottom:24px">
+<div class="grid-auto-300" style="margin-bottom:24px">
     @foreach($dashboard['breakdowns'] as $group)
         <div class="card" data-testid="internal-report-breakdown-card">
             <div class="card-title">{{ $group['title'] }}</div>
@@ -78,7 +78,7 @@
     </div>
 </div>
 
-<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
+<div class="grid-auto-300">
     <div class="card" data-testid="internal-report-actions-card">
         <div class="card-title">Action-oriented summaries</div>
         <div style="display:grid;gap:12px">

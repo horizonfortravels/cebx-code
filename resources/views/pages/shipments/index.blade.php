@@ -11,7 +11,7 @@
 </div>
 
 {{-- Stats --}}
-<div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:20px">
+<div class="stats-grid" style="margin-bottom:20px">
     <x-stat-card icon="📦" label="الكل" :value="$allCount ?? 0" />
     <x-stat-card icon="🚚" label="في الطريق" :value="$inTransitCount ?? 0" />
     <x-stat-card icon="✅" label="تم التسليم" :value="$deliveredCount ?? 0" />

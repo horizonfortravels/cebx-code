@@ -64,7 +64,7 @@
         <div style="display:flex;flex-direction:column;gap:12px">
             <div style="font-weight:700;color:var(--tx)">{{ $detail['health_label'] }}</div>
             <div style="font-size:13px;color:var(--td)">{{ $detail['health_summary']['checked_at'] }}</div>
-            <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">
+            <div class="grid-3">
                 <div>
                     <div style="font-size:12px;color:var(--tm)">Last check</div>
                     <div style="color:var(--tx)">{{ $detail['health_summary']['checked_at'] }}</div>

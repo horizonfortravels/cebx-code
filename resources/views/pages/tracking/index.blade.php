@@ -8,8 +8,8 @@
     <p style="color:var(--td);font-size:15px">أدخل رقم التتبع لمعرفة حالة شحنتك</p>
 </div>
 
-<div style="max-width:600px;margin:0 auto 40px">
-    <form action="{{ route('tracking.index') }}" method="GET" style="display:flex;gap:12px">
+<div class="content-narrow" style="margin-bottom:40px">
+    <form action="{{ route('tracking.index') }}" method="GET" style="display:flex;gap:12px;flex-wrap:wrap">
         <div style="flex:1">
             <input type="text" name="tracking_number" value="{{ request('tracking_number') }}"
                    placeholder="أدخل رقم التتبع... مثال: SHP-20261847"
@@ -21,7 +21,7 @@
 
 @if($trackedShipment)
     <x-card>
-        <div style="max-width:700px;margin:0 auto">
+        <div class="content-medium">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px">
                 <div>
                     <div style="font-family:monospace;color:var(--pr);font-weight:700;font-size:20px">{{ $trackedShipment->reference_number }}</div>
@@ -33,7 +33,7 @@
                 <x-badge :status="$trackedShipment->status" />
             </div>
 
-            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px">
+            <div class="grid-4" style="gap:16px;margin-bottom:24px">
                 @foreach([
                     ['الوزن', ($trackedShipment->weight ?? '—') . ' كغ'],
                     ['القطع', $trackedShipment->pieces ?? 1],

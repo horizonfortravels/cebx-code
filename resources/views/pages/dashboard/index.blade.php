@@ -61,7 +61,7 @@
 @endif
 
 {{-- ═══ CHARTS ═══ --}}
-<div style="display:grid;grid-template-columns:2fr 1fr;gap:18px;margin-bottom:24px">
+<div class="grid-2-1" style="margin-bottom:24px">
     <x-card title="{{ $portalType === 'admin' ? '📊 شحنات المنصة — آخر 6 أشهر' : '📊 أداء الشحنات' }}">
         @php $maxM = collect($monthlyData ?? [])->max('count') ?: 1; @endphp
         <div class="bar-chart" style="height:200px">

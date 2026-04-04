@@ -35,7 +35,7 @@
         }
 
         .card {
-            width: min(100%, 720px);
+            width: min(100%, 860px);
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 24px;
@@ -100,6 +100,17 @@
             margin-top: 18px;
             font-size: 13px;
             color: var(--muted);
+        }
+
+        @media (max-width: 720px) {
+            body {
+                padding: 16px;
+            }
+
+            .card {
+                width: 100%;
+                padding: 24px;
+            }
         }
     </style>
 </head>

@@ -22,7 +22,7 @@
 
 <div class="card" style="margin-bottom:24px">
     <div class="card-title">Search and filters</div>
-    <form method="GET" action="{{ route('internal.reports.index') }}" data-testid="internal-reports-filter-form" style="display:grid;grid-template-columns:2fr repeat(2,minmax(0,1fr));gap:12px;align-items:end">
+    <form method="GET" action="{{ route('internal.reports.index') }}" data-testid="internal-reports-filter-form" class="filter-grid">
         <div>
             <label for="internal-reports-search" style="display:block;font-size:12px;color:var(--tm);margin-bottom:6px">Search</label>
             <input id="internal-reports-search" data-testid="internal-reports-search-input" type="text" name="q" value="{{ $filters['q'] }}" class="input" placeholder="Domain, KPI, or operational summary">
@@ -50,7 +50,7 @@
     </p>
 </div>
 
-<div data-testid="internal-reports-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
+<div data-testid="internal-reports-grid" class="grid-auto-300">
     @forelse($cards as $card)
         <article class="card" data-testid="internal-report-card-{{ $card['key'] }}" style="display:grid;gap:16px">
             <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px">

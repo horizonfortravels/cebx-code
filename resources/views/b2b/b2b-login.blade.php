@@ -20,7 +20,7 @@
             border-radius: 16px;
             padding: 40px;
             width: 100%;
-            max-width: 420px;
+            max-width: 470px;
             box-shadow: 0 20px 60px rgba(0,0,0,0.15);
         }
         .login-card h1 {

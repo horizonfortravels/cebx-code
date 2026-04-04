@@ -11,6 +11,7 @@
             font-family: 'Segoe UI', Tahoma, sans-serif;
             background: linear-gradient(135deg, #0d9488 0%, #14b8a6 100%);
             min-height: 100vh;
+            overflow-x: hidden;
             color: #333;
         }
         .header {
@@ -49,9 +50,9 @@
         }
         .btn-logout:hover { background: #d1d5db; }
         .container {
-            max-width: 900px;
+            width: min(1520px, calc(100% - 48px));
             margin: 0 auto;
-            padding: 32px 24px;
+            padding: 36px 0 40px;
         }
         .card {
             background: #fff;
@@ -69,7 +70,7 @@
         }
         .nav-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
             gap: 12px;
         }
         .nav-link {

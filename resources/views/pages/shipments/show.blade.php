@@ -23,7 +23,7 @@
     ];
     $sc = $statusConfig[$shipment->status] ?? ['label' => $shipment->status, 'color' => '#64748B', 'icon' => '📦', 'desc' => ''];
 @endphp
-<div style="background:linear-gradient(135deg,{{ $sc['color'] }}33,{{ $sc['color'] }}11);border-radius:16px;padding:24px 28px;border:1px solid {{ $sc['color'] }}33;margin-bottom:24px;display:flex;justify-content:space-between;align-items:center">
+<div style="background:linear-gradient(135deg,{{ $sc['color'] }}33,{{ $sc['color'] }}11);border-radius:16px;padding:24px 28px;border:1px solid {{ $sc['color'] }}33;margin-bottom:24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px">
     <div style="display:flex;align-items:center;gap:16px">
         <div style="width:56px;height:56px;border-radius:50%;background:{{ $sc['color'] }}33;display:flex;align-items:center;justify-content:center;font-size:28px">{{ $sc['icon'] }}</div>
         <div>
@@ -61,7 +61,7 @@
 
         {{-- ═══ PARCEL DETAILS ═══ --}}
         <x-card title="📦 تفاصيل الطرد">
-            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+            <div class="grid-4" style="gap:12px">
                 @foreach([
                     ['الوزن', ($shipment->total_weight ?? '—') . ' كغ'],
                     ['الأبعاد', ($shipment->parcels->first()?->length ?? '—') . '×' . ($shipment->parcels->first()?->width ?? '—') . '×' . ($shipment->parcels->first()?->height ?? '—')],

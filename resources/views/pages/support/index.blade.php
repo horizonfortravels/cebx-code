@@ -7,7 +7,7 @@
     <button type="button" class="btn btn-pr" data-modal-open="newTicket">+ تذكرة جديدة</button>
 </div>
 
-<div class="stats-grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:20px">
+<div class="stats-grid" style="margin-bottom:20px">
     <x-stat-card icon="🎫" label="إجمالي التذاكر" :value="($tickets ?? collect())->total() ?? 0" />
     <x-stat-card icon="🟢" label="مفتوحة" :value="$openCount ?? 0" />
     <x-stat-card icon="✅" label="تم الحل" :value="$resolvedCount ?? 0" />
@@ -48,7 +48,7 @@
     <form method="POST" action="{{ route('support.store') }}">
         @csrf
         <div style="margin-bottom:14px"><label class="form-label">الموضوع</label><input type="text" name="subject" class="form-input" required></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+        <div class="grid-2" style="gap:12px;margin-bottom:14px">
             <div><label class="form-label">الفئة</label><select name="category" class="form-input"><option value="general">عامة</option><option value="shipment">شحنات</option><option value="billing">مالية</option><option value="technical">تقنية</option></select></div>
             <div><label class="form-label">الأولوية</label><select name="priority" class="form-input"><option value="low">منخفضة</option><option value="medium" selected>متوسطة</option><option value="high">عالية</option><option value="urgent">عاجلة</option></select></div>
         </div>

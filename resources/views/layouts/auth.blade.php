@@ -81,7 +81,7 @@
             </form>
 
             <div class="back-link" style="@yield('link-color')">
-                <a href="{{ route('login') }}">← العودة لاختيار البوابة المناسبة لنوع الحساب</a>
+                <a href="@yield('back-link-url', route('login'))">@yield('back-link-text', '← العودة لاختيار البوابة المناسبة لنوع الحساب')</a>
             </div>
 
             @if (app()->environment('local') && config('features.demo_data', false))
@@ -94,26 +94,34 @@
 @yield('content')
 
 <style>
-.login-page {
-    min-height: 100vh;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    font-family: 'Tajawal', sans-serif;
-    direction: rtl;
-}
-@media (max-width: 900px) {
-    .login-page { grid-template-columns: 1fr; }
-    .login-brand { min-height: 220px; padding: 32px 24px !important; }
-}
-.login-brand {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    padding: 60px 48px;
-    color: #fff;
-    text-align: center;
-}
+        body {
+            margin: 0;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        .login-page {
+            width: 100%;
+            min-height: 100vh;
+            display: grid;
+            grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+            font-family: 'Tajawal', sans-serif;
+            direction: rtl;
+        }
+        @media (max-width: 1024px) {
+            .login-page { grid-template-columns: 1fr; }
+            .login-brand { min-height: 260px; padding: 36px 24px !important; }
+            .login-form-panel { padding: 28px 20px 36px; }
+        }
+        .login-brand {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: clamp(40px, 4vw, 72px) clamp(32px, 4vw, 64px);
+            color: #fff;
+            text-align: center;
+        }
 .login-brand .brand-logo {
     width: 72px; height: 72px;
     border-radius: 18px;
@@ -135,21 +143,22 @@
 .login-brand .brand-features { list-style: none; margin: 0; padding: 0; text-align: right; }
 .login-brand .brand-features li { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 13px; opacity: .95; }
 .login-brand .brand-features li span { font-size: 18px; }
-.login-form-panel {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 32px;
-    background: var(--bg, #F8FAFC);
-}
-.login-form-card {
-    width: 100%;
-    max-width: 400px;
-    background: #fff;
-    border-radius: 16px;
-    padding: 36px 32px;
-    box-shadow: 0 4px 24px rgba(0,0,0,.06);
-    border: 1px solid var(--bd, #E2E8F0);
+        .login-form-panel {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: clamp(32px, 4vw, 72px);
+            background: var(--bg, #F8FAFC);
+        }
+        .login-form-card {
+            width: 100%;
+            max-width: 460px;
+            background: #fff;
+            border-radius: 16px;
+            padding: 36px 32px;
+            box-shadow: 0 4px 24px rgba(0,0,0,.06);
+            border: 1px solid var(--bd, #E2E8F0);
 }
 .login-form-title { font-size: 22px; font-weight: 800; color: var(--tx,#1E293B); margin: 0 0 6px; }
 .login-form-subtitle { font-size: 14px; color: var(--td,#64748B); margin: 0 0 24px; }

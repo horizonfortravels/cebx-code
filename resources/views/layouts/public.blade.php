@@ -18,6 +18,8 @@
             --primary-strong: #115e59;
             --accent: #0f172a;
             --warning: #b45309;
+            --page-max: 1520px;
+            --page-gutter: 24px;
         }
 
         * { box-sizing: border-box; }
@@ -34,18 +36,37 @@
         }
 
         .shell {
-            width: min(1100px, calc(100% - 32px));
-            margin: 0 auto;
-            padding: 28px 0 40px;
+            width: 100%;
+            min-height: 100vh;
+            overflow-x: hidden;
+            padding: 0;
         }
 
         .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            background: linear-gradient(135deg, rgba(15, 23, 42, .96) 0%, rgba(15, 118, 110, .92) 100%);
+            color: #fff;
+        }
+
+        .content-section {
+            padding: 24px 0 40px;
+        }
+
+        .hero-inner {
+            width: min(var(--page-max), calc(100% - (var(--page-gutter) * 2)));
+            margin: 0 auto;
             padding: 24px 28px;
             border: 1px solid var(--border);
             border-radius: 28px;
-            background: linear-gradient(135deg, rgba(15, 23, 42, .96) 0%, rgba(15, 118, 110, .92) 100%);
-            color: #fff;
             box-shadow: 0 26px 70px rgba(15, 23, 42, .14);
+            background: linear-gradient(135deg, rgba(15, 23, 42, .96) 0%, rgba(15, 118, 110, .92) 100%);
+        }
+
+        .content-inner {
+            width: min(var(--page-max), calc(100% - (var(--page-gutter) * 2)));
+            margin: 0 auto;
         }
 
         .eyebrow {
@@ -74,7 +95,6 @@
         }
 
         .content {
-            margin-top: 24px;
             display: grid;
             gap: 20px;
         }
@@ -186,13 +206,25 @@
 
         @media (max-width: 720px) {
             .shell {
+                padding-inline: 0;
+            }
+
+            .hero-inner,
+            .content-inner {
                 width: min(100%, calc(100% - 20px));
-                padding-top: 18px;
             }
 
             .hero,
             .panel-body {
                 padding: 20px;
+            }
+
+            .hero {
+                min-height: auto;
+            }
+
+            .content-section {
+                padding: 18px 0 24px;
             }
         }
     </style>

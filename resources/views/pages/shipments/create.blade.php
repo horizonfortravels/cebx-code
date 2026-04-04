@@ -127,7 +127,7 @@
 
         {{-- ═══ PARCEL DETAILS ═══ --}}
         <x-card title="📦 {{ $portalType === 'b2b' ? 'بيانات الطرد' : 'تفاصيل الطرد' }}">
-            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px">
+            <div class="grid-4" style="gap:12px">
                 <div style="margin-bottom:16px">
                     <label class="form-label">الوزن (كغ)</label>
                     <input type="number" name="weight" placeholder="0.5" step="0.01" class="form-input" value="{{ old('weight') }}">
@@ -150,7 +150,7 @@
                 <input type="text" name="description" placeholder="مثال: ملابس، إلكترونيات..." class="form-input" value="{{ old('description') }}">
             </div>
             @if($portalType === 'b2b')
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-top:8px">
+                <div class="grid-3" style="margin-top:8px">
                     <div style="margin-bottom:16px">
                         <label class="form-label">عدد القطع</label>
                         <input type="number" name="parcels_count" placeholder="1" class="form-input" value="{{ old('parcels_count', 1) }}">

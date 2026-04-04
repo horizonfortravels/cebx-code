@@ -30,7 +30,7 @@
             font-family: "Tajawal", "IBM Plex Sans Arabic", sans-serif;
         }
         .panel {
-            width: min(100%, 720px);
+            width: min(100%, 860px);
             background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 24px;
@@ -80,6 +80,16 @@
         .button-primary { background: var(--primary); color: #fff; }
         .button-secondary { background: #e2e8f0; color: #0f172a; }
         .meta { margin-top: 18px; font-size: 13px; color: var(--muted); }
+
+        @media (max-width: 720px) {
+            body {
+                padding: 16px;
+            }
+
+            .panel {
+                width: 100%;
+            }
+        }
     </style>
 </head>
 <body>

@@ -7,14 +7,14 @@
     <a href="{{ route('reports.export', 'pdf') }}" class="btn btn-s">📥 تصدير PDF</a>
 </div>
 
-<div class="stats-grid" style="grid-template-columns:repeat(4,1fr);margin-bottom:24px">
+<div class="stats-grid" style="margin-bottom:24px">
     <x-stat-card icon="📦" label="إجمالي الشحنات" :value="number_format($totalShipments)" />
     <x-stat-card icon="✅" label="نسبة التسليم" :value="$deliveryRate . '%'" />
     <x-stat-card icon="⏱️" label="متوسط التوصيل" :value="round($avgDeliveryDays, 1) . ' يوم'" />
     <x-stat-card icon="💰" label="إجمالي التكاليف" :value="number_format($totalCost)" />
 </div>
 
-<div style="display:grid;grid-template-columns:1fr 1fr;gap:18px">
+<div class="grid-2">
     <x-card title="🚚 توزيع الناقلين">
         @php
             $carriers = \App\Models\Shipment::where('account_id', auth()->user()->account_id)

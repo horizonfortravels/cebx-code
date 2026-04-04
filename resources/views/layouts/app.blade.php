@@ -352,26 +352,30 @@
 
     <div class="main-area">
         <header class="topbar">
-            <div>
-                <div style="color: var(--tm); font-size: 11px;">مرحبًا، {{ $currentUser->name ?? 'مستخدم' }}</div>
-                <div style="font-size:12px;color:var(--td);margin-top:2px">{{ $topbarSubtitle }}</div>
-            </div>
-            <div class="topbar-user">
-                @if($isInternalUser && $showTenantContext)
-                    <a class="topbar-bell" href="{{ route($showAdminDashboard ? 'admin.tenant-context' : 'internal.tenant-context') }}" title="اختيار الحساب">CTX</a>
-                @endif
-                <div class="topbar-avatar">{{ mb_substr($currentUser->name ?? 'م', 0, 1) }}</div>
+            <div class="topbar-inner">
+                <div>
+                    <div style="color: var(--tm); font-size: 11px;">مرحبًا، {{ $currentUser->name ?? 'مستخدم' }}</div>
+                    <div style="font-size:12px;color:var(--td);margin-top:2px">{{ $topbarSubtitle }}</div>
+                </div>
+                <div class="topbar-user">
+                    @if($isInternalUser && $showTenantContext)
+                        <a class="topbar-bell" href="{{ route($showAdminDashboard ? 'admin.tenant-context' : 'internal.tenant-context') }}" title="اختيار الحساب">CTX</a>
+                    @endif
+                    <div class="topbar-avatar">{{ mb_substr($currentUser->name ?? 'م', 0, 1) }}</div>
+                </div>
             </div>
         </header>
 
         <main class="content">
-            @if(session('success'))
-                <x-toast type="success" :message="session('success')" />
-            @endif
-            @if(session('error'))
-                <x-toast type="error" :message="session('error')" />
-            @endif
-            @yield('content')
+            <div class="content-shell">
+                @if(session('success'))
+                    <x-toast type="success" :message="session('success')" />
+                @endif
+                @if(session('error'))
+                    <x-toast type="error" :message="session('error')" />
+                @endif
+                @yield('content')
+            </div>
         </main>
     </div>
 </div>

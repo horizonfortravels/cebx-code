@@ -1,30 +1,21 @@
 @extends('layouts.auth')
-@section('title', 'تسجيل الدخول')
-@section('content')
-<div class="auth-page">
-    <div class="auth-card">
-        <div class="auth-logo">
-            <img src="{{ asset('images/logo-auth.png') }}" alt="CBEX Group" class="auth-logo-img">
-        </div>
-        <h1 style="color:var(--tx);font-size:20px;font-weight:700;margin:0 0 4px">بوابة إدارة الشحن</h1>
-        <p style="color:var(--td);font-size:11px;margin-bottom:24px">CBEX Group — Shipping Gateway Platform</p>
-        <form method="POST" action="{{ route('login') }}" style="text-align:right">
-            @csrf
-            <div class="form-group">
-                <label class="form-label">البريد الإلكتروني</label>
-                <input type="email" name="email" class="form-control" value="{{ old('email') }}" required autofocus>
-                @error('email') <span style="color:var(--dg);font-size:10px">{{ $message }}</span> @enderror
-            </div>
-            <div class="form-group">
-                <label class="form-label">كلمة المرور</label>
-                <input type="password" name="password" class="form-control" required>
-                @error('password') <span style="color:var(--dg);font-size:10px">{{ $message }}</span> @enderror
-            </div>
-            <button type="submit" class="btn btn-pr btn-block btn-lg" style="margin-top:10px">تسجيل الدخول</button>
-            <p class="form-hint" style="margin-top:14px;color:var(--td);font-size:11px;text-align:center">
-                بعد إصلاح كلمة المرور والبريد الإلكتروني يمكنك تسجيل الدخول.
-            </p>
-        </form>
-    </div>
-</div>
+
+@section('title', 'طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„')
+
+@section('brand-bg', 'background: linear-gradient(160deg, #1E3A5F 0%, #2D5A8E 100%)')
+
+@section('brand-content')
+    <div class="brand-logo" style="background:linear-gradient(135deg,#1E3A5F,#2D5A8E);box-shadow:0 8px 32px rgba(30,58,95,0.4)">SG</div>
+    <span class="brand-badge" style="background:rgba(255,255,255,0.15);color:#BFDBFE">CBEX</span>
+    <h2 class="brand-title">ط¨ظˆط§ط¨ط© ط¥ط¯ط§ط±ط© ط§ظ„ط´ط­ظ†</h2>
+    <p class="brand-desc">CBEX Group â€” Shipping Gateway Platform</p>
 @endsection
+
+@section('form-title', 'طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„')
+@section('form-subtitle', 'ط£ط¯ط®ظ„ ط¨ظٹط§ظ†ط§طھظƒ ظ„ظ„ط¯ط®ظˆظ„')
+@section('form-action', route('login'))
+@section('email-placeholder', 'you@company.sa')
+@section('input-focus-style', '')
+@section('btn-text', 'طھط³ط¬ظٹظ„ ط§ظ„ط¯ط®ظˆظ„')
+@section('back-link-url', url('/'))
+@section('back-link-text', '← العودة إلى صفحة اختيار البوابة')
