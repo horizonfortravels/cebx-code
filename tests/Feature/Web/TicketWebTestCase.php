@@ -20,13 +20,7 @@ abstract class TicketWebTestCase extends TestCase
             DB::purge($connectionName);
 
             $this->recreateTestingDatabase();
-            $this->runTicketSuiteBootstrapCommand([PHP_BINARY, 'artisan', 'migrate']);
-            $this->runTicketSuiteBootstrapCommand([
-                PHP_BINARY,
-                'artisan',
-                'db:seed',
-                '--class=Database\\Seeders\\E2EUserMatrixSeeder',
-            ]);
+            $this->runTicketSuiteBootstrapCommand([PHP_BINARY, 'artisan', 'migrate:fresh', '--seed', '--env=testing']);
 
             DB::purge($connectionName);
             DB::reconnect($connectionName);
@@ -41,14 +35,14 @@ abstract class TicketWebTestCase extends TestCase
 
     private function recreateTestingDatabase(): void
     {
-        $connection = config('database.connections.'.config('database.default', 'mysql'));
-        $database = (string) ($connection['database'] ?? '');
-        $host = (string) ($connection['host'] ?? '127.0.0.1');
-        $port = (string) ($connection['port'] ?? '3306');
-        $username = (string) ($connection['username'] ?? 'root');
-        $password = (string) ($connection['password'] ?? '');
-        $charset = (string) ($connection['charset'] ?? 'utf8mb4');
-        $collation = (string) ($connection['collation'] ?? 'utf8mb4_unicode_ci');
+        $connection = $this->testingConnectionConfig();
+        $database = $connection['database'];
+        $host = $connection['host'];
+        $port = $connection['port'];
+        $username = $connection['username'];
+        $password = $connection['password'];
+        $charset = $connection['charset'];
+        $collation = $connection['collation'];
 
         $pdo = new PDO(
             sprintf('mysql:host=%s;port=%s;charset=%s', $host, $port, $charset),
@@ -64,25 +58,46 @@ abstract class TicketWebTestCase extends TestCase
     }
 
     /**
-     * @param array<int, string> $command
+     * @param  array<int, string>  $command
      */
     private function runTicketSuiteBootstrapCommand(array $command): void
     {
-        $connection = config('database.connections.'.config('database.default', 'mysql'));
+        $connection = $this->testingConnectionConfig();
 
         $process = new Process($command, base_path(), [
             'APP_ENV' => 'testing',
-            'DB_CONNECTION' => (string) config('database.default', 'mysql'),
-            'DB_HOST' => (string) ($connection['host'] ?? '127.0.0.1'),
-            'DB_PORT' => (string) ($connection['port'] ?? '3306'),
-            'DB_DATABASE' => (string) ($connection['database'] ?? ''),
-            'DB_USERNAME' => (string) ($connection['username'] ?? 'root'),
-            'DB_PASSWORD' => (string) ($connection['password'] ?? ''),
-            'DB_CHARSET' => (string) ($connection['charset'] ?? 'utf8mb4'),
-            'DB_COLLATION' => (string) ($connection['collation'] ?? 'utf8mb4_unicode_ci'),
+            'DATABASE_URL' => '',
+            'DB_CONNECTION' => $connection['name'],
+            'DB_HOST' => $connection['host'],
+            'DB_PORT' => $connection['port'],
+            'DB_DATABASE' => $connection['database'],
+            'DB_USERNAME' => $connection['username'],
+            'DB_PASSWORD' => $connection['password'],
+            'DB_CHARSET' => $connection['charset'],
+            'DB_COLLATION' => $connection['collation'],
             'SEED_E2E_MATRIX' => 'true',
         ]);
         $process->setTimeout(1200);
         $process->mustRun();
+    }
+
+    /**
+     * @return array{name: string, host: string, port: string, database: string, username: string, password: string, charset: string, collation: string}
+     */
+    private function testingConnectionConfig(): array
+    {
+        $defaultConnection = (string) env('DB_CONNECTION', (string) config('database.default', 'mysql'));
+        $configuredConnection = config('database.connections.'.$defaultConnection, []);
+
+        return [
+            'name' => $defaultConnection,
+            'host' => (string) env('DB_HOST', (string) ($configuredConnection['host'] ?? '127.0.0.1')),
+            'port' => (string) env('DB_PORT', (string) ($configuredConnection['port'] ?? '3306')),
+            'database' => (string) env('DB_DATABASE', (string) ($configuredConnection['database'] ?? '')),
+            'username' => (string) env('DB_USERNAME', (string) ($configuredConnection['username'] ?? 'root')),
+            'password' => (string) env('DB_PASSWORD', (string) ($configuredConnection['password'] ?? '')),
+            'charset' => (string) env('DB_CHARSET', (string) ($configuredConnection['charset'] ?? 'utf8mb4')),
+            'collation' => (string) env('DB_COLLATION', (string) ($configuredConnection['collation'] ?? 'utf8mb4_unicode_ci')),
+        ];
     }
 }

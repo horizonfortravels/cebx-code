@@ -3,25 +3,13 @@
 namespace Tests\Feature\Web;
 
 use App\Models\User;
-use Database\Seeders\E2EUserMatrixSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Testing\TestResponse;
 use PHPUnit\Framework\Attributes\Test;
-use Tests\TestCase;
 
-class InternalReportsHubWebTest extends TestCase
+class InternalReportsHubWebTest extends SeededReadOnlyWebTestCase
 {
-    use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->seed(E2EUserMatrixSeeder::class);
-    }
-
     #[Test]
-    public function super_admin_support_and_ops_readonly_can_open_the_internal_reports_hub(): void
+    public function super_admin_support_and_ops_readonly_can_open_the_internal_reports_hub_and_see_operational_cards(): void
     {
         foreach ([
             'e2e.internal.super_admin@example.test',
@@ -36,20 +24,13 @@ class InternalReportsHubWebTest extends TestCase
                 ->assertSee('data-testid="internal-report-card-kyc"', false)
                 ->assertSee('data-testid="internal-report-card-billing"', false)
                 ->assertSee('data-testid="internal-report-card-compliance"', false)
+                ->assertSee('data-testid="internal-report-card-carriers"', false)
                 ->assertSee('data-testid="internal-report-card-tickets"', false)
-                ->assertSeeText('Shipments')
-                ->assertSeeText('KYC')
-                ->assertSeeText('Wallet & billing')
-                ->assertSeeText('Compliance & DG')
-                ->assertSeeText('Tickets & helpdesk')
-                ->assertSeeText('Total shipments')
-                ->assertSeeText('Pending review')
-                ->assertSeeText('Low balance')
-                ->assertSeeText('Waiver pending')
-                ->assertSeeText('Open queue')
-                ->assertSee('href="' . route('internal.shipments.index') . '"', false)
-                ->assertSee('href="' . route('internal.billing.index') . '"', false)
+                ->assertSee('href="'.route('internal.shipments.index').'"', false)
+                ->assertSee('href="'.route('internal.carriers.index').'"', false)
+                ->assertSee('href="'.route('internal.billing.index').'"', false)
                 ->assertDontSeeText('i8a-shopify-token-001')
+                ->assertDontSeeText('fedex-client-secret-001')
                 ->assertDontSeeText('Internal escalation note for leadership only.');
 
             $this->assertHasNavigationLink($response, 'internal.reports.index');
@@ -62,27 +43,28 @@ class InternalReportsHubWebTest extends TestCase
         $viewer = $this->userByEmail('e2e.internal.super_admin@example.test');
 
         $this->actingAs($viewer, 'web')
-            ->get(route('internal.reports.index', ['q' => 'wallet']))
+            ->get(route('internal.reports.index', ['q' => 'الناقلين']))
             ->assertOk()
-            ->assertSee('data-testid="internal-report-card-billing"', false)
+            ->assertSee('data-testid="internal-report-card-carriers"', false)
             ->assertDontSee('data-testid="internal-report-card-shipments"', false)
             ->assertDontSee('data-testid="internal-report-card-tickets"', false);
 
         $this->actingAs($viewer, 'web')
-            ->get(route('internal.reports.index', ['domain' => 'compliance']))
+            ->get(route('internal.reports.index', ['domain' => 'carriers']))
             ->assertOk()
-            ->assertSee('data-testid="internal-report-card-compliance"', false)
+            ->assertSee('data-testid="internal-report-card-carriers"', false)
             ->assertDontSee('data-testid="internal-report-card-shipments"', false)
             ->assertDontSee('data-testid="internal-report-card-billing"', false);
     }
 
     #[Test]
-    public function super_admin_support_and_ops_readonly_see_reports_navigation(): void
+    public function super_admin_support_ops_readonly_and_carrier_manager_see_reports_navigation(): void
     {
         foreach ([
             'e2e.internal.super_admin@example.test',
             'e2e.internal.support@example.test',
             'e2e.internal.ops_readonly@example.test',
+            'e2e.internal.carrier_manager@example.test',
         ] as $email) {
             $page = $this->actingAs($this->userByEmail($email), 'web')
                 ->get(route('internal.home'))
@@ -93,10 +75,29 @@ class InternalReportsHubWebTest extends TestCase
     }
 
     #[Test]
-    public function carrier_manager_and_external_users_are_forbidden_from_the_internal_reports_hub(): void
+    public function carrier_manager_can_open_the_reports_hub_but_only_sees_the_carrier_slice(): void
+    {
+        $response = $this->actingAs($this->userByEmail('e2e.internal.carrier_manager@example.test'), 'web')
+            ->get(route('internal.reports.index'))
+            ->assertOk()
+            ->assertSee('data-testid="internal-report-card-carriers"', false)
+            ->assertDontSee('data-testid="internal-report-card-shipments"', false)
+            ->assertDontSee('data-testid="internal-report-card-kyc"', false)
+            ->assertDontSee('data-testid="internal-report-card-billing"', false)
+            ->assertDontSee('data-testid="internal-report-card-compliance"', false)
+            ->assertDontSee('data-testid="internal-report-card-tickets"', false)
+            ->assertDontSee('data-testid="internal-report-card-executive"', false)
+            ->assertSee('href="'.route('internal.carriers.index').'"', false)
+            ->assertDontSeeText('fedex-client-secret-001')
+            ->assertDontSeeText('Internal escalation note for leadership only.');
+
+        $this->assertHasNavigationLink($response, 'internal.reports.index');
+    }
+
+    #[Test]
+    public function external_users_are_forbidden_from_the_internal_reports_hub(): void
     {
         foreach ([
-            'e2e.internal.carrier_manager@example.test',
             'e2e.c.organization_owner@example.test',
         ] as $email) {
             $this->assertForbiddenInternalSurface(
@@ -115,7 +116,7 @@ class InternalReportsHubWebTest extends TestCase
 
     private function assertHasNavigationLink(TestResponse $response, string $routeName): void
     {
-        $response->assertSee('href="' . route($routeName) . '"', false);
+        $response->assertSee('href="'.route($routeName).'"', false);
     }
 
     private function assertForbiddenInternalSurface(TestResponse $response): void

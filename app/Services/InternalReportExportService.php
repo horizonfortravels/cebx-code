@@ -6,6 +6,7 @@ use App\Models\Account;
 use App\Models\BillingWallet;
 use App\Models\ContentDeclaration;
 use App\Models\DgAuditLog;
+use App\Models\IntegrationHealthLog;
 use App\Models\KycVerification;
 use App\Models\Shipment;
 use App\Models\User;
@@ -21,9 +22,15 @@ use InvalidArgumentException;
 class InternalReportExportService
 {
     public const DOMAIN_SHIPMENTS = 'shipments';
+
     public const DOMAIN_KYC = 'kyc';
+
     public const DOMAIN_BILLING = 'billing';
+
     public const DOMAIN_COMPLIANCE = 'compliance';
+
+    public const DOMAIN_CARRIERS = 'carriers';
+
     public const DOMAIN_TICKETS = 'tickets';
 
     /**
@@ -34,19 +41,22 @@ class InternalReportExportService
         self::DOMAIN_KYC,
         self::DOMAIN_BILLING,
         self::DOMAIN_COMPLIANCE,
+        self::DOMAIN_CARRIERS,
         self::DOMAIN_TICKETS,
     ];
 
     public function __construct(
+        private readonly InternalCarrierIntegrationReadService $carrierReadService,
         private readonly InternalTicketReadService $ticketReadService,
     ) {}
 
     /**
      * @return array{domain: string, filename: string, headers: array<int, string>, rows: Collection<int, array<string, string>>, csv: string}
      */
-    public function export(string $domain, ?User $user): array
+    public function export(string $domain, ?User $user, array $filters = []): array
     {
         $domain = strtolower(trim($domain));
+        $normalizedFilters = $this->normalizedFilters($domain, $filters);
 
         return match ($domain) {
             self::DOMAIN_SHIPMENTS => $this->buildExport($domain, [
@@ -113,6 +123,18 @@ class InternalReportExportService
                 'restriction_summary',
                 'latest_audit_summary',
             ], $this->complianceRows()),
+            self::DOMAIN_CARRIERS => $this->buildExport($domain, [
+                'carrier_name',
+                'provider_key',
+                'status',
+                'configuration_state',
+                'mode',
+                'health_status',
+                'last_connection_test',
+                'shipper_account_summary',
+                'recent_activity_summary',
+                'last_error_summary',
+            ], $this->carrierRows($user, $normalizedFilters)),
             self::DOMAIN_TICKETS => $this->buildExport($domain, [
                 'ticket_number',
                 'subject',
@@ -128,7 +150,7 @@ class InternalReportExportService
                 'replies_count',
                 'workflow_activity_summary',
                 'updated_at',
-            ], $this->ticketRows($user)),
+            ], $this->ticketRows($user, $normalizedFilters)),
             default => throw new InvalidArgumentException('Unsupported internal report export domain.'),
         };
     }
@@ -142,8 +164,8 @@ class InternalReportExportService
     }
 
     /**
-     * @param array<int, string> $headers
-     * @param Collection<int, array<string, string>> $rows
+     * @param  array<int, string>  $headers
+     * @param  Collection<int, array<string, string>>  $rows
      * @return array{domain: string, filename: string, headers: array<int, string>, rows: Collection<int, array<string, string>>, csv: string}
      */
     private function buildExport(string $domain, array $headers, Collection $rows): array
@@ -350,39 +372,97 @@ class InternalReportExportService
     /**
      * @return Collection<int, array<string, string>>
      */
-    private function ticketRows(?User $user): Collection
+    private function carrierRows(?User $user, array $filters): Collection
     {
-        return $this->ticketReadService->filteredRows($user, [
-            'q' => '',
-            'status' => '',
-            'priority' => '',
-            'category' => '',
-            'account_id' => '',
-            'shipment_scope' => '',
-            'assignee_id' => '',
-        ])->map(function (array $row): array {
-            return [
-                'ticket_number' => $this->valueOrFallback($row['ticket_number'] ?? null),
-                'subject' => $this->valueOrFallback($row['subject'] ?? null),
-                'category' => $this->valueOrFallback($row['category_label'] ?? null),
-                'priority' => $this->valueOrFallback($row['priority_label'] ?? null),
-                'status' => $this->valueOrFallback($row['status_label'] ?? null),
-                'account_name' => $this->valueOrFallback(data_get($row, 'account_summary.name')),
-                'account_slug' => $this->valueOrFallback(data_get($row, 'account_summary.slug')),
-                'linked_shipment_reference' => $this->valueOrFallback(data_get($row, 'shipment_summary.reference')),
-                'requester_name' => $this->valueOrFallback(data_get($row, 'requester.name')),
-                'assignee_name' => $this->valueOrFallback(data_get($row, 'assignee.name')),
-                'recent_activity_summary' => $this->valueOrFallback($row['recent_activity_summary'] ?? null),
-                'replies_count' => (string) ((int) ($row['replies_count'] ?? 0)),
-                'workflow_activity_summary' => $this->valueOrFallback($row['workflow_activity_summary'] ?? null),
-                'updated_at' => $this->valueOrFallback($row['updated_at_label'] ?? null),
-            ];
-        })->values();
+        return $this->carrierReadService->filteredRows($user, $filters)
+            ->map(function (array $row): array {
+                return [
+                    'carrier_name' => $this->valueOrFallback($row['name'] ?? null),
+                    'provider_key' => $this->valueOrFallback($row['provider_key'] ?? null),
+                    'status' => $this->yesNo((bool) ($row['is_enabled'] ?? false)),
+                    'configuration_state' => $this->yesNo((bool) ($row['is_configured'] ?? false)),
+                    'mode' => $this->valueOrFallback($row['mode_label'] ?? null),
+                    'health_status' => $this->valueOrFallback($row['health_label'] ?? null),
+                    'last_connection_test' => $this->valueOrFallback(data_get($row, 'connection_test_summary.summary')),
+                    'shipper_account_summary' => $this->valueOrFallback(data_get($row, 'shipper_account_summary.summary')),
+                    'recent_activity_summary' => $this->valueOrFallback(data_get($row, 'activity_summary.summary')),
+                    'last_error_summary' => $this->valueOrFallback(data_get($row, 'last_error_summary.summary')),
+                ];
+            })->values();
     }
 
     /**
-     * @param array<int, string> $headers
-     * @param Collection<int, array<string, string>> $rows
+     * @return Collection<int, array<string, string>>
+     */
+    private function ticketRows(?User $user, array $filters): Collection
+    {
+        return $this->ticketReadService->filteredRows($user, $filters)
+            ->map(function (array $row): array {
+                return [
+                    'ticket_number' => $this->valueOrFallback($row['ticket_number'] ?? null),
+                    'subject' => $this->valueOrFallback($row['subject'] ?? null),
+                    'category' => $this->valueOrFallback($row['category_label'] ?? null),
+                    'priority' => $this->valueOrFallback($row['priority_label'] ?? null),
+                    'status' => $this->valueOrFallback($row['status_label'] ?? null),
+                    'account_name' => $this->valueOrFallback(data_get($row, 'account_summary.name')),
+                    'account_slug' => $this->valueOrFallback(data_get($row, 'account_summary.slug')),
+                    'linked_shipment_reference' => $this->valueOrFallback(data_get($row, 'shipment_summary.reference')),
+                    'requester_name' => $this->valueOrFallback(data_get($row, 'requester.name')),
+                    'assignee_name' => $this->valueOrFallback(data_get($row, 'assignee.name')),
+                    'recent_activity_summary' => $this->valueOrFallback($row['recent_activity_summary'] ?? null),
+                    'replies_count' => (string) ((int) ($row['replies_count'] ?? 0)),
+                    'workflow_activity_summary' => $this->valueOrFallback($row['workflow_activity_summary'] ?? null),
+                    'updated_at' => $this->valueOrFallback($row['updated_at_label'] ?? null),
+                ];
+            })->values();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function normalizedFilters(string $domain, array $filters): array
+    {
+        return match ($domain) {
+            self::DOMAIN_CARRIERS => [
+                'q' => $this->trimmedFilter($filters, 'q'),
+                'state' => $this->allowedFilter($filters, 'state', ['enabled', 'configured', 'disabled', 'attention']),
+                'health' => $this->allowedFilter($filters, 'health', [
+                    IntegrationHealthLog::STATUS_HEALTHY,
+                    IntegrationHealthLog::STATUS_DEGRADED,
+                    IntegrationHealthLog::STATUS_DOWN,
+                ]),
+            ],
+            self::DOMAIN_TICKETS => [
+                'q' => $this->trimmedFilter($filters, 'q'),
+                'status' => $this->allowedFilter($filters, 'status', array_keys($this->ticketReadService->statusOptions())),
+                'priority' => $this->allowedFilter($filters, 'priority', array_keys($this->ticketReadService->priorityOptions())),
+                'category' => $this->allowedFilter($filters, 'category', array_keys($this->ticketReadService->categoryOptions())),
+                'account_id' => $this->trimmedFilter($filters, 'account_id'),
+                'shipment_scope' => $this->allowedFilter($filters, 'shipment_scope', array_keys($this->ticketReadService->shipmentScopeOptions())),
+                'assignee_id' => $this->trimmedFilter($filters, 'assignee_id'),
+            ],
+            default => [],
+        };
+    }
+
+    private function trimmedFilter(array $filters, string $key): string
+    {
+        return trim((string) ($filters[$key] ?? ''));
+    }
+
+    /**
+     * @param  array<int, string>  $allowed
+     */
+    private function allowedFilter(array $filters, string $key, array $allowed): string
+    {
+        $value = $this->trimmedFilter($filters, $key);
+
+        return in_array($value, $allowed, true) ? $value : '';
+    }
+
+    /**
+     * @param  array<int, string>  $headers
+     * @param  Collection<int, array<string, string>>  $rows
      */
     private function toCsv(array $headers, Collection $rows): string
     {
@@ -464,7 +544,7 @@ class InternalReportExportService
     }
 
     /**
-     * @param array<int, string> $restrictedStatuses
+     * @param  array<int, string>  $restrictedStatuses
      */
     private function isRestrictedStatus(string $status, array $restrictedStatuses): bool
     {
@@ -481,7 +561,7 @@ class InternalReportExportService
             return sprintf(
                 'Reviewed %s time(s)%s',
                 number_format((int) $verification->review_count),
-                $verification->reviewer?->name ? ' by ' . $verification->reviewer->name : ''
+                $verification->reviewer?->name ? ' by '.$verification->reviewer->name : ''
             );
         }
 

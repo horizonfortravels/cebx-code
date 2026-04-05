@@ -81,10 +81,12 @@ test('internal super_admin can open the executive dashboard and sees no export c
 
   await expect(page).toHaveURL(/\/internal\/reports\/executive$/);
   await expect(page.locator('[data-testid="internal-report-dashboard"]')).toBeVisible();
-  await expect(page.locator('body')).toContainText('Executive profitability dashboard');
-  await expect(page.locator('body')).toContainText('Quoted commercial snapshot');
-  await expect(page.locator('body')).toContainText('Carrier performance snapshot');
-  await expect(page.locator('body')).toContainText('Safe wallet activity snapshot');
+  await expect(page.locator('body')).toContainText('لوحة الربحية التنفيذية');
+  await expect(page.locator('body')).toContainText('اللقطة التجارية المقتبسة');
+  await expect(page.locator('body')).toContainText('لقطة أداء شركات الشحن');
+  await expect(page.locator('body')).toContainText('ملخص حمل مركز الدعم');
+  await expect(page.locator('body')).toContainText('لقطة نشاط المحفظة الآمن');
+  await expect(page.locator('body')).toContainText('ردود الفريق المرئية للعميل (7 أيام)');
   await expect(page.locator('[data-testid="internal-report-dashboard-export-link"]')).toHaveCount(0);
   await expect(page.locator('body')).not.toContainText('i8a-shopify-token-001');
   await expect(page.locator('body')).not.toContainText('Internal escalation note for leadership only.');

@@ -7,68 +7,131 @@ use App\Models\User;
 class InternalControlPlane
 {
     public const ROLE_SUPER_ADMIN = 'super_admin';
+
     public const ROLE_SUPPORT = 'support';
+
     public const ROLE_OPS_READONLY = 'ops_readonly';
+
     public const ROLE_CARRIER_MANAGER = 'carrier_manager';
 
     public const SURFACE_ADMIN_DASHBOARD = 'admin_dashboard';
+
     public const SURFACE_TENANT_CONTEXT = 'tenant_context';
+
     public const SURFACE_SMTP_SETTINGS = 'smtp_settings';
+
     public const SURFACE_ACCOUNT_USERS = 'account_users';
+
     public const SURFACE_ACCOUNT_ROLES = 'account_roles';
+
     public const SURFACE_ACCOUNT_REPORTS = 'account_reports';
+
     public const SURFACE_EXTERNAL_ACCOUNTS_INDEX = 'external_accounts_index';
+
     public const SURFACE_EXTERNAL_ACCOUNTS_DETAIL = 'external_accounts_detail';
+
     public const SURFACE_EXTERNAL_ACCOUNTS_CREATE = 'external_accounts_create';
+
     public const SURFACE_EXTERNAL_ACCOUNTS_UPDATE = 'external_accounts_update';
+
     public const SURFACE_EXTERNAL_ACCOUNTS_LIFECYCLE = 'external_accounts_lifecycle';
+
     public const SURFACE_EXTERNAL_ACCOUNTS_SUPPORT_ACTIONS = 'external_accounts_support_actions';
+
     public const SURFACE_EXTERNAL_ACCOUNTS_MEMBER_ADMIN = 'external_accounts_member_admin';
+
     public const SURFACE_INTERNAL_KYC_INDEX = 'internal_kyc_index';
+
     public const SURFACE_INTERNAL_KYC_DETAIL = 'internal_kyc_detail';
+
     public const SURFACE_INTERNAL_KYC_REVIEW = 'internal_kyc_review';
+
     public const SURFACE_INTERNAL_KYC_RESTRICTIONS = 'internal_kyc_restrictions';
+
     public const SURFACE_INTERNAL_COMPLIANCE_INDEX = 'internal_compliance_index';
+
     public const SURFACE_INTERNAL_COMPLIANCE_DETAIL = 'internal_compliance_detail';
+
     public const SURFACE_INTERNAL_COMPLIANCE_ACTIONS = 'internal_compliance_actions';
+
     public const SURFACE_INTERNAL_BILLING_INDEX = 'internal_billing_index';
+
     public const SURFACE_INTERNAL_BILLING_DETAIL = 'internal_billing_detail';
+
     public const SURFACE_INTERNAL_BILLING_ACTIONS = 'internal_billing_actions';
+
     public const SURFACE_INTERNAL_CARRIERS_INDEX = 'internal_carriers_index';
+
     public const SURFACE_INTERNAL_CARRIERS_DETAIL = 'internal_carriers_detail';
+
     public const SURFACE_INTERNAL_CARRIERS_ACTIONS = 'internal_carriers_actions';
+
     public const SURFACE_INTERNAL_INTEGRATIONS_INDEX = 'internal_integrations_index';
+
     public const SURFACE_INTERNAL_INTEGRATIONS_DETAIL = 'internal_integrations_detail';
+
     public const SURFACE_INTERNAL_FEATURE_FLAGS_INDEX = 'internal_feature_flags_index';
+
     public const SURFACE_INTERNAL_FEATURE_FLAGS_DETAIL = 'internal_feature_flags_detail';
+
     public const SURFACE_INTERNAL_FEATURE_FLAGS_ACTIONS = 'internal_feature_flags_actions';
+
     public const SURFACE_INTERNAL_API_KEYS_INDEX = 'internal_api_keys_index';
+
     public const SURFACE_INTERNAL_API_KEYS_DETAIL = 'internal_api_keys_detail';
+
     public const SURFACE_INTERNAL_API_KEYS_ACTIONS = 'internal_api_keys_actions';
+
     public const SURFACE_INTERNAL_WEBHOOKS_INDEX = 'internal_webhooks_index';
+
     public const SURFACE_INTERNAL_WEBHOOKS_DETAIL = 'internal_webhooks_detail';
+
     public const SURFACE_INTERNAL_WEBHOOKS_ACTIONS = 'internal_webhooks_actions';
+
     public const SURFACE_INTERNAL_REPORTS_INDEX = 'internal_reports_index';
+
     public const SURFACE_INTERNAL_REPORTS_SHIPMENTS_DASHBOARD = 'internal_reports_shipments_dashboard';
+
     public const SURFACE_INTERNAL_REPORTS_KYC_DASHBOARD = 'internal_reports_kyc_dashboard';
+
     public const SURFACE_INTERNAL_REPORTS_BILLING_DASHBOARD = 'internal_reports_billing_dashboard';
+
     public const SURFACE_INTERNAL_REPORTS_COMPLIANCE_DASHBOARD = 'internal_reports_compliance_dashboard';
+
+    public const SURFACE_INTERNAL_REPORTS_CARRIERS_DASHBOARD = 'internal_reports_carriers_dashboard';
+
     public const SURFACE_INTERNAL_REPORTS_TICKETS_DASHBOARD = 'internal_reports_tickets_dashboard';
+
     public const SURFACE_INTERNAL_REPORTS_EXECUTIVE_DASHBOARD = 'internal_reports_executive_dashboard';
+
     public const SURFACE_INTERNAL_REPORTS_EXPORTS = 'internal_reports_exports';
+
     public const SURFACE_INTERNAL_TICKETS_INDEX = 'internal_tickets_index';
+
     public const SURFACE_INTERNAL_TICKETS_CREATE = 'internal_tickets_create';
+
     public const SURFACE_INTERNAL_TICKETS_DETAIL = 'internal_tickets_detail';
+
     public const SURFACE_INTERNAL_TICKETS_THREAD_ACTIONS = 'internal_tickets_thread_actions';
+
     public const SURFACE_INTERNAL_TICKETS_ACTIONS = 'internal_tickets_actions';
+
     public const SURFACE_INTERNAL_SHIPMENTS_INDEX = 'internal_shipments_index';
+
     public const SURFACE_INTERNAL_SHIPMENTS_DETAIL = 'internal_shipments_detail';
+
     public const SURFACE_INTERNAL_SHIPMENTS_DOCUMENTS = 'internal_shipments_documents';
+
     public const SURFACE_INTERNAL_STAFF_INDEX = 'internal_staff_index';
+
     public const SURFACE_INTERNAL_STAFF_DETAIL = 'internal_staff_detail';
+
     public const SURFACE_INTERNAL_STAFF_CREATE = 'internal_staff_create';
+
     public const SURFACE_INTERNAL_STAFF_UPDATE = 'internal_staff_update';
+
     public const SURFACE_INTERNAL_STAFF_LIFECYCLE = 'internal_staff_lifecycle';
+
     public const SURFACE_INTERNAL_STAFF_SUPPORT_ACTIONS = 'internal_staff_support_actions';
 
     /**
@@ -162,6 +225,7 @@ class InternalControlPlane
             self::SURFACE_INTERNAL_REPORTS_KYC_DASHBOARD,
             self::SURFACE_INTERNAL_REPORTS_BILLING_DASHBOARD,
             self::SURFACE_INTERNAL_REPORTS_COMPLIANCE_DASHBOARD,
+            self::SURFACE_INTERNAL_REPORTS_CARRIERS_DASHBOARD,
             self::SURFACE_INTERNAL_REPORTS_TICKETS_DASHBOARD,
             self::SURFACE_INTERNAL_REPORTS_EXECUTIVE_DASHBOARD,
             self::SURFACE_INTERNAL_REPORTS_EXPORTS,
@@ -205,6 +269,7 @@ class InternalControlPlane
             self::SURFACE_INTERNAL_REPORTS_KYC_DASHBOARD,
             self::SURFACE_INTERNAL_REPORTS_BILLING_DASHBOARD,
             self::SURFACE_INTERNAL_REPORTS_COMPLIANCE_DASHBOARD,
+            self::SURFACE_INTERNAL_REPORTS_CARRIERS_DASHBOARD,
             self::SURFACE_INTERNAL_REPORTS_TICKETS_DASHBOARD,
             self::SURFACE_INTERNAL_REPORTS_EXPORTS,
             self::SURFACE_INTERNAL_TICKETS_INDEX,
@@ -240,6 +305,7 @@ class InternalControlPlane
             self::SURFACE_INTERNAL_REPORTS_KYC_DASHBOARD,
             self::SURFACE_INTERNAL_REPORTS_BILLING_DASHBOARD,
             self::SURFACE_INTERNAL_REPORTS_COMPLIANCE_DASHBOARD,
+            self::SURFACE_INTERNAL_REPORTS_CARRIERS_DASHBOARD,
             self::SURFACE_INTERNAL_REPORTS_TICKETS_DASHBOARD,
             self::SURFACE_INTERNAL_TICKETS_INDEX,
             self::SURFACE_INTERNAL_TICKETS_DETAIL,
@@ -254,6 +320,8 @@ class InternalControlPlane
             self::SURFACE_INTERNAL_CARRIERS_ACTIONS,
             self::SURFACE_INTERNAL_INTEGRATIONS_INDEX,
             self::SURFACE_INTERNAL_INTEGRATIONS_DETAIL,
+            self::SURFACE_INTERNAL_REPORTS_INDEX,
+            self::SURFACE_INTERNAL_REPORTS_CARRIERS_DASHBOARD,
             self::SURFACE_INTERNAL_SHIPMENTS_DOCUMENTS,
         ],
     ];
@@ -304,6 +372,7 @@ class InternalControlPlane
         self::SURFACE_INTERNAL_REPORTS_KYC_DASHBOARD,
         self::SURFACE_INTERNAL_REPORTS_BILLING_DASHBOARD,
         self::SURFACE_INTERNAL_REPORTS_COMPLIANCE_DASHBOARD,
+        self::SURFACE_INTERNAL_REPORTS_CARRIERS_DASHBOARD,
         self::SURFACE_INTERNAL_REPORTS_TICKETS_DASHBOARD,
         self::SURFACE_INTERNAL_REPORTS_EXECUTIVE_DASHBOARD,
         self::SURFACE_INTERNAL_REPORTS_EXPORTS,
@@ -357,7 +426,7 @@ class InternalControlPlane
      */
     public function assignedRoleNames(?User $user): array
     {
-        if (!$user) {
+        if (! $user) {
             return [];
         }
 
@@ -383,7 +452,7 @@ class InternalControlPlane
     }
 
     /**
-     * @param array<int, string> $roleNames
+     * @param  array<int, string>  $roleNames
      * @return array<int, string>
      */
     public function resolvedCanonicalRolesFromNames(array $roleNames): array
@@ -410,7 +479,7 @@ class InternalControlPlane
     }
 
     /**
-     * @param array<int, string> $roleNames
+     * @param  array<int, string>  $roleNames
      */
     public function primaryCanonicalRoleFromNames(array $roleNames): ?string
     {
@@ -418,7 +487,7 @@ class InternalControlPlane
     }
 
     /**
-     * @param array<int, string> $roleNames
+     * @param  array<int, string>  $roleNames
      */
     public function hasDeprecatedAssignmentsFromNames(array $roleNames): bool
     {
@@ -428,7 +497,7 @@ class InternalControlPlane
                 continue;
             }
 
-            if (!in_array($normalized, self::CANONICAL_ROLE_ORDER, true)) {
+            if (! in_array($normalized, self::CANONICAL_ROLE_ORDER, true)) {
                 return true;
             }
         }

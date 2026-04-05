@@ -67,6 +67,11 @@ class InternalReportsHubController extends Controller
         return $this->renderDashboard($request, 'compliance');
     }
 
+    public function carriers(Request $request): View
+    {
+        return $this->renderDashboard($request, 'carriers');
+    }
+
     public function tickets(Request $request): View
     {
         return $this->renderDashboard($request, 'tickets');
@@ -78,8 +83,8 @@ class InternalReportsHubController extends Controller
     }
 
     /**
-     * @param array{q: string, domain: string} $filters
-     * @param array<string, mixed> $card
+     * @param  array{q: string, domain: string}  $filters
+     * @param  array<string, mixed>  $card
      */
     private function matchesFilters(array $card, array $filters): bool
     {
@@ -133,6 +138,8 @@ class InternalReportsHubController extends Controller
             'compliance' => $user->hasPermission('compliance.read')
                 && $user->hasPermission('dg.read')
                 && $this->controlPlane->canSeeSurface($user, InternalControlPlane::SURFACE_INTERNAL_COMPLIANCE_INDEX),
+            'carriers' => $user->hasPermission('integrations.read')
+                && $this->controlPlane->canSeeSurface($user, InternalControlPlane::SURFACE_INTERNAL_CARRIERS_INDEX),
             'tickets' => $user->hasPermission('tickets.read')
                 && $this->controlPlane->canSeeSurface($user, InternalControlPlane::SURFACE_INTERNAL_TICKETS_INDEX),
             'executive' => false,
@@ -151,6 +158,7 @@ class InternalReportsHubController extends Controller
             'kyc' => $this->controlPlane->canSeeSurface($user, InternalControlPlane::SURFACE_INTERNAL_REPORTS_KYC_DASHBOARD),
             'billing' => $this->controlPlane->canSeeSurface($user, InternalControlPlane::SURFACE_INTERNAL_REPORTS_BILLING_DASHBOARD),
             'compliance' => $this->controlPlane->canSeeSurface($user, InternalControlPlane::SURFACE_INTERNAL_REPORTS_COMPLIANCE_DASHBOARD),
+            'carriers' => $this->controlPlane->canSeeSurface($user, InternalControlPlane::SURFACE_INTERNAL_REPORTS_CARRIERS_DASHBOARD),
             'tickets' => $this->controlPlane->canSeeSurface($user, InternalControlPlane::SURFACE_INTERNAL_REPORTS_TICKETS_DASHBOARD),
             'executive' => $this->controlPlane->canSeeSurface($user, InternalControlPlane::SURFACE_INTERNAL_REPORTS_EXECUTIVE_DASHBOARD),
             default => false,
@@ -163,7 +171,7 @@ class InternalReportsHubController extends Controller
             return false;
         }
 
-        if (! in_array($domain, ['shipments', 'kyc', 'billing', 'compliance', 'tickets'], true)) {
+        if (! in_array($domain, ['shipments', 'kyc', 'billing', 'compliance', 'carriers', 'tickets'], true)) {
             return false;
         }
 
@@ -201,6 +209,9 @@ class InternalReportsHubController extends Controller
                 $this->linkIfAllowed($user, 'مركز الامتثال', 'internal.compliance.index', 'compliance.read', InternalControlPlane::SURFACE_INTERNAL_COMPLIANCE_INDEX, 'dg.read'),
                 $this->linkIfAllowed($user, 'مركز KYC', 'internal.kyc.index', 'kyc.read', InternalControlPlane::SURFACE_INTERNAL_KYC_INDEX),
                 $this->linkIfAllowed($user, 'مركز الفوترة', 'internal.billing.index', 'wallet.balance', InternalControlPlane::SURFACE_INTERNAL_BILLING_INDEX, 'wallet.ledger'),
+            ],
+            'carriers' => [
+                $this->linkIfAllowed($user, 'ظ…ط±ظƒط² ط§ظ„ظ†ط§ظ‚ظ„ظٹظ†', 'internal.carriers.index', 'integrations.read', InternalControlPlane::SURFACE_INTERNAL_CARRIERS_INDEX),
             ],
             'tickets' => [
                 $this->linkIfAllowed($user, 'مركز التذاكر', 'internal.tickets.index', 'tickets.read', InternalControlPlane::SURFACE_INTERNAL_TICKETS_INDEX),
@@ -246,14 +257,21 @@ class InternalReportsHubController extends Controller
 
     private function canViewCard(?User $user, string $domain): bool
     {
+        if (! $user instanceof User) {
+            return false;
+        }
+
+        $primaryRole = $this->controlPlane->primaryCanonicalRole($user);
+
         return match ($domain) {
             'executive' => $this->canOpenDashboard($user, 'executive'),
-            default => true,
+            'carriers' => $this->canOpenLinkedCenter($user, 'carriers'),
+            default => $primaryRole !== InternalControlPlane::ROLE_CARRIER_MANAGER,
         };
     }
 
     /**
-     * @param array<int, string> $allowed
+     * @param  array<int, string>  $allowed
      */
     private function normalizedFilter(string $value, array $allowed): string
     {

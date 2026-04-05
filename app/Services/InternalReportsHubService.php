@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Schema;
 class InternalReportsHubService
 {
     public function __construct(
+        private readonly InternalCarrierIntegrationReadService $carrierReadService,
         private readonly InternalTicketReadService $ticketReadService,
         private readonly InternalExecutiveReportService $executiveReportService,
     ) {}
@@ -32,6 +33,7 @@ class InternalReportsHubService
             $this->kycCard(),
             $this->billingCard(),
             $this->complianceCard(),
+            $this->carriersCard($user),
             $this->ticketsCard($user),
             $this->executiveReportService->hubCard(),
         ]);
@@ -47,6 +49,7 @@ class InternalReportsHubService
             'kyc' => 'التحقق KYC',
             'billing' => 'المحفظة والفوترة',
             'compliance' => 'الامتثال والمواد الخطرة',
+            'carriers' => 'تكاملات شركات الشحن',
             'tickets' => 'التذاكر ومركز الدعم',
             'executive' => 'المؤشرات التنفيذية',
         ];
@@ -214,6 +217,30 @@ class InternalReportsHubService
                     ->where('waiver_accepted', false)
                     ->count()),
                 $this->metric('موسومة كمواد خطرة', (clone $query)->where('contains_dangerous_goods', true)->count()),
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function carriersCard(?User $user): array
+    {
+        $stats = $this->carrierReadService->stats($user);
+
+        return [
+            'key' => 'carriers',
+            'title' => 'تكاملات شركات الشحن',
+            'eyebrow' => 'صحة الناقلين',
+            'description' => 'ملخص تشغيلي عالي المستوى لوضع الناقلين المتصلين، وجاهزية الإعدادات، والخدمات التي تحتاج متابعة.',
+            'summary' => 'يعرض هذا الملخص مؤشرات قراءة آمنة حول تكاملات شركات الشحن فقط، دون كشف الاعتمادات أو أي حمولة تكامل خام.',
+            'route_name' => 'internal.carriers.index',
+            'cta_label' => 'فتح مركز الناقلين',
+            'metrics' => [
+                $this->metric('إجمالي الناقلين', (int) ($stats['total'] ?? 0)),
+                $this->metric('المفعّلة', (int) ($stats['enabled'] ?? 0)),
+                $this->metric('تحتاج متابعة', (int) ($stats['attention'] ?? 0)),
+                $this->metric('المهيأة', (int) ($stats['configured'] ?? 0)),
             ],
         ];
     }

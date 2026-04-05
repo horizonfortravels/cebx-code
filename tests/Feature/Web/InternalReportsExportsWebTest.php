@@ -3,16 +3,11 @@
 namespace Tests\Feature\Web;
 
 use App\Models\User;
-use Database\Seeders\E2EUserMatrixSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Testing\TestResponse;
 use PHPUnit\Framework\Attributes\Test;
-use Tests\TestCase;
 
-class InternalReportsExportsWebTest extends TestCase
+class InternalReportsExportsWebTest extends SeededReadOnlyWebTestCase
 {
-    use RefreshDatabase;
-
     /**
      * @var array<string, array{route: string, dashboard: string, headers: array<int, string>, excluded: array<int, string>}>
      */
@@ -101,6 +96,23 @@ class InternalReportsExportsWebTest extends TestCase
             ],
             'excluded' => ['waiver_hash_snapshot', 'waiver_text_snapshot', 'additional_info'],
         ],
+        'carriers' => [
+            'route' => 'internal.reports.carriers.export',
+            'dashboard' => 'internal.reports.carriers',
+            'headers' => [
+                'carrier_name',
+                'provider_key',
+                'status',
+                'configuration_state',
+                'mode',
+                'health_status',
+                'last_connection_test',
+                'shipper_account_summary',
+                'recent_activity_summary',
+                'last_error_summary',
+            ],
+            'excluded' => ['api_key', 'api_secret', 'client_secret', 'passkey', 'token', 'password'],
+        ],
         'tickets' => [
             'route' => 'internal.reports.tickets.export',
             'dashboard' => 'internal.reports.tickets',
@@ -123,13 +135,6 @@ class InternalReportsExportsWebTest extends TestCase
             'excluded' => ['Internal escalation note for leadership only.', 'resolution_notes', 'description_summary'],
         ],
     ];
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->seed(E2EUserMatrixSeeder::class);
-    }
 
     #[Test]
     public function super_admin_and_support_can_export_safe_internal_report_csvs(): void
@@ -165,23 +170,38 @@ class InternalReportsExportsWebTest extends TestCase
     public function export_controls_only_render_for_super_admin_and_support(): void
     {
         foreach ([
-            'e2e.internal.super_admin@example.test' => true,
-            'e2e.internal.support@example.test' => true,
-            'e2e.internal.ops_readonly@example.test' => false,
-        ] as $email => $shouldSeeExport) {
+            'e2e.internal.super_admin@example.test' => [
+                'should_see_export' => true,
+                'dashboards' => array_keys($this->exports),
+            ],
+            'e2e.internal.support@example.test' => [
+                'should_see_export' => true,
+                'dashboards' => array_keys($this->exports),
+            ],
+            'e2e.internal.ops_readonly@example.test' => [
+                'should_see_export' => false,
+                'dashboards' => array_keys($this->exports),
+            ],
+            'e2e.internal.carrier_manager@example.test' => [
+                'should_see_export' => false,
+                'dashboards' => ['carriers'],
+            ],
+        ] as $email => $expectation) {
             $user = $this->userByEmail($email);
+            $shouldSeeExport = (bool) $expectation['should_see_export'];
 
-            foreach ($this->exports as $export) {
+            foreach ($expectation['dashboards'] as $domain) {
+                $export = $this->exports[$domain];
                 $response = $this->actingAs($user, 'web')
                     ->get(route($export['dashboard']))
                     ->assertOk();
 
                 if ($shouldSeeExport) {
                     $response->assertSee('data-testid="internal-report-dashboard-export-link"', false)
-                        ->assertSee('href="' . route($export['route']) . '"', false);
+                        ->assertSee('href="'.route($export['route']).'"', false);
                 } else {
                     $response->assertDontSee('data-testid="internal-report-dashboard-export-link"', false)
-                        ->assertDontSee('href="' . route($export['route']) . '"', false);
+                        ->assertDontSee('href="'.route($export['route']).'"', false);
                 }
             }
         }
@@ -202,6 +222,42 @@ class InternalReportsExportsWebTest extends TestCase
                     $this->actingAs($user, 'web')->get(route($export['route']))
                 );
             }
+        }
+    }
+
+    #[Test]
+    public function exports_respect_active_dashboard_filters_for_supported_domains(): void
+    {
+        $support = $this->userByEmail('e2e.internal.support@example.test');
+
+        $carrierResponse = $this->actingAs($support, 'web')
+            ->get(route('internal.reports.carriers.export', ['health' => 'degraded']))
+            ->assertOk();
+
+        $carrierBody = (string) $carrierResponse->getContent();
+        $carrierRows = $this->parseCsv($carrierBody);
+
+        $this->assertNotEmpty($carrierRows);
+        $this->assertSame($this->exports['carriers']['headers'], $carrierRows[0]);
+        $this->assertStringContainsString('FedEx', $carrierBody);
+        $this->assertStringNotContainsString('DHL Express', $carrierBody);
+
+        $ticketResponse = $this->actingAs($support, 'web')
+            ->get(route('internal.reports.tickets.export', ['shipment_scope' => 'linked']))
+            ->assertOk();
+
+        $ticketBody = (string) $ticketResponse->getContent();
+        $ticketRows = $this->parseCsv($ticketBody);
+
+        $this->assertNotEmpty($ticketRows);
+        $this->assertSame($this->exports['tickets']['headers'], $ticketRows[0]);
+        $linkedShipmentColumn = array_search('linked_shipment_reference', $ticketRows[0], true);
+
+        $this->assertNotFalse($linkedShipmentColumn);
+
+        foreach (array_slice($ticketRows, 1) as $row) {
+            $this->assertNotSame('N/A', $row[$linkedShipmentColumn]);
+            $this->assertNotSame('', trim($row[$linkedShipmentColumn]));
         }
     }
 

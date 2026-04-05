@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\Shipment;
 use App\Models\ShipmentException;
+use App\Models\SupportTicket;
 use App\Support\CanonicalShipmentStatus;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -63,6 +64,10 @@ class InternalExecutiveReportService
                     'items' => $snapshot['carrier_items'],
                 ],
                 [
+                    'title' => 'ملخص حمل مركز الدعم',
+                    'items' => $snapshot['helpdesk_items'],
+                ],
+                [
                     'title' => 'لقطة نشاط المحفظة الآمن',
                     'items' => $snapshot['wallet_items'],
                 ],
@@ -82,6 +87,10 @@ class InternalExecutiveReportService
                     'detail' => $snapshot['carrier_summary'],
                 ],
                 [
+                    'title' => 'ضغط مركز الدعم',
+                    'detail' => $snapshot['helpdesk_summary'],
+                ],
+                [
                     'title' => 'لقطة السيولة',
                     'detail' => $snapshot['wallet_summary'],
                 ],
@@ -98,6 +107,7 @@ class InternalExecutiveReportService
             ->withoutGlobalScopes()
             ->with('carrierShipment')
             ->get();
+        $helpdeskSnapshot = $this->helpdeskSnapshot();
 
         $normalizedShipments = $shipments->map(function (Shipment $shipment): array {
             return [
@@ -313,12 +323,14 @@ class InternalExecutiveReportService
                 'value' => 0,
                 'detail' => 'لا توجد صفوف شحن تحمل حاليًا سمات الناقل المطلوبة لهذه اللقطة.',
             ]] : $carrierItems,
+            'helpdesk_items' => $helpdeskSnapshot['items'],
             'wallet_items' => $walletItems,
             'trend_points' => $this->dailyTrend($shipments->pluck('created_at')),
             'quoted_summary' => $this->quotedSummary($quotedByCurrency),
             'carrier_summary' => number_format($deliveredShipments) . ' شحنة تُصنّف حاليًا كمسلّمة، و'
                 . number_format($normalizedExceptionCount) . ' تُصنّف كاستثناء، و'
                 . number_format($openExceptionBacklog) . ' سجل استثناء شحنة ما زال مفتوحًا.',
+            'helpdesk_summary' => $helpdeskSnapshot['summary'],
             'wallet_summary' => $this->walletSummary(
                 $walletTopupsByCurrency,
                 $activeHoldsByCurrency,
@@ -326,6 +338,87 @@ class InternalExecutiveReportService
                 $refundsByCurrency
             ),
         ];
+    }
+
+    /**
+     * @return array{items: array<int, array{label: string, value: int, detail: string}>, summary: string}
+     */
+    private function helpdeskSnapshot(): array
+    {
+        if (! Schema::hasTable('support_tickets')) {
+            return [
+                'items' => [[
+                    'label' => 'حمل مركز الدعم المتعقّب حاليًا',
+                    'value' => 0,
+                    'detail' => 'لا تتوفر حاليًا بيانات موثوقة لطابور الدعم في هذه اللوحة التنفيذية.',
+                ]],
+                'summary' => 'لا تتوفر حاليًا بيانات موثوقة لطابور الدعم الملخّص.',
+            ];
+        }
+
+        $tickets = SupportTicket::query()->withoutGlobalScopes();
+        $openStatuses = ['open', 'in_progress', 'waiting_customer', 'waiting_agent'];
+        $openQueueCount = (clone $tickets)->whereIn('status', $openStatuses)->count();
+        $waitingCustomerCount = (clone $tickets)->where('status', 'waiting_customer')->count();
+        $urgentOpenCount = (clone $tickets)
+            ->whereIn('status', $openStatuses)
+            ->where('priority', 'urgent')
+            ->count();
+        $unassignedOpenCount = (clone $tickets)
+            ->whereIn('status', $openStatuses)
+            ->whereNull('assigned_to')
+            ->count();
+        $staffRepliesLast7Days = $this->staffRepliesLast7Days();
+
+        return [
+            'items' => [
+                [
+                    'label' => 'الطابور المفتوح',
+                    'value' => $openQueueCount,
+                    'detail' => number_format($openQueueCount) . ' تذكرة ما زالت تحتاج إلى تدخل من فريق الدعم.',
+                ],
+                [
+                    'label' => 'بانتظار العميل',
+                    'value' => $waitingCustomerCount,
+                    'detail' => number_format($waitingCustomerCount) . ' تذكرة متوقفة حاليًا على رد العميل.',
+                ],
+                [
+                    'label' => 'عاجلة مفتوحة',
+                    'value' => $urgentOpenCount,
+                    'detail' => number_format($urgentOpenCount) . ' تذكرة عاجلة ما زالت في الطابور النشط.',
+                ],
+                [
+                    'label' => 'بلا إسناد',
+                    'value' => $unassignedOpenCount,
+                    'detail' => number_format($unassignedOpenCount) . ' تذكرة مفتوحة بلا مسؤول محدد.',
+                ],
+                [
+                    'label' => 'ردود الفريق المرئية للعميل (7 أيام)',
+                    'value' => $staffRepliesLast7Days,
+                    'detail' => number_format($staffRepliesLast7Days) . ' رد مرئي للعميل سجله الفريق خلال الأيام السبعة الماضية.',
+                ],
+            ],
+            'summary' => 'يبقى حمل مركز الدعم محصورًا في '
+                . number_format($openQueueCount) . ' تذكرة مفتوحة، منها '
+                . number_format($waitingCustomerCount) . ' بانتظار العميل، و'
+                . number_format($urgentOpenCount) . ' عاجلة، و'
+                . number_format($unassignedOpenCount) . ' بلا إسناد، مع '
+                . number_format($staffRepliesLast7Days) . ' رد مرئي للعميل سجله الفريق خلال الأيام السبعة الماضية.',
+        ];
+    }
+
+    private function staffRepliesLast7Days(): int
+    {
+        if (! Schema::hasTable('support_ticket_replies') || ! Schema::hasTable('users') || ! Schema::hasColumn('users', 'user_type')) {
+            return 0;
+        }
+
+        return (int) DB::table('support_ticket_replies as replies')
+            ->join('users', 'users.id', '=', 'replies.user_id')
+            ->where('users.user_type', 'internal')
+            ->where('replies.is_internal_note', false)
+            ->where('replies.created_at', '>=', now()->subDays(7))
+            ->count();
     }
 
     private function carrierLabel(Shipment $shipment): string

@@ -11,7 +11,7 @@
         </div>
         <h1 style="font-size:28px;font-weight:800;color:var(--tx);margin:0">مركز التقارير الداخلي</h1>
         <p style="color:var(--td);font-size:14px;margin:8px 0 0;max-width:920px">
-            ملخصات تشغيلية على شكل بطاقات عبر الشحنات وKYC والمحفظة والفوترة والامتثال ومركز الدعم. يبقى هذا المركز للقراءة فقط ويعرض مؤشرات رئيسية آمنة قبل فتح المركز الداخلي المرتبط لمراجعة أعمق.
+            ملخصات تشغيلية على شكل بطاقات عبر الشحنات وKYC والمحفظة والفوترة والامتثال وتكاملات شركات الشحن ومركز الدعم. يبقى هذا المركز للقراءة فقط ويعرض مؤشرات رئيسية آمنة قبل فتح المركز الداخلي المرتبط لمراجعة أعمق.
         </p>
     </div>
     <div class="header-actions">
@@ -32,7 +32,7 @@
             <select id="internal-reports-domain" data-testid="internal-reports-domain-filter" name="domain" class="input">
                 <option value="">كل المجالات</option>
                 @foreach($domainOptions as $key => $label)
-                    <option value="{{ $key }}" @selected($filters['domain'] === $key)>{{ ['shipments' => 'الشحنات', 'kyc' => 'التحقق', 'billing' => 'المحفظة والفوترة', 'compliance' => 'الامتثال والمواد الخطرة', 'tickets' => 'التذاكر والدعم', 'executive' => 'المؤشرات التنفيذية'][$key] ?? $label }}</option>
+                    <option value="{{ $key }}" @selected($filters['domain'] === $key)>{{ $label }}</option>
                 @endforeach
             </select>
         </div>

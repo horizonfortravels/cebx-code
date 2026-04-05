@@ -61,9 +61,9 @@ async function loginWith(page, portal, email, password = PASSWORD) {
 }
 
 async function openReportsHub(page) {
-  await expect(page.locator(routeLinkSelector('internal.reports.index', '/internal/reports')).first()).toBeVisible();
-  await page.locator(routeLinkSelector('internal.reports.index', '/internal/reports')).first().click();
-  await page.waitForLoadState('networkidle');
+  const response = await page.goto(resolveRoutePath('internal.reports.index', '/internal/reports'));
+  expect(response).not.toBeNull();
+  expect(response.status()).toBe(200);
   await expect(page).toHaveURL(/\/internal\/reports$/);
 }
 

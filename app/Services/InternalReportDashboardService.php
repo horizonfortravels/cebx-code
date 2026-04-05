@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Account;
 use App\Models\BillingWallet;
 use App\Models\ContentDeclaration;
+use App\Models\IntegrationHealthLog;
 use App\Models\KycVerification;
 use App\Models\Shipment;
 use App\Models\SupportTicket;
@@ -20,6 +21,7 @@ use Illuminate\Support\Facades\Schema;
 class InternalReportDashboardService
 {
     public function __construct(
+        private readonly InternalCarrierIntegrationReadService $carrierReadService,
         private readonly InternalExecutiveReportService $executiveReportService,
     ) {}
 
@@ -29,6 +31,7 @@ class InternalReportDashboardService
     public function domainOptions(): array
     {
         return [
+            'carriers' => 'عمليات تكاملات شركات الشحن',
             'shipments' => 'عمليات الشحن',
             'kyc' => 'عمليات KYC',
             'billing' => 'عمليات المحفظة والفوترة',
@@ -44,6 +47,7 @@ class InternalReportDashboardService
     public function dashboard(string $domain, ?User $user): ?array
     {
         return match ($domain) {
+            'carriers' => $this->carriersDashboard($user),
             'shipments' => $this->shipmentsDashboard(),
             'kyc' => $this->kycDashboard(),
             'billing' => $this->billingDashboard(),
@@ -314,6 +318,81 @@ class InternalReportDashboardService
     /**
      * @return array<string, mixed>
      */
+    private function carriersDashboard(?User $user): array
+    {
+        $rows = $this->carrierReadService->filteredRows($user, [
+            'q' => '',
+            'state' => '',
+            'health' => '',
+        ]);
+
+        $enabledCount = $rows->where('is_enabled', true)->count();
+        $configuredCount = $rows->where('is_configured', true)->count();
+        $attentionCount = $rows->where('needs_attention', true)->count();
+        $healthyCount = $rows->where('health_status', IntegrationHealthLog::STATUS_HEALTHY)->count();
+        $degradedCount = $rows->where('health_status', IntegrationHealthLog::STATUS_DEGRADED)->count();
+        $downCount = $rows->where('health_status', IntegrationHealthLog::STATUS_DOWN)->count();
+        $unknownCount = max($rows->count() - ($healthyCount + $degradedCount + $downCount), 0);
+
+        return [
+            'key' => 'carriers',
+            'title' => 'لوحة عمليات تكاملات شركات الشحن',
+            'eyebrow' => 'تحليلات تشغيلية / الناقلين',
+            'description' => 'مؤشرات قراءة تشغيلية عن جاهزية تكاملات شركات الشحن، ووضع الصحة الأخير، واتجاه الفحوص الحديثة دون كشف أي أسرار أو اعتماديات خام.',
+            'metrics' => [
+                $this->metric('إجمالي الناقلين', $rows->count()),
+                $this->metric('المفعّلة', $enabledCount),
+                $this->metric('المهيأة', $configuredCount),
+                $this->metric('تحتاج متابعة', $attentionCount),
+            ],
+            'breakdowns' => [
+                [
+                    'title' => 'توزيع حالات صحة الاتصال',
+                    'items' => [
+                        ['label' => 'سليم', 'value' => $healthyCount],
+                        ['label' => 'متدهور', 'value' => $degradedCount],
+                        ['label' => 'متوقف', 'value' => $downCount],
+                        ['label' => 'غير معروف', 'value' => $unknownCount],
+                    ],
+                ],
+                [
+                    'title' => 'حالة التشغيل والإعداد',
+                    'items' => [
+                        [
+                            'label' => 'مفعّل ومهيأ',
+                            'value' => $rows->filter(fn (array $row): bool => (bool) ($row['is_enabled'] ?? false) && (bool) ($row['is_configured'] ?? false))->count(),
+                        ],
+                        [
+                            'label' => 'مفعّل لكن غير مكتمل',
+                            'value' => $rows->filter(fn (array $row): bool => (bool) ($row['is_enabled'] ?? false) && ! (bool) ($row['is_configured'] ?? false))->count(),
+                        ],
+                        [
+                            'label' => 'معطّل مع إعداد موجود',
+                            'value' => $rows->filter(fn (array $row): bool => ! (bool) ($row['is_enabled'] ?? false) && (bool) ($row['is_configured'] ?? false))->count(),
+                        ],
+                        [
+                            'label' => 'وضع اختباري',
+                            'value' => $rows->filter(fn (array $row): bool => (string) ($row['mode_label'] ?? '') === 'اختباري')->count(),
+                        ],
+                    ],
+                ],
+            ],
+            'trend' => [
+                'title' => 'الفحوص الحديثة لصحة الاتصال',
+                'summary' => 'عدد فحوص صحة الاتصال المسجلة لتكاملات الناقلين خلال الأيام السبعة الماضية.',
+                'points' => $this->carrierHealthTrend($rows),
+            ],
+            'action_summaries' => [
+                $this->summaryLine('واجهات تحتاج متابعة', $attentionCount, 'ناقل تفيد أولويته التشغيلية بالمراجعة.'),
+                $this->summaryLine('اتصال غير مستقر', $degradedCount + $downCount, 'ناقل آخر فحص له ليس بحالة سليمة.'),
+                $this->summaryLine('إعداد غير مكتمل', $rows->filter(fn (array $row): bool => ! (bool) ($row['is_configured'] ?? false))->count(), 'ناقل يحتاج استكمال إعداد آمن قبل الاعتماد عليه تشغيلياً.'),
+            ],
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     private function ticketsDashboard(?User $user): array
     {
         $query = SupportTicket::query()->withoutGlobalScopes();
@@ -393,13 +472,13 @@ class InternalReportDashboardService
     {
         return [
             'title' => $title,
-            'detail' => number_format($value) . ' ' . $suffix,
+            'detail' => number_format($value).' '.$suffix,
         ];
     }
 
     /**
-     * @param \Illuminate\Database\Eloquent\Builder $query
-     * @param array<string, string> $labels
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
+     * @param  array<string, string>  $labels
      * @return array<int, array{label: string, value: int}>
      */
     private function countByValues($query, string $column, array $labels): array
@@ -413,7 +492,7 @@ class InternalReportDashboardService
     }
 
     /**
-     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param  \Illuminate\Database\Eloquent\Builder  $query
      * @return array<int, array{label: string, value: int}>
      */
     private function dailyTrend($query, string $column): array
@@ -483,7 +562,35 @@ class InternalReportDashboardService
     }
 
     /**
-     * @param \Illuminate\Database\Eloquent\Builder $accounts
+     * @param  Collection<int, array<string, mixed>>  $rows
+     * @return array<int, array{label: string, value: int}>
+     */
+    private function carrierHealthTrend(Collection $rows): array
+    {
+        if (! Schema::hasTable('integration_health_logs')) {
+            return $this->emptyTrend();
+        }
+
+        $services = $rows
+            ->pluck('provider_key')
+            ->filter(static fn ($value): bool => is_string($value) && trim($value) !== '')
+            ->map(static fn (string $value): string => 'carrier:'.strtolower(trim($value)))
+            ->unique()
+            ->values()
+            ->all();
+
+        if ($services === []) {
+            return $this->emptyTrend();
+        }
+
+        return $this->dailyTrend(
+            IntegrationHealthLog::query()->withoutGlobalScopes()->whereIn('service', $services),
+            'checked_at'
+        );
+    }
+
+    /**
+     * @param  \Illuminate\Database\Eloquent\Builder  $accounts
      */
     private function countAccountsForVerificationStatus($accounts, string $status): int
     {
@@ -501,8 +608,8 @@ class InternalReportDashboardService
     }
 
     /**
-     * @param \Illuminate\Database\Eloquent\Builder $accounts
-     * @param array<int, string> $restrictedStatuses
+     * @param  \Illuminate\Database\Eloquent\Builder  $accounts
+     * @param  array<int, string>  $restrictedStatuses
      */
     private function countRestrictedAccounts($accounts, array $restrictedStatuses): int
     {

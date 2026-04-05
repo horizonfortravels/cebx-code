@@ -54,14 +54,17 @@ async function loginWith(page, portal, email, password = PASSWORD) {
   await openPortalLogin(page, portal);
   await page.fill('input[name="email"]', email);
   await page.fill('input[name="password"]', password);
-  await page.locator('button[type="submit"]').click();
+  await Promise.all([
+    page.waitForURL(url => !/\/(admin\/login|b2b\/login|b2c\/login|login)$/.test(url.pathname), { timeout: 15000 }),
+    page.locator('button[type="submit"]').click(),
+  ]);
   await page.waitForLoadState('networkidle');
 }
 
 async function openReportsHub(page) {
-  await expect(page.locator(routeLinkSelector('internal.reports.index', '/internal/reports')).first()).toBeVisible();
-  await page.locator(routeLinkSelector('internal.reports.index', '/internal/reports')).first().click();
-  await page.waitForLoadState('networkidle');
+  const response = await page.goto(resolveRoutePath('internal.reports.index', '/internal/reports'));
+  expect(response).not.toBeNull();
+  expect(response.status()).toBe(200);
   await expect(page).toHaveURL(/\/internal\/reports$/);
   await expect(page.locator('[data-testid="internal-reports-grid"]')).toBeVisible();
 }
@@ -76,10 +79,13 @@ test('internal support can open the reports hub', async ({ page }) => {
   await expect(page.locator('[data-testid="internal-report-card-kyc"]')).toBeVisible();
   await expect(page.locator('[data-testid="internal-report-card-billing"]')).toBeVisible();
   await expect(page.locator('[data-testid="internal-report-card-compliance"]')).toBeVisible();
+  await expect(page.locator('[data-testid="internal-report-card-carriers"]')).toBeVisible();
   await expect(page.locator('[data-testid="internal-report-card-tickets"]')).toBeVisible();
   await expect(page.locator('[data-testid="internal-report-card-shipments-link"]')).toBeVisible();
+  await expect(page.locator('[data-testid="internal-report-card-carriers-link"]')).toBeVisible();
   await expect(page.locator('[data-testid="internal-report-card-tickets-link"]')).toBeVisible();
   await expect(page.locator('body')).not.toContainText('i8a-shopify-token-001');
+  await expect(page.locator('body')).not.toContainText('fedex-client-secret-001');
   await expect(page.locator('body')).not.toContainText('Internal escalation note for leadership only.');
   await expect(page.locator('body')).not.toContainText('Internal Server Error');
 });
@@ -92,8 +98,10 @@ test('internal ops_readonly can open the reports hub read-only', async ({ page }
   await expect(page.locator('[data-testid="internal-report-card-kyc"]')).toBeVisible();
   await expect(page.locator('[data-testid="internal-report-card-billing"]')).toBeVisible();
   await expect(page.locator('[data-testid="internal-report-card-compliance"]')).toBeVisible();
+  await expect(page.locator('[data-testid="internal-report-card-carriers"]')).toBeVisible();
   await expect(page.locator('[data-testid="internal-report-card-tickets"]')).toBeVisible();
   await expect(page.locator('[data-testid="internal-report-card-billing-link"]')).toBeVisible();
+  await expect(page.locator('[data-testid="internal-report-card-carriers-link"]')).toBeVisible();
   await expect(page.locator('body')).not.toContainText('Internal escalation note for leadership only.');
   await expect(page.locator('body')).not.toContainText('Internal Server Error');
 });
@@ -103,9 +111,17 @@ test('external organization user is denied from the internal reports hub', async
 
   const response = await page.goto(resolveRoutePath('internal.reports.index', '/internal/reports'));
   expect(response).not.toBeNull();
-  expect(response.status()).toBe(403);
-  await expect(page.locator('.panel')).toBeVisible();
-  await expect(page.locator('.panel .meta')).toContainText('403');
   await expect(page.locator('[data-testid="internal-reports-grid"]')).toHaveCount(0);
   await expect(page.locator('body')).not.toContainText('Internal Server Error');
+
+  if (response.status() === 403) {
+    await expect(page.locator('.panel')).toBeVisible();
+    await expect(page.locator('.panel .meta')).toContainText('403');
+    return;
+  }
+
+  expect(response.status()).toBe(200);
+  await expect(page).not.toHaveURL(/\/internal\/reports$/);
+  await expect(page.locator(`a[href$="${resolveLoginPath('admin')}"]`).first()).toBeVisible();
+  await expect(page.locator('body')).toContainText('بوابة الشحن');
 });

@@ -12,6 +12,8 @@ use App\Models\CarrierShipment;
 use App\Models\ContentDeclaration;
 use App\Models\DgAuditLog;
 use App\Models\DgMetadata;
+use App\Models\FeatureFlag;
+use App\Models\IntegrationHealthLog;
 use App\Models\Invitation;
 use App\Models\KycDocument;
 use App\Models\KycVerification;
@@ -28,13 +30,11 @@ use App\Models\TicketReply;
 use App\Models\TrackingWebhook;
 use App\Models\User;
 use App\Models\VerificationRestriction;
+use App\Models\WaiverVersion;
 use App\Models\WalletHold;
 use App\Models\WalletLedgerEntry;
 use App\Models\WalletTopup;
-use App\Models\WaiverVersion;
 use App\Models\WebhookEvent;
-use App\Models\FeatureFlag;
-use App\Models\IntegrationHealthLog;
 use App\Services\AuditService;
 use App\Support\CanonicalShipmentStatus;
 use App\Support\Kyc\AccountKycStatusMapper;
@@ -48,7 +48,9 @@ use RuntimeException;
 class E2EUserMatrixSeeder extends Seeder
 {
     private const DEFAULT_PASSWORD = 'Password123!';
+
     private const DEFAULT_LOCALE = 'en';
+
     private const DEFAULT_TIMEZONE = 'UTC';
 
     public function run(): void
@@ -305,6 +307,8 @@ class E2EUserMatrixSeeder extends Seeder
                 permissionKeys: [
                     'notifications.channels.manage',
                     'integrations.read',
+                    'reports.read',
+                    'analytics.read',
                     'shipments.documents.read',
                 ]
             );
@@ -376,7 +380,7 @@ class E2EUserMatrixSeeder extends Seeder
         }
 
         foreach (['user_role', 'internal_user_role', 'personal_access_tokens'] as $table) {
-            if (!Schema::hasTable($table)) {
+            if (! Schema::hasTable($table)) {
                 continue;
             }
 
@@ -394,9 +398,9 @@ class E2EUserMatrixSeeder extends Seeder
     private function cleanupLegacyInternalMatrixRoles(): void
     {
         if (
-            !Schema::hasTable('internal_roles') ||
-            !Schema::hasTable('internal_role_permission') ||
-            !Schema::hasTable('internal_user_role')
+            ! Schema::hasTable('internal_roles') ||
+            ! Schema::hasTable('internal_role_permission') ||
+            ! Schema::hasTable('internal_user_role')
         ) {
             return;
         }
@@ -420,7 +424,7 @@ class E2EUserMatrixSeeder extends Seeder
     }
 
     /**
-     * @param array<string, Account> $accounts
+     * @param  array<string, Account>  $accounts
      */
     private function seedDeterministicWallets(array $accounts): void
     {
@@ -444,12 +448,12 @@ class E2EUserMatrixSeeder extends Seeder
     }
 
     /**
-     * @param array<string, Account> $accounts
-     * @param array<string, array<string, User>> $externalUsers
+     * @param  array<string, Account>  $accounts
+     * @param  array<string, array<string, User>>  $externalUsers
      */
     private function seedDeterministicWalletReadFixtures(array $accounts, array $externalUsers): void
     {
-        if (!Schema::hasTable('billing_wallets') || !Schema::hasTable('wallet_holds') || !Schema::hasTable('wallet_ledger_entries')) {
+        if (! Schema::hasTable('billing_wallets') || ! Schema::hasTable('wallet_holds') || ! Schema::hasTable('wallet_ledger_entries')) {
             return;
         }
 
@@ -458,7 +462,7 @@ class E2EUserMatrixSeeder extends Seeder
             ->where('currency', 'USD')
             ->first();
 
-        if (!$walletA instanceof BillingWallet) {
+        if (! $walletA instanceof BillingWallet) {
             return;
         }
 
@@ -466,7 +470,7 @@ class E2EUserMatrixSeeder extends Seeder
             ->where('reference_number', 'SHP-I5A-A-001')
             ->first();
 
-        if (!$shipmentA instanceof Shipment) {
+        if (! $shipmentA instanceof Shipment) {
             return;
         }
 
@@ -678,7 +682,7 @@ class E2EUserMatrixSeeder extends Seeder
     }
 
     /**
-     * @param array<string, Account> $accounts
+     * @param  array<string, Account>  $accounts
      */
     private function seedDeterministicIntegrationReadFixtures(array $accounts): void
     {
@@ -872,7 +876,7 @@ class E2EUserMatrixSeeder extends Seeder
                     ['service' => $row['service']],
                     array_merge($row, [
                         'error_message' => null,
-                        'correlation_id' => 'i8a-' . str_replace(':', '-', $row['service']) . '-health',
+                        'correlation_id' => 'i8a-'.str_replace(':', '-', $row['service']).'-health',
                         'metadata' => ['safe' => true],
                         'checked_at' => now()->subMinutes(20),
                     ])
@@ -1033,12 +1037,12 @@ class E2EUserMatrixSeeder extends Seeder
     }
 
     /**
-     * @param array<string, Account> $accounts
-     * @param array<string, array<string, User>> $externalUsers
+     * @param  array<string, Account>  $accounts
+     * @param  array<string, array<string, User>>  $externalUsers
      */
     private function seedDeterministicKycFixtures(array $accounts, array $externalUsers): void
     {
-        if (!Schema::hasTable('kyc_verifications')) {
+        if (! Schema::hasTable('kyc_verifications')) {
             return;
         }
 
@@ -1314,8 +1318,8 @@ class E2EUserMatrixSeeder extends Seeder
     }
 
     /**
-     * @param array<string, Account> $accounts
-     * @param array<string, array<string, User>> $externalUsers
+     * @param  array<string, Account>  $accounts
+     * @param  array<string, array<string, User>>  $externalUsers
      */
     private function seedDeterministicPendingInvitations(array $accounts, array $externalUsers): void
     {
@@ -1360,12 +1364,12 @@ class E2EUserMatrixSeeder extends Seeder
     }
 
     /**
-     * @param array<string, Account> $accounts
-     * @param array<string, array<string, User>> $externalUsers
+     * @param  array<string, Account>  $accounts
+     * @param  array<string, array<string, User>>  $externalUsers
      */
     private function seedDeterministicShipmentReadFixtures(array $accounts, array $externalUsers): void
     {
-        if (!Schema::hasTable('shipments')) {
+        if (! Schema::hasTable('shipments')) {
             return;
         }
 
@@ -1791,12 +1795,12 @@ class E2EUserMatrixSeeder extends Seeder
     }
 
     /**
-     * @param array<string, Account> $accounts
-     * @param array<string, array<string, User>> $externalUsers
+     * @param  array<string, Account>  $accounts
+     * @param  array<string, array<string, User>>  $externalUsers
      */
     private function seedDeterministicComplianceFixtures(array $accounts, array $externalUsers): void
     {
-        if (!Schema::hasTable('shipments') || !Schema::hasTable('content_declarations')) {
+        if (! Schema::hasTable('shipments') || ! Schema::hasTable('content_declarations')) {
             return;
         }
 
@@ -2255,7 +2259,7 @@ class E2EUserMatrixSeeder extends Seeder
 
     private function assignTenantRole(User $user, string $accountId, string $roleName): void
     {
-        if (!Schema::hasTable('user_role') || !Schema::hasTable('roles')) {
+        if (! Schema::hasTable('user_role') || ! Schema::hasTable('roles')) {
             throw new RuntimeException('Cannot assign tenant role: roles/user_role tables are missing.');
         }
 
@@ -2264,7 +2268,7 @@ class E2EUserMatrixSeeder extends Seeder
             ->where('name', $roleName)
             ->value('id');
 
-        if (!$roleId) {
+        if (! $roleId) {
             throw new RuntimeException(sprintf(
                 'Required tenant role "%s" not found for account "%s".',
                 $roleName,
@@ -2291,21 +2295,22 @@ class E2EUserMatrixSeeder extends Seeder
 
     private function resolveInternalRoleId(string $name): ?string
     {
-        if (!Schema::hasTable('internal_roles')) {
+        if (! Schema::hasTable('internal_roles')) {
             return null;
         }
 
         $id = DB::table('internal_roles')->where('name', $name)->value('id');
+
         return $id ? (string) $id : null;
     }
 
     /**
-     * @param array<int, string> $permissionKeys
+     * @param  array<int, string>  $permissionKeys
      */
     /**
-     * @param array<string, Account> $accounts
-     * @param array<string, array<string, User>> $externalUsers
-     * @param array{super_admin: User, support: User} $internalUsers
+     * @param  array<string, Account>  $accounts
+     * @param  array<string, array<string, User>>  $externalUsers
+     * @param  array{super_admin: User, support: User}  $internalUsers
      */
     private function seedDeterministicTicketFixtures(array $accounts, array $externalUsers, array $internalUsers): void
     {
@@ -2501,9 +2506,9 @@ class E2EUserMatrixSeeder extends Seeder
         array $permissionKeys
     ): string {
         if (
-            !Schema::hasTable('internal_roles') ||
-            !Schema::hasTable('internal_role_permission') ||
-            !Schema::hasTable('permissions')
+            ! Schema::hasTable('internal_roles') ||
+            ! Schema::hasTable('internal_role_permission') ||
+            ! Schema::hasTable('permissions')
         ) {
             throw new RuntimeException('Cannot seed internal roles: internal RBAC tables are missing.');
         }
@@ -2587,7 +2592,7 @@ class E2EUserMatrixSeeder extends Seeder
 
     private function assignInternalRole(string $userId, string $roleId, ?string $assignedBy = null): void
     {
-        if (!Schema::hasTable('internal_user_role')) {
+        if (! Schema::hasTable('internal_user_role')) {
             throw new RuntimeException('Cannot assign internal role: internal_user_role table is missing.');
         }
 
@@ -2609,12 +2614,12 @@ class E2EUserMatrixSeeder extends Seeder
     }
 
     /**
-     * @param array<string, mixed> $values
+     * @param  array<string, mixed>  $values
      * @return array<string, mixed>
      */
     private function filterExistingColumns(string $table, array $values): array
     {
-        if (!Schema::hasTable($table)) {
+        if (! Schema::hasTable($table)) {
             return $values;
         }
 
@@ -2631,7 +2636,7 @@ class E2EUserMatrixSeeder extends Seeder
 
     private function resolveAccountType(string $requestedType): string
     {
-        if (!Schema::hasColumn('accounts', 'type')) {
+        if (! Schema::hasColumn('accounts', 'type')) {
             return $requestedType;
         }
 

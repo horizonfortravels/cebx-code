@@ -6,27 +6,14 @@ use App\Models\Account;
 use App\Models\Permission;
 use App\Models\User;
 use App\Support\Tenancy\WebTenantContext;
-use Database\Seeders\E2EUserMatrixSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Testing\TestResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Illuminate\Testing\TestResponse;
 use PHPUnit\Framework\Attributes\Test;
-use Tests\TestCase;
-
-class InternalPortalRoleAlignmentWebTest extends TestCase
+class InternalPortalRoleAlignmentWebTest extends SeededReadOnlyWebTestCase
 {
-    use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->seed(E2EUserMatrixSeeder::class);
-    }
-
     #[Test]
     public function seeded_internal_users_only_use_canonical_internal_roles(): void
     {
@@ -94,7 +81,7 @@ class InternalPortalRoleAlignmentWebTest extends TestCase
     }
 
     #[Test]
-    public function carrier_manager_lands_on_internal_home_and_sees_smtp_navigation_only(): void
+    public function carrier_manager_lands_on_internal_home_and_sees_carrier_and_reports_navigation_only(): void
     {
         $response = $this->from('/admin/login')->post('/admin/login', [
             'email' => 'e2e.internal.carrier_manager@example.test',
@@ -111,6 +98,7 @@ class InternalPortalRoleAlignmentWebTest extends TestCase
 
         $this->assertHasNavigationLink($page, 'internal.home');
         $this->assertHasNavigationLink($page, 'internal.smtp-settings.edit');
+        $this->assertHasNavigationLink($page, 'internal.reports.index');
         $this->assertMissingNavigationLink($page, 'admin.index');
         $this->assertMissingNavigationLink($page, 'admin.tenant-context');
         $this->assertMissingNavigationLink($page, 'admin.users');
@@ -326,7 +314,7 @@ class InternalPortalRoleAlignmentWebTest extends TestCase
     }
 
     /**
-     * @param array<int, string> $permissionKeys
+     * @param  array<int, string>  $permissionKeys
      */
     private function createLegacyInternalUser(string $roleName, array $permissionKeys): User
     {
@@ -335,7 +323,7 @@ class InternalPortalRoleAlignmentWebTest extends TestCase
             'user_type' => 'internal',
             'status' => 'active',
             'password' => Hash::make('Password123!'),
-            'email' => Str::lower($roleName) . '.' . Str::lower(Str::random(6)) . '@example.test',
+            'email' => Str::lower($roleName).'.'.Str::lower(Str::random(6)).'@example.test',
         ]);
 
         $roleId = (string) Str::uuid();
@@ -396,12 +384,12 @@ class InternalPortalRoleAlignmentWebTest extends TestCase
 
     private function assertHasNavigationLink(TestResponse $response, string $routeName): void
     {
-        $response->assertSee('href="' . route($routeName) . '"', false);
+        $response->assertSee('href="'.route($routeName).'"', false);
     }
 
     private function assertMissingNavigationLink(TestResponse $response, string $routeName): void
     {
-        $response->assertDontSee('href="' . route($routeName) . '"', false);
+        $response->assertDontSee('href="'.route($routeName).'"', false);
     }
 
     private function assertForbiddenInternalSurface(TestResponse $response): void

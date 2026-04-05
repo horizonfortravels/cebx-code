@@ -116,7 +116,7 @@
             flex-direction: column;
             justify-content: center;
             align-items: center;
-            padding: clamp(40px, 4vw, 76px) clamp(32px, 4vw, 68px);
+            padding: clamp(44px, 4.2vw, 88px) clamp(32px, 4vw, 68px);
             color: #fff;
             text-align: center;
         }
@@ -146,15 +146,15 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: clamp(36px, 4vw, 80px);
+            padding: clamp(40px, 4.2vw, 88px) clamp(24px, 3vw, 56px);
             background: var(--bg, #F8FAFC);
         }
         .login-form-card {
             width: 100%;
-            max-width: clamp(480px, 34vw, 560px);
+            max-width: clamp(500px, 34vw, 620px);
             background: #fff;
             border-radius: 16px;
-            padding: 36px 32px;
+            padding: clamp(30px, 2.4vw, 38px);
             box-shadow: 0 4px 24px rgba(0,0,0,.06);
             border: 1px solid var(--bd, #E2E8F0);
 }

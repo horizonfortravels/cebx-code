@@ -3,23 +3,11 @@
 namespace Tests\Feature\Web;
 
 use App\Models\User;
-use Database\Seeders\E2EUserMatrixSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Testing\TestResponse;
 use PHPUnit\Framework\Attributes\Test;
-use Tests\TestCase;
 
-class InternalReportsExecutiveWebTest extends TestCase
+class InternalReportsExecutiveWebTest extends SeededReadOnlyWebTestCase
 {
-    use RefreshDatabase;
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->seed(E2EUserMatrixSeeder::class);
-    }
-
     #[Test]
     public function super_admin_can_open_the_executive_dashboard_without_export_controls(): void
     {
@@ -27,14 +15,16 @@ class InternalReportsExecutiveWebTest extends TestCase
             ->get(route('internal.reports.executive'))
             ->assertOk()
             ->assertSee('data-testid="internal-report-dashboard"', false)
-            ->assertSeeText('Executive profitability dashboard')
-            ->assertSeeText('Quoted commercial snapshot')
-            ->assertSeeText('Carrier performance snapshot')
-            ->assertSeeText('Safe wallet activity snapshot')
-            ->assertSeeText('Total shipments')
-            ->assertSeeText('Delivered (normalized)')
-            ->assertSeeText('Open exceptions')
-            ->assertSeeText('Active holds')
+            ->assertSeeText('لوحة الربحية التنفيذية')
+            ->assertSeeText('اللقطة التجارية المقتبسة')
+            ->assertSeeText('لقطة أداء شركات الشحن')
+            ->assertSeeText('ملخص حمل مركز الدعم')
+            ->assertSeeText('لقطة نشاط المحفظة الآمن')
+            ->assertSeeText('إجمالي الشحنات')
+            ->assertSeeText('تم تسليمها (معياريًا)')
+            ->assertSeeText('الاستثناءات المفتوحة')
+            ->assertSeeText('الحجوزات النشطة')
+            ->assertSeeText('ردود الفريق المرئية للعميل (7 أيام)')
             ->assertDontSee('data-testid="internal-report-dashboard-export-link"', false)
             ->assertDontSeeText('i8a-shopify-token-001')
             ->assertDontSeeText('Internal escalation note for leadership only.');
@@ -48,7 +38,7 @@ class InternalReportsExecutiveWebTest extends TestCase
             ->assertOk()
             ->assertSee('data-testid="internal-report-card-executive"', false)
             ->assertSee('data-testid="internal-report-card-executive-dashboard-link"', false)
-            ->assertSeeText('Executive metrics');
+            ->assertSeeText('المؤشرات التنفيذية');
 
         foreach ([
             'e2e.internal.support@example.test',
@@ -58,7 +48,7 @@ class InternalReportsExecutiveWebTest extends TestCase
                 ->get(route('internal.reports.index'))
                 ->assertOk()
                 ->assertDontSee('data-testid="internal-report-card-executive"', false)
-                ->assertDontSeeText('Executive metrics');
+                ->assertDontSeeText('المؤشرات التنفيذية');
         }
     }
 

@@ -90,14 +90,40 @@
         })->all();
     };
 
+    $actionKey = static fn (array $action): string => trim((string) ($action['href'] ?? '')).'|'.trim((string) ($action['label'] ?? ''));
+
     $dashboard = $dashboard ?? [];
     $mainChart = $dashboard['main_chart'] ?? null;
-    $kpis = $dashboard['kpis'] ?? [];
-    $pills = $dashboard['pills'] ?? [];
-    $heroActions = $dashboard['hero_actions'] ?? [];
-    $chartCards = $dashboard['chart_cards'] ?? [];
-    $streamCards = $dashboard['stream_cards'] ?? [];
-    $sideCards = $dashboard['side_cards'] ?? [];
+    $kpis = array_values($dashboard['kpis'] ?? []);
+    $pills = array_values($dashboard['pills'] ?? []);
+    $roleTags = array_values(array_slice($dashboard['role_tags'] ?? [], 0, 3));
+    $heroActions = array_values($dashboard['hero_actions'] ?? []);
+    $chartCards = array_values($dashboard['chart_cards'] ?? []);
+    $streamCards = array_values($dashboard['stream_cards'] ?? []);
+    $sideCards = array_values($dashboard['side_cards'] ?? []);
+    $tonePriority = [
+        'danger' => 40,
+        'warning' => 30,
+        'success' => 20,
+        'info' => 10,
+        'neutral' => 0,
+    ];
+    $heroPrimaryActions = array_values(array_slice($heroActions, 0, 2));
+    $heroPrimaryActionKeys = array_map($actionKey, $heroPrimaryActions);
+    $primaryKpiCount = count($kpis) > 7 ? 4 : min(3, count($kpis));
+    $primaryKpis = array_values(array_slice($kpis, 0, $primaryKpiCount));
+    $attentionKpis = array_values(array_slice($kpis, $primaryKpiCount));
+    $heroHighlights = collect($kpis)
+        ->sortByDesc(static fn (array $kpi): int => $tonePriority[$kpi['tone'] ?? 'neutral'] ?? 0)
+        ->take(3)
+        ->values()
+        ->all();
+    $summaryCard = collect($sideCards)->first(static fn (array $card): bool => ($card['type'] ?? null) === 'summary');
+    $heroPulseItems = array_values(array_slice($summaryCard['items'] ?? [], 0, 4));
+    $sideCards = collect($sideCards)
+        ->reject(static fn (array $card): bool => ($card['type'] ?? null) === 'summary')
+        ->values()
+        ->all();
 @endphp
 
 <div class="internal-dashboard-shell">
@@ -114,6 +140,40 @@
                     @endforeach
                 </div>
             @endif
+
+            @if(!empty($roleTags))
+                <div class="internal-dashboard-tag-row">
+                    @foreach($roleTags as $tag)
+                        <span class="dashboard-hero-tag">{{ $tag }}</span>
+                    @endforeach
+                </div>
+            @endif
+
+            @if(!empty($dashboard['role_badge']) || !empty($dashboard['role_description']))
+                <div class="internal-dashboard-role-group">
+                    @if(!empty($dashboard['role_badge']))
+                        <span class="internal-dashboard-role-pill">{{ $dashboard['role_badge'] }}</span>
+                    @endif
+
+                    @if(!empty($dashboard['role_description']))
+                        <p class="internal-dashboard-role-note">{{ $dashboard['role_description'] }}</p>
+                    @endif
+                </div>
+            @endif
+
+            @if(!empty($heroHighlights))
+                <div class="dashboard-command-grid">
+                    @foreach($heroHighlights as $highlight)
+                        <div class="dashboard-command-tile dashboard-command-tile--{{ $highlight['tone'] ?? 'neutral' }}">
+                            <span class="dashboard-command-tile__label">{{ $highlight['label'] }}</span>
+                            <strong class="dashboard-command-tile__value">{{ $highlight['display'] }}</strong>
+                            @if(!empty($highlight['hint']))
+                                <span class="dashboard-command-tile__meta">{{ $highlight['hint'] }}</span>
+                            @endif
+                        </div>
+                    @endforeach
+                </div>
+            @endif
         </div>
 
         <div class="internal-dashboard-hero__aside">
@@ -122,11 +182,34 @@
                 تظهر هنا الخطوات الأكثر ارتباطًا بالدور الحالي فقط، مع الحفاظ على حدود الوصول وسياق الحساب كما هو معتمد داخل المنصة.
             </p>
 
-            @if(!empty($heroActions))
-                <div class="dashboard-hero-action-list">
-                    @foreach($heroActions as $action)
+            @if(!empty($heroPulseItems))
+                <div class="dashboard-hero-pulse-grid">
+                    @foreach($heroPulseItems as $item)
+                        <div class="dashboard-hero-pulse-card dashboard-hero-pulse-card--{{ $item['tone'] ?? 'neutral' }}">
+                            <span class="dashboard-hero-pulse-card__label">{{ $item['label'] }}</span>
+                            <strong class="dashboard-hero-pulse-card__value">{{ $item['value'] }}</strong>
+                        </div>
+                    @endforeach
+                </div>
+            @endif
+
+            @if(empty($heroPulseItems))
+            <div class="dashboard-hero-aside-card">
+                <div class="dashboard-hero-aside-card__head">
+                    <div class="dashboard-hero-aside-card__title">{{ $dashboard['role_badge'] ?? 'الدور الحالي' }}</div>
+                    <span class="dashboard-hero-aside-card__icon">{!! $icon('activity') !!}</span>
+                </div>
+                @if(!empty($dashboard['role_description']))
+                    <p class="dashboard-hero-aside-card__copy">{{ $dashboard['role_description'] }}</p>
+                @endif
+            </div>
+            @endif
+
+            @if(!empty($heroPrimaryActions))
+                <div class="dashboard-hero-action-list dashboard-hero-action-list--compact">
+                    @foreach($heroPrimaryActions as $action)
                         @if(!empty($action['href']))
-                            <a href="{{ $action['href'] }}" class="{{ $buttonClass($action['variant'] ?? null) }} dashboard-hero-action">
+                            <a href="{{ $action['href'] }}" class="{{ $buttonClass($action['variant'] ?? null) }} dashboard-hero-action {{ $loop->first ? 'dashboard-hero-action--spotlight' : '' }}">
                                 <span class="dashboard-hero-action__icon">{!! $icon($iconForAction($action)) !!}</span>
                                 <span class="dashboard-hero-action__body">
                                     <span class="dashboard-hero-action__title">{{ $action['label'] }}</span>
@@ -134,7 +217,7 @@
                                 </span>
                             </a>
                         @else
-                            <div class="{{ $buttonClass($action['variant'] ?? 'disabled') }} dashboard-hero-action">
+                            <div class="{{ $buttonClass($action['variant'] ?? 'disabled') }} dashboard-hero-action {{ $loop->first ? 'dashboard-hero-action--spotlight' : '' }}">
                                 <span class="dashboard-hero-action__icon">{!! $icon($iconForAction($action)) !!}</span>
                                 <span class="dashboard-hero-action__body">
                                     <span class="dashboard-hero-action__title">{{ $action['label'] }}</span>
@@ -144,6 +227,9 @@
                         @endif
                     @endforeach
                 </div>
+                @if(count($heroActions) > count($heroPrimaryActions))
+                    <div class="dashboard-hero-note">تظهر بقية الأدوات في عمود الإجراءات حتى تبقى نقطة البداية مركزة وسهلة المسح.</div>
+                @endif
             @else
                 <div class="dashboard-empty-state dashboard-empty-state--soft">
                     ستظهر المسارات السريعة هنا فور توفر صفحات مناسبة للدور الحالي.
@@ -152,18 +238,49 @@
         </div>
     </section>
 
-    @if(!empty($kpis))
-        <div class="stats-grid internal-dashboard-kpis">
-            @foreach($kpis as $kpi)
-                <x-stat-card
-                    class="internal-kpi-card"
-                    :label="$kpi['label']"
-                    :value="$kpi['display']"
-                    :meta="$kpi['hint'] ?? null"
-                    :iconSvg="$icon($iconForKpi($kpi))"
-                />
-            @endforeach
-        </div>
+    @if(!empty($primaryKpis) || !empty($attentionKpis))
+        <section class="dashboard-section-block dashboard-section-block--metrics">
+            <div class="dashboard-section-heading">
+                <div>
+                    <span class="dashboard-section-heading__eyebrow">المشهد التنفيذي</span>
+                    <h2 class="dashboard-section-heading__title">مؤشرات المنصة الآن</h2>
+                </div>
+                <p class="dashboard-section-heading__copy">تعطي هذه القراءة السريعة صورة عامة أولاً، ثم تفصل نقاط المتابعة العاجلة في صف مستقل حتى يبقى المسح اليومي أسرع.</p>
+            </div>
+
+            @if(!empty($primaryKpis))
+                <div class="stats-grid internal-dashboard-kpis internal-dashboard-kpis--primary">
+                    @foreach($primaryKpis as $kpi)
+                        <x-stat-card
+                            :class="'internal-kpi-card internal-kpi-card--primary internal-kpi-card--'.($kpi['tone'] ?? 'neutral')"
+                            :label="$kpi['label']"
+                            :value="$kpi['display']"
+                            :meta="$kpi['hint'] ?? null"
+                            :iconSvg="$icon($iconForKpi($kpi))"
+                            eyebrow="مؤشر تنفيذي"
+                        />
+                    @endforeach
+                </div>
+            @endif
+
+            @if(!empty($attentionKpis))
+                <div class="dashboard-kpi-collection dashboard-kpi-collection--attention">
+                    <div class="dashboard-kpi-collection__label">نقاط تحتاج متابعة آنية</div>
+                    <div class="stats-grid internal-dashboard-kpis internal-dashboard-kpis--attention">
+                        @foreach($attentionKpis as $kpi)
+                            <x-stat-card
+                                :class="'internal-kpi-card internal-kpi-card--attention internal-kpi-card--'.($kpi['tone'] ?? 'neutral')"
+                                :label="$kpi['label']"
+                                :value="$kpi['display']"
+                                :meta="$kpi['hint'] ?? null"
+                                :iconSvg="$icon($iconForKpi($kpi))"
+                                eyebrow="متابعة مباشرة"
+                            />
+                        @endforeach
+                    </div>
+                </div>
+            @endif
+        </section>
     @endif
 
     <div class="internal-dashboard-grid">
@@ -177,12 +294,26 @@
                     <p class="dashboard-card-copy">{{ $mainChart['summary'] ?? '' }}</p>
 
                     @if($mainChartTotal > 0)
+                        <div class="dashboard-figure-strip">
+                            <div class="dashboard-figure-strip__item">
+                                <span class="dashboard-figure-strip__label">إجمالي الفترة</span>
+                                <strong class="dashboard-figure-strip__value">{{ number_format($mainChartTotal) }}</strong>
+                            </div>
+                            <div class="dashboard-figure-strip__item">
+                                <span class="dashboard-figure-strip__label">متوسط يومي</span>
+                                <strong class="dashboard-figure-strip__value">{{ number_format((int) round($mainChartTotal / max(1, count($mainChartPoints)))) }}</strong>
+                            </div>
+                            <div class="dashboard-figure-strip__item">
+                                <span class="dashboard-figure-strip__label">أعلى يوم</span>
+                                <strong class="dashboard-figure-strip__value">{{ number_format((int) collect($mainChartPoints)->max('value')) }}</strong>
+                            </div>
+                        </div>
                         <div class="dashboard-bar-chart">
                             @foreach($mainChartPoints as $point)
                                 <div class="dashboard-bar-chart__item">
                                     <div class="dashboard-bar-chart__value">{{ $point['display'] }}</div>
                                     <div class="dashboard-bar-chart__bar-wrap">
-                                        <span class="dashboard-bar-chart__bar" style="height: {{ $point['height'] }}%"></span>
+                                        <span class="dashboard-bar-chart__bar" style="--bar-height: {{ $point['height'] }}%;"></span>
                                     </div>
                                     <div class="dashboard-bar-chart__label">{{ $point['label'] }}</div>
                                 </div>
@@ -198,16 +329,35 @@
             @endif
 
             @if(!empty($chartCards))
+                <div class="dashboard-section-heading">
+                    <div>
+                        <span class="dashboard-section-heading__eyebrow">صورة التشغيل</span>
+                        <h2 class="dashboard-section-heading__title">قراءة سريعة لحركة الشحن والمخاطر والتكاملات</h2>
+                    </div>
+                    <p class="dashboard-section-heading__copy">تجمع هذه البطاقات ما يحتاجه الفريق الداخلي لفهم ضغط المنصة وتوزيع الحالات قبل الانتقال إلى المراكز التفصيلية.</p>
+                </div>
                 <div class="internal-dashboard-visual-grid">
                     @foreach($chartCards as $card)
                         @php
                             $items = $card['items'] ?? [];
                             $total = max(0, (int) collect($items)->sum('value'));
                         @endphp
-                        <x-card :title="$card['title']" class="dashboard-panel-card">
+                        <x-card :title="$card['title']" class="dashboard-panel-card dashboard-panel-card--signal">
                             <p class="dashboard-card-copy">{{ $card['summary'] ?? '' }}</p>
 
                             @if($total > 0)
+                                <div class="dashboard-segmented-bar" aria-hidden="true">
+                                    @foreach($items as $item)
+                                        @php
+                                            $segmentPercent = $total > 0 ? max(6, (int) round(((int) ($item['value'] ?? 0) / $total) * 100)) : 0;
+                                        @endphp
+                                        <span class="dashboard-segmented-bar__segment dashboard-segmented-bar__segment--{{ $item['tone'] ?? 'neutral' }}" style="--segment-width: {{ $segmentPercent }}%;"></span>
+                                    @endforeach
+                                </div>
+                                <div class="dashboard-card-meta-row">
+                                    <span>إجمالي القسم {{ number_format($total) }}</span>
+                                    <span>{{ count($items) }} مؤشرات</span>
+                                </div>
                                 <div class="dashboard-distribution-list">
                                     @foreach($items as $item)
                                         @php
@@ -219,7 +369,7 @@
                                                 <strong>{{ $item['display'] }}</strong>
                                             </div>
                                             <div class="dashboard-distribution-row__track">
-                                                <span class="dashboard-distribution-row__fill" style="width: {{ $percent }}%"></span>
+                                                <span class="dashboard-distribution-row__fill" style="--fill-width: {{ $percent }}%;"></span>
                                             </div>
                                             <div class="dashboard-distribution-row__foot">
                                                 @if(!empty($item['detail']))
@@ -244,16 +394,30 @@
             @endif
 
             @if(!empty($streamCards))
+                <div class="dashboard-section-heading">
+                    <div>
+                        <span class="dashboard-section-heading__eyebrow">المتابعة التشغيلية</span>
+                        <h2 class="dashboard-section-heading__title">آخر العناصر التي تحتاج قراءة أو تدخلًا سريعًا</h2>
+                    </div>
+                    <p class="dashboard-section-heading__copy">تعرض هذه القوائم آخر النشاطات الحرجة والمراجعات المفتوحة بصورة مضغوطة تساعد على الفرز السريع داخل العمل اليومي.</p>
+                </div>
                 <div class="internal-dashboard-stream-grid">
                     @foreach($streamCards as $card)
                         @php $rows = $card['rows'] ?? []; @endphp
-                        <x-card :title="$card['title']" class="dashboard-panel-card">
+                        <x-card :title="$card['title']" class="dashboard-panel-card dashboard-panel-card--queue">
                             <p class="dashboard-card-copy">{{ $card['summary'] ?? '' }}</p>
+
+                            @if(!empty($rows))
+                                <div class="dashboard-card-meta-row dashboard-card-meta-row--muted">
+                                    <span>عدد العناصر</span>
+                                    <strong>{{ count($rows) }}</strong>
+                                </div>
+                            @endif
 
                             @if(!empty($rows))
                                 <div class="dashboard-list">
                                     @foreach($rows as $row)
-                                        <div class="dashboard-list-item">
+                                        <div class="dashboard-list-item dashboard-list-item--{{ $row['tone'] ?? 'neutral' }}">
                                             <div class="dashboard-list-item__body">
                                                 <div class="dashboard-list-item__title">{{ $row['title'] }}</div>
                                                 @if(!empty($row['meta']))
@@ -292,8 +456,13 @@
                         $miniDistributionTotal = max(0, (int) collect($miniDistribution)->sum('value'));
                         $rows = $card['rows'] ?? [];
                     @endphp
-                    <x-card :title="$card['title']" class="dashboard-panel-card dashboard-panel-card--muted dashboard-context-card">
+                    <x-card :title="$card['title']" class="dashboard-panel-card dashboard-panel-card--muted dashboard-panel-card--context dashboard-context-card">
                         <div class="dashboard-context-stack">
+                            <div class="dashboard-context-kicker">
+                                <span class="dashboard-context-kicker__icon">{!! $icon('context') !!}</span>
+                                <span>عدسة الحساب الحالية</span>
+                            </div>
+
                             @if(($card['state'] ?? null) === 'selected')
                                 <div class="dashboard-context-header">
                                     <div>
@@ -322,7 +491,7 @@
                                             @foreach($miniTrendPoints as $point)
                                                 <div class="dashboard-mini-trend__item">
                                                     <span class="dashboard-mini-trend__value">{{ $point['display'] }}</span>
-                                                    <span class="dashboard-mini-trend__bar" style="height: {{ $point['height'] }}%"></span>
+                                                    <span class="dashboard-mini-trend__bar" style="--mini-bar-height: {{ $point['height'] }}%;"></span>
                                                     <span class="dashboard-mini-trend__label">{{ $point['label'] }}</span>
                                                 </div>
                                             @endforeach
@@ -345,7 +514,7 @@
                                                         <strong>{{ $item['display'] }}</strong>
                                                     </div>
                                                     <div class="dashboard-distribution-row__track">
-                                                        <span class="dashboard-distribution-row__fill" style="width: {{ $percent }}%"></span>
+                                                        <span class="dashboard-distribution-row__fill" style="--fill-width: {{ $percent }}%;"></span>
                                                     </div>
                                                 </div>
                                             @endforeach
@@ -358,7 +527,7 @@
                                         <div class="dashboard-section-title">أحدث شحنات الحساب</div>
                                         <div class="dashboard-list dashboard-list--compact">
                                             @foreach($rows as $row)
-                                                <div class="dashboard-list-item">
+                                                <div class="dashboard-list-item dashboard-list-item--{{ $row['tone'] ?? 'neutral' }}">
                                                     <div class="dashboard-list-item__body">
                                                         <div class="dashboard-list-item__title">{{ $row['title'] }}</div>
                                                         @if(!empty($row['meta']))
@@ -392,8 +561,17 @@
                         </div>
                     </x-card>
                 @elseif(($card['type'] ?? null) === 'actions')
-                    @php $items = $card['items'] ?? []; @endphp
-                    <x-card :title="$card['title']" class="dashboard-panel-card">
+                    @php
+                        $items = collect($card['items'] ?? [])
+                            ->reject(fn (array $action): bool => in_array($actionKey($action), $heroPrimaryActionKeys, true))
+                            ->values()
+                            ->all();
+
+                        if ($items === []) {
+                            $items = $card['items'] ?? [];
+                        }
+                    @endphp
+                    <x-card :title="$card['title']" class="dashboard-panel-card dashboard-panel-card--action-rail">
                         <p class="dashboard-card-copy">{{ $card['summary'] ?? '' }}</p>
                         <div class="dashboard-action-list">
                             @foreach($items as $action)
@@ -414,18 +592,6 @@
                                         </span>
                                     </div>
                                 @endif
-                            @endforeach
-                        </div>
-                    </x-card>
-                @elseif(($card['type'] ?? null) === 'summary')
-                    @php $items = $card['items'] ?? []; @endphp
-                    <x-card :title="$card['title']" class="dashboard-panel-card">
-                        <div class="dashboard-summary-grid">
-                            @foreach($items as $item)
-                                <div class="dashboard-summary-card {{ $tonePanel($item['tone'] ?? 'neutral') }}">
-                                    <div class="dashboard-summary-card__value">{{ $item['value'] }}</div>
-                                    <div class="dashboard-summary-card__label">{{ $item['label'] }}</div>
-                                </div>
                             @endforeach
                         </div>
                     </x-card>

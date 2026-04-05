@@ -1,4 +1,4 @@
-@props(['icon' => '', 'iconSvg' => null, 'label' => '', 'value' => '0', 'trend' => null, 'up' => true, 'meta' => null])
+@props(['icon' => '', 'iconSvg' => null, 'label' => '', 'value' => '0', 'trend' => null, 'up' => true, 'meta' => null, 'eyebrow' => null])
 <div {{ $attributes->class('stat-card') }}>
     <div class="stat-card-head">
         @if($iconSvg)
@@ -10,6 +10,9 @@
             <span class="stat-trend {{ $up ? 'up' : 'down' }}">{{ $trend }}</span>
         @endif
     </div>
+    @if($eyebrow)
+        <div class="stat-eyebrow">{{ $eyebrow }}</div>
+    @endif
     <div class="stat-value">{{ $value }}</div>
     <div class="stat-label">{{ $label }}</div>
     @if($meta)

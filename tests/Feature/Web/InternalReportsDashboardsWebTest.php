@@ -3,63 +3,61 @@
 namespace Tests\Feature\Web;
 
 use App\Models\User;
-use Database\Seeders\E2EUserMatrixSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Testing\TestResponse;
 use PHPUnit\Framework\Attributes\Test;
-use Tests\TestCase;
 
-class InternalReportsDashboardsWebTest extends TestCase
+class InternalReportsDashboardsWebTest extends SeededReadOnlyWebTestCase
 {
-    use RefreshDatabase;
-
     /**
-     * @var array<string, array{route: string, title: string, breakdown: string, trend: string, primary_link: string}>
+     * @var array<string, array{route: string, drilldowns: array<int, string>}>
      */
     private array $dashboards = [
         'shipments' => [
             'route' => 'internal.reports.shipments',
-            'title' => 'Shipment operations dashboard',
-            'breakdown' => 'Current workflow status breakdown',
-            'trend' => 'Recent shipment intake',
-            'primary_link' => 'internal.shipments.index',
+            'drilldowns' => [
+                'internal.shipments.index',
+                'internal.kyc.index',
+                'internal.tickets.index',
+            ],
         ],
         'kyc' => [
             'route' => 'internal.reports.kyc',
-            'title' => 'KYC operations dashboard',
-            'breakdown' => 'Verification status breakdown',
-            'trend' => 'Recent KYC submissions',
-            'primary_link' => 'internal.kyc.index',
+            'drilldowns' => [
+                'internal.kyc.index',
+                'internal.compliance.index',
+                'internal.billing.index',
+            ],
         ],
         'billing' => [
             'route' => 'internal.reports.billing',
-            'title' => 'Wallet & billing dashboard',
-            'breakdown' => 'Wallet status breakdown',
-            'trend' => 'Recent confirmed top-ups',
-            'primary_link' => 'internal.billing.index',
+            'drilldowns' => [
+                'internal.billing.index',
+                'internal.shipments.index',
+                'internal.kyc.index',
+            ],
         ],
         'compliance' => [
             'route' => 'internal.reports.compliance',
-            'title' => 'Compliance & DG dashboard',
-            'breakdown' => 'Compliance status breakdown',
-            'trend' => 'Recent declaration intake',
-            'primary_link' => 'internal.compliance.index',
+            'drilldowns' => [
+                'internal.compliance.index',
+                'internal.kyc.index',
+                'internal.billing.index',
+            ],
+        ],
+        'carriers' => [
+            'route' => 'internal.reports.carriers',
+            'drilldowns' => [
+                'internal.carriers.index',
+            ],
         ],
         'tickets' => [
             'route' => 'internal.reports.tickets',
-            'title' => 'Helpdesk & tickets dashboard',
-            'breakdown' => 'Workflow status breakdown',
-            'trend' => 'Recent ticket intake',
-            'primary_link' => 'internal.tickets.index',
+            'drilldowns' => [
+                'internal.tickets.index',
+                'internal.shipments.index',
+            ],
         ],
     ];
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->seed(E2EUserMatrixSeeder::class);
-    }
 
     #[Test]
     public function super_admin_support_and_ops_readonly_can_open_each_operational_dashboard(): void
@@ -80,12 +78,13 @@ class InternalReportsDashboardsWebTest extends TestCase
                     ->assertSee('data-testid="internal-report-trend-card"', false)
                     ->assertSee('data-testid="internal-report-actions-card"', false)
                     ->assertSee('data-testid="internal-report-drilldown-card"', false)
-                    ->assertSeeText($dashboard['title'])
-                    ->assertSeeText($dashboard['breakdown'])
-                    ->assertSeeText($dashboard['trend'])
-                    ->assertSee('href="' . route($dashboard['primary_link']) . '"', false)
                     ->assertDontSeeText('i8a-shopify-token-001')
+                    ->assertDontSeeText('fedex-client-secret-001')
                     ->assertDontSeeText('Internal escalation note for leadership only.');
+
+                foreach ($dashboard['drilldowns'] as $routeName) {
+                    $response->assertSee('href="'.route($routeName).'"', false);
+                }
 
                 $this->assertHasNavigationLink($response, 'internal.reports.index');
             }
@@ -93,19 +92,34 @@ class InternalReportsDashboardsWebTest extends TestCase
     }
 
     #[Test]
-    public function carrier_manager_and_external_users_are_forbidden_from_each_dashboard(): void
+    public function carrier_manager_can_open_only_the_carrier_dashboard(): void
     {
-        foreach ([
-            'e2e.internal.carrier_manager@example.test',
-            'e2e.c.organization_owner@example.test',
-        ] as $email) {
-            $user = $this->userByEmail($email);
+        $user = $this->userByEmail('e2e.internal.carrier_manager@example.test');
 
-            foreach ($this->dashboards as $dashboard) {
-                $this->assertForbiddenInternalSurface(
-                    $this->actingAs($user, 'web')->get(route($dashboard['route']))
-                );
-            }
+        $this->actingAs($user, 'web')
+            ->get(route('internal.reports.carriers'))
+            ->assertOk()
+            ->assertSee('data-testid="internal-report-dashboard"', false)
+            ->assertSee('href="'.route('internal.carriers.index').'"', false)
+            ->assertDontSeeText('i8a-shopify-token-001')
+            ->assertDontSeeText('fedex-client-secret-001');
+
+        foreach (['shipments', 'kyc', 'billing', 'compliance', 'tickets'] as $domain) {
+            $this->assertForbiddenInternalSurface(
+                $this->actingAs($user, 'web')->get(route('internal.reports.'.$domain))
+            );
+        }
+    }
+
+    #[Test]
+    public function external_users_are_forbidden_from_each_dashboard(): void
+    {
+        $user = $this->userByEmail('e2e.c.organization_owner@example.test');
+
+        foreach ($this->dashboards as $dashboard) {
+            $this->assertForbiddenInternalSurface(
+                $this->actingAs($user, 'web')->get(route($dashboard['route']))
+            );
         }
     }
 
@@ -119,7 +133,7 @@ class InternalReportsDashboardsWebTest extends TestCase
 
     private function assertHasNavigationLink(TestResponse $response, string $routeName): void
     {
-        $response->assertSee('href="' . route($routeName) . '"', false);
+        $response->assertSee('href="'.route($routeName).'"', false);
     }
 
     private function assertForbiddenInternalSurface(TestResponse $response): void

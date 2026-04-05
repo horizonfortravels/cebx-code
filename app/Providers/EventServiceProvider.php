@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Providers;
 
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
@@ -6,6 +7,7 @@ use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvi
 class EventServiceProvider extends ServiceProvider
 {
     protected $listen = [
+        \Illuminate\Database\Events\MigrationEnded::class => [\App\Listeners\RefreshDatabaseConnectionAfterMigration::class],
         \App\Events\InvitationCreated::class => [\App\Listeners\SendInvitationEmailListener::class],
         \App\Events\InvitationResent::class => [\App\Listeners\SendInvitationEmailListener::class],
         \App\Events\UserInvited::class => [\App\Listeners\SendUserInvitationListener::class],
