@@ -52,7 +52,7 @@ class ShipmentDocumentWebController extends Controller
         $shipment = Shipment::query()
             ->where('id', $shipmentId)
             ->where('account_id', (string) $user->account_id)
-            ->with(['carrierShipment', 'selectedRateOption'])
+            ->with(['carrierShipment', 'selectedRateOption', 'carrierDocuments'])
             ->firstOrFail();
 
         $this->authorize('view', $shipment);
@@ -129,7 +129,7 @@ class ShipmentDocumentWebController extends Controller
         $docData = $this->carrierService->getDocumentForDownload($documentId, $shipment, $user);
 
         if (! $this->isPdfPreviewable($docData)) {
-            return redirect()->route($portal . '.shipments.documents.download', [
+            return redirect()->route($portal.'.shipments.documents.download', [
                 'id' => (string) $shipment->id,
                 'documentId' => $documentId,
                 'downloadName' => (string) ($docData['filename'] ?? $previewName ?? 'document.bin'),
@@ -175,13 +175,17 @@ class ShipmentDocumentWebController extends Controller
     }
 
     /**
-     * @param array<string, mixed> $document
+     * @param  array<string, mixed>  $document
      * @return array<string, mixed>
      */
     private function decorateDocumentRoutes(array $document, string $portal, Shipment $shipment): array
     {
         $filename = (string) ($document['filename'] ?? 'document.bin');
-        $downloadRoute = route($portal . '.shipments.documents.download', [
+        $storedDocument = $shipment->relationLoaded('carrierDocuments')
+            ? $shipment->carrierDocuments->firstWhere('id', (string) ($document['id'] ?? ''))
+            : null;
+        $retrievalModeCode = (string) ($storedDocument?->retrieval_mode ?? ($document['retrieval_mode'] ?? ''));
+        $downloadRoute = route($portal.'.shipments.documents.download', [
             'id' => (string) $shipment->id,
             'documentId' => (string) $document['id'],
             'downloadName' => $filename,
@@ -202,12 +206,12 @@ class ShipmentDocumentWebController extends Controller
                 strtoupper((string) ($document['file_format'] ?? $document['format'] ?? ''))
             ),
             'retrieval_mode_label' => PortalShipmentLabeler::retrievalMode(
-                (string) ($document['retrieval_mode'] ?? ''),
-                (string) ($document['retrieval_mode'] ?? '')
+                $retrievalModeCode,
+                $retrievalModeCode
             ),
             'download_route' => $downloadRoute,
             'previewable' => $previewable,
-            'preview_route' => $previewable ? route($portal . '.shipments.documents.preview', [
+            'preview_route' => $previewable ? route($portal.'.shipments.documents.preview', [
                 'id' => (string) $shipment->id,
                 'documentId' => (string) $document['id'],
                 'previewName' => $filename,
@@ -216,7 +220,7 @@ class ShipmentDocumentWebController extends Controller
     }
 
     /**
-     * @param array<string, mixed> $document
+     * @param  array<string, mixed>  $document
      */
     private function isPdfPreviewable(array $document): bool
     {
@@ -239,8 +243,11 @@ class ShipmentDocumentWebController extends Controller
                 'label' => __('portal_shipments.common.portal_b2b'),
                 'dashboard_route' => 'b2b.dashboard',
                 'shipments_index_route' => 'b2b.shipments.index',
+                'create_route' => 'b2b.shipments.create',
                 'offers_route' => 'b2b.shipments.offers',
                 'declaration_route' => 'b2b.shipments.declaration',
+                'show_route' => 'b2b.shipments.show',
+                'documents_route' => 'b2b.shipments.documents.index',
             ];
         }
 
@@ -248,8 +255,11 @@ class ShipmentDocumentWebController extends Controller
             'label' => __('portal_shipments.common.portal_b2c'),
             'dashboard_route' => 'b2c.dashboard',
             'shipments_index_route' => 'b2c.shipments.index',
+            'create_route' => 'b2c.shipments.create',
             'offers_route' => 'b2c.shipments.offers',
             'declaration_route' => 'b2c.shipments.declaration',
+            'show_route' => 'b2c.shipments.show',
+            'documents_route' => 'b2c.shipments.documents.index',
         ];
     }
 }

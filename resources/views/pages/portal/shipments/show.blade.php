@@ -31,24 +31,19 @@
         \App\Models\WalletHold::STATUS_RELEASED => 'تم الإفراج',
         \App\Models\WalletHold::STATUS_EXPIRED => 'منتهي',
     ];
-    $selectedOfferAmount = ($shipment->selectedRateOption ?? $shipment->rateQuote?->selectedOption)?->retail_rate ?? $shipment->reserved_amount ?? $shipment->total_charge ?? null;
-    $selectedOfferCurrency = ($shipment->selectedRateOption ?? $shipment->rateQuote?->selectedOption)?->currency ?? $shipment->currency ?? 'SAR';
+    $selectedOffer = $shipment->selectedRateOption ?? $shipment->rateQuote?->selectedOption;
+    $selectedOfferAmount = $selectedOffer?->retail_rate ?? $shipment->reserved_amount ?? $shipment->total_charge ?? null;
+    $selectedOfferCurrency = $selectedOffer?->currency ?? $shipment->currency ?? 'SAR';
     $canTriggerWalletPreflight = $canTriggerWalletPreflight ?? false;
     $canIssueShipment = $canIssueShipment ?? false;
     $canViewNotifications = $canViewNotifications ?? false;
     $carrierShipmentStatus = (string) ($shipment->carrierShipment?->status ?? '');
     $issuanceSucceeded = (string) $shipment->status === \App\Models\Shipment::STATUS_PURCHASED
-        || in_array($carrierShipmentStatus, [
-            \App\Models\CarrierShipment::STATUS_CREATED,
-            \App\Models\CarrierShipment::STATUS_LABEL_READY,
-        ], true);
+        || in_array($carrierShipmentStatus, [\App\Models\CarrierShipment::STATUS_CREATED, \App\Models\CarrierShipment::STATUS_LABEL_READY], true);
     $issuanceFailed = (string) $shipment->status === \App\Models\Shipment::STATUS_FAILED
         || $carrierShipmentStatus === \App\Models\CarrierShipment::STATUS_FAILED;
     $showWalletPreflightAction = $canTriggerWalletPreflight
-        && (
-            $shipment->status === \App\Models\Shipment::STATUS_DECLARATION_COMPLETE
-            || ($shipment->status === \App\Models\Shipment::STATUS_PAYMENT_PENDING && $reservationStatus === null)
-        )
+        && ($shipment->status === \App\Models\Shipment::STATUS_DECLARATION_COMPLETE || ($shipment->status === \App\Models\Shipment::STATUS_PAYMENT_PENDING && $reservationStatus === null))
         && ! $shipment->carrierShipment
         && $reservationStatus !== \App\Models\WalletHold::STATUS_CAPTURED
         && $reservationStatus !== \App\Models\WalletHold::STATUS_ACTIVE;
@@ -56,375 +51,257 @@
         && $shipment->status === \App\Models\Shipment::STATUS_PAYMENT_PENDING
         && $reservationStatus === \App\Models\WalletHold::STATUS_ACTIVE
         && ! $shipment->carrierShipment;
-    $selectedOffer = $shipment->selectedRateOption ?? $shipment->rateQuote?->selectedOption;
     $trackingNumber = $shipment->tracking_number ?? $shipment->carrierShipment?->tracking_number ?? $shipment->carrier_tracking_number ?? 'غير متاح بعد';
-    $currentStatusLabel = $timeline['current_status_label']
-        ?? ($issuanceFailed ? 'تعذر الإصدار' : ($workflowStatusLabels[$shipment->status] ?? 'غير متاحة'));
-    $currentStatusCode = $timeline['current_status']
-        ?? ($issuanceFailed ? 'failed' : ((string) $shipment->status !== '' ? (string) $shipment->status : 'unknown'));
+    $currentStatusLabel = $timeline['current_status_label'] ?? ($issuanceFailed ? 'تعذر الإصدار' : ($workflowStatusLabels[$shipment->status] ?? 'غير متاحة'));
     $completionFeedbackMessage = $completionFeedback['message'] ?? 'تم تحديث مرحلة إكمال الشحنة.';
     $completionFeedbackNextAction = $completionFeedback['next_action'] ?? null;
     $completionFeedbackErrorCode = $completionFeedback['error_code'] ?? null;
     $completionFeedbackErrorMap = [
-        'ERR_WALLET_NOT_AVAILABLE' => [
-            'message' => 'لا توجد محفظة متاحة بعملة هذه الشحنة.',
-            'next_action' => 'أنشئ محفظة أو موّل محفظة بعملة الشحنة قبل متابعة الحجز والإصدار.',
-        ],
-        'ERR_INSUFFICIENT_BALANCE' => [
-            'message' => 'رصيد المحفظة غير كافٍ لإتمام الحجز المسبق لهذه الشحنة.',
-            'next_action' => 'أضف رصيدًا كافيًا إلى المحفظة ثم أعد تنفيذ فحص المحفظة.',
-        ],
-        'ERR_INVALID_STATE' => [
-            'message' => 'لا يمكن تنفيذ هذه الخطوة من حالة الشحنة الحالية.',
-            'next_action' => 'أكمل اختيار العرض وإقرار المحتوى أولًا ثم أعد المحاولة.',
-        ],
-        'ERR_WALLET_RESERVATION_REQUIRED' => [
-            'message' => 'يجب وجود حجز مالي نشط قبل محاولة الإصدار لدى الناقل.',
-            'next_action' => 'نفّذ فحص المحفظة أولًا ثم أعد محاولة الإصدار.',
-        ],
-        'ERR_DG_DECLARATION_INCOMPLETE' => [
-            'message' => 'لا يمكن متابعة الشحنة قبل اكتمال إقرار المحتوى.',
-            'next_action' => 'افتح صفحة إقرار المحتوى وأكمل التصريح القانوني أولًا.',
-        ],
-        'ERR_DG_HOLD_REQUIRED' => [
-            'message' => 'هذه الشحنة متوقفة حاليًا بسبب قيد امتثال أو مواد خطرة.',
-            'next_action' => 'راجع صفحة إقرار المحتوى أو تواصل مع فريق الدعم لاستكمال المعالجة اليدوية.',
-        ],
+        'ERR_WALLET_NOT_AVAILABLE' => ['message' => 'لا توجد محفظة متاحة بعملة هذه الشحنة.', 'next_action' => 'أنشئ محفظة أو موّل محفظة بعملة الشحنة قبل متابعة الحجز والإصدار.'],
+        'ERR_INSUFFICIENT_BALANCE' => ['message' => 'رصيد المحفظة غير كافٍ لإتمام الحجز المسبق لهذه الشحنة.', 'next_action' => 'أضف رصيدًا كافيًا إلى المحفظة ثم أعد تنفيذ فحص المحفظة.'],
+        'ERR_INVALID_STATE' => ['message' => 'لا يمكن تنفيذ هذه الخطوة من حالة الشحنة الحالية.', 'next_action' => 'أكمل اختيار العرض وإقرار المحتوى أولًا ثم أعد المحاولة.'],
+        'ERR_WALLET_RESERVATION_REQUIRED' => ['message' => 'يجب وجود حجز مالي نشط قبل محاولة الإصدار لدى الناقل.', 'next_action' => 'نفّذ فحص المحفظة أولًا ثم أعد محاولة الإصدار.'],
+        'ERR_DG_DECLARATION_INCOMPLETE' => ['message' => 'لا يمكن متابعة الشحنة قبل اكتمال إقرار المحتوى.', 'next_action' => 'افتح صفحة إقرار المحتوى وأكمل التصريح القانوني أولًا.'],
+        'ERR_DG_HOLD_REQUIRED' => ['message' => 'هذه الشحنة متوقفة حاليًا بسبب قيد امتثال أو مواد خطرة.', 'next_action' => 'راجع صفحة إقرار المحتوى أو تواصل مع فريق الدعم لاستكمال المعالجة اليدوية.'],
     ];
     if ($completionFeedbackErrorCode && isset($completionFeedbackErrorMap[$completionFeedbackErrorCode])) {
         $completionFeedbackMessage = $completionFeedbackErrorMap[$completionFeedbackErrorCode]['message'];
         $completionFeedbackNextAction = $completionFeedbackErrorMap[$completionFeedbackErrorCode]['next_action'];
     }
+    $timelineItems = collect($events)->map(function (array $event): array {
+        return [
+            'title' => $event['event_type_label'] ?? $event['description'] ?? 'حدث جديد',
+            'date' => !empty($event['event_time']) ? \Illuminate\Support\Carbon::parse($event['event_time'])->format('Y-m-d H:i') : 'غير محدد',
+            'desc' => $event['description'] ?? '',
+            'details' => array_filter([
+                ['label' => 'الحالة', 'value' => $event['status_label'] ?? 'غير متاحة'],
+                ['label' => 'المصدر', 'value' => $event['source_label'] ?? $event['source'] ?? 'النظام'],
+                ['label' => 'الموقع', 'value' => $event['location_label'] ?? $event['location'] ?? 'غير محدد'],
+                ['label' => 'الربط المرجعي', 'value' => $event['correlation_id'] ?? null],
+            ], fn ($item) => filled($item['value'])),
+        ];
+    })->all();
+    $documentsPreview = collect($documents)->take(3)->all();
+    $stepStateOverrides = ['create' => 'complete', 'offers' => 'complete', 'declaration' => 'complete', 'show' => $issuanceFailed ? 'attention' : 'current'];
 @endphp
 
 @section('content')
-<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:24px">
-    <div>
-        <div style="font-size:12px;color:var(--tm);margin-bottom:8px">
-            <a href="{{ route($portalConfig['dashboard_route']) }}" style="color:inherit;text-decoration:none">{{ $portalConfig['label'] }}</a>
-            <span style="margin:0 6px">/</span>
-            <a href="{{ route($portalConfig['shipments_index_route']) }}" style="color:inherit;text-decoration:none">الشحنات</a>
-            <span style="margin:0 6px">/</span>
-            <span>حالة الشحنة</span>
-        </div>
-        <h1 style="font-size:28px;font-weight:800;color:var(--tx);margin:0">الحالة الزمنية للشحنة</h1>
-        <p style="color:var(--td);font-size:14px;margin:8px 0 0;max-width:780px">
-            تعرض هذه الصفحة الحالة الحالية للشحنة بعد الإصدار، مع التسلسل الزمني الكامل للأحداث القادمة من النظام والناقل في سجل واحد واضح.
-        </p>
-    </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap">
+<div class="shipment-flow-stack">
+    <x-page-header
+        :eyebrow="($portalConfig['label'] ?? 'البوابة') . ' / الشحنات / الحالة الزمنية'"
+        title="الحالة الزمنية للشحنة"
+        subtitle="هذه الصفحة هي مركز التحكم بعد الشراء أو قبله: تتابع الحجز المالي، الإصدار لدى الناقل، المستندات، والأحداث الزمنية في مكان واحد."
+        meta="تحديثات التتبع والمستندات والحالة المعيارية الحالية تظهر هنا بعد كل خطوة."
+    >
         @if($canCreateShipment)
-            <a
-                href="{{ route($portalConfig['create_route'], ['clone' => $shipment->id]) }}"
-                class="btn btn-s"
-                data-testid="shipment-clone-primary"
-            >{{ __('portal_shipments.common.clone_long') }}</a>
+            <a href="{{ route($portalConfig['create_route'], ['clone' => $shipment->id]) }}" class="btn btn-s" data-testid="shipment-clone-primary">{{ __('portal_shipments.common.clone_long') }}</a>
         @endif
         @if($publicTrackingUrl)
-            <a
-                href="{{ $publicTrackingUrl }}"
-                class="btn btn-pr"
-                target="_blank"
-                rel="noopener noreferrer"
-                data-testid="public-tracking-link"
-            >{{ __('public_tracking.manage.share_cta') }}</a>
+            <a href="{{ $publicTrackingUrl }}" class="btn btn-pr" target="_blank" rel="noopener noreferrer" data-testid="public-tracking-link">{{ __('public_tracking.manage.share_cta') }}</a>
         @endif
         <a href="{{ route($portalConfig['shipments_index_route']) }}" class="btn btn-s">العودة إلى الشحنات</a>
         @if(!empty($documents))
-            <a href="{{ route($portalConfig['documents_route'], ['id' => $shipment->id]) }}" class="btn btn-pr">عرض المستندات</a>
+            <a href="{{ route($portalConfig['documents_route'], ['id' => $shipment->id]) }}" class="btn btn-s">عرض المستندات</a>
         @endif
         @if($canViewNotifications)
             <a href="{{ route('notifications.index') }}" class="btn btn-s" data-testid="shipment-notifications-link">عرض الإشعارات</a>
         @endif
-    </div>
-</div>
+    </x-page-header>
 
-@if($publicTrackingUrl)
-    <x-card title="{{ __('public_tracking.manage.card_title') }}" style="margin-bottom:24px">
-        <div style="display:flex;justify-content:space-between;gap:16px;align-items:flex-start;flex-wrap:wrap">
-            <div style="max-width:100%">
-                <div style="font-size:14px;color:var(--td);margin-bottom:10px">{{ __('public_tracking.manage.card_description') }}</div>
-                <div class="td-mono" style="padding:12px 14px;border-radius:14px;background:rgba(15,23,42,.04);border:1px solid var(--bd);word-break:break-all">
-                    {{ $publicTrackingUrl }}
-                </div>
-            </div>
-            <div style="display:flex;align-items:center">
-                <a
-                    href="{{ $publicTrackingUrl }}"
-                    class="btn btn-s"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                >{{ __('public_tracking.manage.open_public_page') }}</a>
-            </div>
-        </div>
-    </x-card>
-@endif
+    <x-shipment-workflow-stepper
+        current="show"
+        :create-route="route($portalConfig['create_route'], ['draft' => $shipment->id])"
+        :offers-route="route($portalConfig['offers_route'], ['id' => $shipment->id])"
+        :declaration-route="route($portalConfig['declaration_route'], ['id' => $shipment->id])"
+        :show-route="route($portalConfig['show_route'], ['id' => $shipment->id])"
+        :documents-route="route($portalConfig['documents_route'], ['id' => $shipment->id])"
+        :state-overrides="$stepStateOverrides"
+    />
 
-@if($completionFeedback)
-    @php($isSuccessFeedback = ($completionFeedback['level'] ?? 'warning') === 'success')
-    <div style="margin-bottom:20px;padding:18px;border-radius:18px;border:1px solid {{ $isSuccessFeedback ? 'rgba(4,120,87,.22)' : 'rgba(185,28,28,.18)' }};background:{{ $isSuccessFeedback ? 'rgba(4,120,87,.08)' : 'rgba(185,28,28,.06)' }}">
-        <div style="font-size:20px;font-weight:800;color:var(--tx)">{{ $completionFeedbackMessage }}</div>
-        @if(!empty($completionFeedbackNextAction))
-            <div style="margin-top:10px;color:var(--td);font-size:14px">
-                <strong style="color:var(--tx)">الخطوة التالية:</strong>
-                {{ $completionFeedbackNextAction }}
-            </div>
-        @endif
-        @if(!empty($completionFeedback['error_code']))
-            <div class="td-mono" style="margin-top:10px;font-size:12px;color:var(--tm)">{{ $completionFeedback['error_code'] }}</div>
-        @endif
-    </div>
-@endif
-
-<div class="grid-2-1" style="margin-bottom:24px">
-    <x-card title="الملخص الحالي">
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px">
-            <div>
-                <div style="font-size:12px;color:var(--tm);margin-bottom:4px">مرجع الشحنة</div>
-                <div class="td-mono" style="font-weight:800;color:var(--tx)">{{ $shipment->reference_number ?? $shipment->id }}</div>
-            </div>
-            <div>
-                <div style="font-size:12px;color:var(--tm);margin-bottom:4px">رقم التتبع</div>
-                <div class="td-mono" style="font-weight:800;color:var(--tx)">{{ $trackingNumber }}</div>
-            </div>
-            <div>
-                <div style="font-size:12px;color:var(--tm);margin-bottom:4px">الحالة المعيارية الحالية</div>
-                <div style="font-weight:800;color:var(--tx)">{{ $currentStatusLabel }}</div>
-            </div>
-            <div>
-                <div style="font-size:12px;color:var(--tm);margin-bottom:4px">آخر تحديث</div>
-                <div style="font-weight:800;color:var(--tx)">
-                    {{ !empty($timeline['last_updated']) ? \Illuminate\Support\Carbon::parse($timeline['last_updated'])->format('Y-m-d H:i') : 'لا يوجد بعد' }}
-                </div>
-            </div>
-        </div>
-    </x-card>
-
-    <x-card title="بيانات الإصدار والنقل">
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px">
-            <div>
-                <div style="font-size:12px;color:var(--tm);margin-bottom:4px">الناقل</div>
-                <div style="font-weight:800;color:var(--tx)">{{ $carrierDisplayLabel ?? ($shipment->carrierShipment?->carrier_name ?? $selectedOffer?->carrier_name ?? 'غير محدد') }}</div>
-            </div>
-            <div>
-                <div style="font-size:12px;color:var(--tm);margin-bottom:4px">الخدمة</div>
-                <div style="font-weight:800;color:var(--tx)">{{ $serviceDisplayLabel ?? ($shipment->carrierShipment?->service_name ?? $selectedOffer?->service_name ?? $shipment->service_name ?? 'غير محددة') }}</div>
-            </div>
-            <div>
-                <div style="font-size:12px;color:var(--tm);margin-bottom:4px">حالة سير العمل</div>
-                <div style="font-weight:800;color:var(--tx)">{{ $workflowStatusLabels[$shipment->status] ?? ($shipment->status ?? 'غير متاحة') }}</div>
-            </div>
-            <div>
-                <div style="font-size:12px;color:var(--tm);margin-bottom:4px">عدد الأحداث</div>
-                <div style="font-weight:800;color:var(--tx)">{{ number_format((int) ($timeline['total_events'] ?? 0)) }}</div>
-            </div>
-        </div>
-    </x-card>
-</div>
-
-<x-card title="إكمال الشحنة" style="margin-bottom:24px">
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;align-items:start">
-        <div style="padding:14px;border:1px solid var(--bd);border-radius:16px;background:white">
-            <div style="font-size:12px;color:var(--tm);margin-bottom:4px">حالة الحجز المالي</div>
-            <div style="font-weight:800;color:var(--tx)">
-                {{ $reservationStatus ? ($reservationStatusLabels[$reservationStatus] ?? $reservationStatus) : 'لا يوجد حجز بعد' }}
-            </div>
-            <div style="font-size:13px;color:var(--td);margin-top:6px">
-                @if($selectedOfferAmount !== null)
-                    {{ number_format((float) $selectedOfferAmount, 2) }} {{ $selectedOfferCurrency }}
-                @else
-                    لم يتم تحديد قيمة قابلة للحجز بعد.
-                @endif
-            </div>
-        </div>
-
-        <div style="padding:14px;border:1px solid var(--bd);border-radius:16px;background:white">
-            <div style="font-size:12px;color:var(--tm);margin-bottom:4px">حالة الإصدار</div>
-            <div style="font-weight:800;color:var(--tx)">
-                {{ $issuanceSucceeded ? 'تم الإصدار لدى الناقل' : ($issuanceFailed ? 'تعذر الإصدار لدى الناقل' : 'لم يتم الإصدار بعد') }}
-            </div>
-            <div style="font-size:13px;color:var(--td);margin-top:6px">
-                @if($shipment->carrierShipment?->tracking_number)
-                    {{ 'رقم التتبع: ' . $shipment->carrierShipment->tracking_number }}
-                @elseif($issuanceFailed)
-                    تعذر الحصول على رقم تتبع لأن الإصدار لدى الناقل لم يكتمل.
-                @else
-                    سيظهر رقم التتبع هنا بعد نجاح الإصدار.
-                @endif
-            </div>
-        </div>
-
-        <div style="padding:14px;border:1px solid var(--bd);border-radius:16px;background:rgba(15,23,42,.02)">
-            @if($showWalletPreflightAction)
-                <div style="font-size:16px;font-weight:800;color:var(--tx);margin-bottom:8px">فحص المحفظة قبل الإصدار</div>
-                <div style="color:var(--td);font-size:14px;margin-bottom:12px">
-                    نفّذ الحجز المالي لهذه الشحنة قبل محاولة الإصدار لدى الناقل.
-                </div>
-                <form method="POST" action="{{ route($portalConfig['preflight_route'], ['id' => $shipment->id]) }}">
-                    @csrf
-                    <button type="submit" class="btn btn-pr" data-testid="wallet-preflight-button">تنفيذ فحص المحفظة</button>
-                </form>
-            @elseif($showCarrierIssueAction)
-                <div style="font-size:16px;font-weight:800;color:var(--tx);margin-bottom:8px">الإصدار لدى الناقل</div>
-                <div style="color:var(--td);font-size:14px;margin-bottom:12px">
-                    الحجز المالي نشط، ويمكنك الآن إرسال الشحنة إلى الناقل وإكمال الإصدار.
-                </div>
-                <form method="POST" action="{{ route($portalConfig['issue_route'], ['id' => $shipment->id]) }}">
-                    @csrf
-                    <button type="submit" class="btn btn-pr" data-testid="carrier-issue-button">إصدار الشحنة لدى الناقل</button>
-                </form>
-            @elseif($issuanceSucceeded)
-                <div style="font-size:16px;font-weight:800;color:var(--tx);margin-bottom:8px">اكتمل الإصدار</div>
-                <div style="color:var(--td);font-size:14px">
-                    تم ربط هذه الشحنة بالناقل، ويمكنك الآن تنزيل المستندات ومتابعة الحالة الزمنية.
-                </div>
-            @elseif($issuanceFailed)
-                <div style="font-size:16px;font-weight:800;color:var(--tx);margin-bottom:8px">تعذر الإصدار</div>
-                <div style="color:var(--td);font-size:14px">
-                    لم تكتمل عملية الإصدار لدى الناقل لهذه الشحنة. راجع رسالة الخطأ الظاهرة أعلى الصفحة ثم صحح البيانات المطلوبة قبل إعادة المحاولة.
-                </div>
-            @elseif($shipment->status === \App\Models\Shipment::STATUS_REQUIRES_ACTION)
-                <div style="font-size:16px;font-weight:800;color:var(--tx);margin-bottom:8px">الشحنة متوقفة</div>
-                <div style="color:var(--td);font-size:14px">
-                    توجد متطلبات امتثال أو مراجعة يدوية تمنع المتابعة الذاتية لهذه الشحنة حاليًا.
-                </div>
-                <div style="margin-top:12px">
-                    <a href="{{ route($portalConfig['declaration_route'], ['id' => $shipment->id]) }}" class="btn btn-s">مراجعة إقرار المحتوى</a>
-                </div>
-            @else
-                <div style="font-size:16px;font-weight:800;color:var(--tx);margin-bottom:8px">أكمل الخطوات السابقة أولًا</div>
-                <div style="color:var(--td);font-size:14px">
-                    لا يمكن تشغيل فحص المحفظة أو الإصدار قبل اكتمال اختيار العرض وإقرار المحتوى لهذه الشحنة.
-                </div>
-                <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
-                    <a href="{{ route($portalConfig['offers_route'], ['id' => $shipment->id]) }}" class="btn btn-s">العودة إلى العروض</a>
-                    <a href="{{ route($portalConfig['declaration_route'], ['id' => $shipment->id]) }}" class="btn btn-s">مراجعة الإقرار</a>
-                </div>
+    @if($completionFeedback)
+        @php
+            $completionFeedbackSuccess = ($completionFeedback['level'] ?? 'warning') === 'success';
+        @endphp
+        <div class="shipment-flow-banner {{ $completionFeedbackSuccess ? 'shipment-flow-banner--success' : 'shipment-flow-banner--warning' }}">
+            <div class="shipment-flow-banner__title">{{ $completionFeedbackMessage }}</div>
+            @if(!empty($completionFeedbackNextAction))
+                <div class="shipment-flow-banner__body"><strong>الخطوة التالية:</strong> {{ $completionFeedbackNextAction }}</div>
+            @endif
+            @if(!empty($completionFeedback['error_code']))
+                <div class="shipment-flow-banner__meta td-mono">{{ $completionFeedback['error_code'] }}</div>
             @endif
         </div>
-    </div>
-</x-card>
+    @endif
 
-<div class="grid-2-1">
-    <x-card title="التسلسل الزمني">
-        @if($events === [])
-            <div style="padding:16px;border:1px dashed var(--bd);border-radius:16px;background:rgba(15,23,42,.02)">
-                <div style="font-size:18px;font-weight:800;color:var(--tx);margin-bottom:8px">لا توجد أحداث زمنية مسجلة بعد</div>
-                <div style="color:var(--td);font-size:14px">
-                    سيظهر هنا تاريخ الشحنة بعد الإصدار، بما في ذلك تحديثات الناقل والمستندات المتاحة وأي حالة معيارية لاحقة.
-                </div>
+    @if($publicTrackingUrl)
+        <section class="shipment-share-card">
+            <div>
+                <div class="shipment-doc-card__eyebrow">{{ __('public_tracking.manage.card_title') }}</div>
+                <div class="shipment-doc-card__title">رابط التتبع العام</div>
+                <div class="shipment-doc-card__meta">{{ __('public_tracking.manage.card_description') }}</div>
+                <div class="shipment-share-card__code td-mono">{{ $publicTrackingUrl }}</div>
             </div>
-        @else
-            <div style="display:flex;flex-direction:column;gap:14px">
-                @foreach($events as $event)
-                    <div style="display:flex;gap:14px;padding:16px;border:1px solid var(--bd);border-radius:18px;background:white">
-                        <div style="width:14px;min-width:14px;height:14px;border-radius:999px;background:{{ $loop->last ? '#0f766e' : 'var(--pr)' }};margin-top:6px"></div>
-                        <div style="flex:1;display:flex;flex-direction:column;gap:8px">
-                            <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start">
-                                <div>
-                                    <div style="font-size:17px;font-weight:800;color:var(--tx)">{{ $event['event_type_label'] ?? $event['description'] }}</div>
-                                    <div style="color:var(--td);font-size:13px;margin-top:4px">{{ $event['description'] ?? '' }}</div>
-                                </div>
-                                <div style="text-align:left;min-width:0;flex:0 0 auto">
-                                    <div style="font-size:13px;color:var(--td);margin-top:4px">
-                                        {{ !empty($event['event_time']) ? \Illuminate\Support\Carbon::parse($event['event_time'])->format('Y-m-d H:i') : 'غير محدد' }}
-                                    </div>
-                                </div>
-                            </div>
-                            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px">
-                                <div>
-                                    <div style="font-size:12px;color:var(--tm);margin-bottom:4px">الحالة المعيارية</div>
-                                    <div style="font-weight:700;color:var(--tx)">{{ $event['status_label'] ?? 'غير متاحة' }}</div>
-                                </div>
-                                <div>
-                                    <div style="font-size:12px;color:var(--tm);margin-bottom:4px">مصدر الحدث</div>
-                                    <div style="font-weight:700;color:var(--tx)">{{ $event['source_label'] ?? $event['source'] ?? 'النظام' }}</div>
-                                </div>
-                                <div>
-                                    <div style="font-size:12px;color:var(--tm);margin-bottom:4px">الموقع</div>
-                                    <div style="font-weight:700;color:var(--tx)">{{ $event['location_label'] ?? $event['location'] ?? 'غير محدد' }}</div>
-                                </div>
-                            </div>
-                            @if(!empty($event['correlation_id']))
-                                <div class="td-mono" style="font-size:12px;color:var(--tm)">الربط المرجعي: {{ $event['correlation_id'] }}</div>
-                            @endif
-                        </div>
+            <div class="shipment-doc-card__actions">
+                <a href="{{ $publicTrackingUrl }}" class="btn btn-s" target="_blank" rel="noopener noreferrer">{{ __('public_tracking.manage.open_public_page') }}</a>
+            </div>
+        </section>
+    @endif
+
+    <section class="shipment-flow-hero">
+        <div class="shipment-flow-hero__head">
+            <div>
+                <div class="shipment-flow-hero__eyebrow">مركز التحكم بعد الإصدار</div>
+                <h2 class="shipment-flow-hero__title">متابعة الحجز والتتبع والوثائق من شاشة واحدة</h2>
+                <p class="shipment-flow-hero__body">راجع الحالة المعيارية الحالية، ثم نفّذ فحص المحفظة أو الإصدار إذا كانت الشحنة جاهزة. بعد الإصدار ستجد المستندات والتتبع العام والتسلسل الزمني هنا بشكل متصل.</p>
+            </div>
+            <span class="shipment-status-pill shipment-status-pill--{{ $issuanceFailed ? 'danger' : ($issuanceSucceeded ? 'success' : 'warning') }}">{{ $issuanceFailed ? 'تعذر الإصدار' : ($issuanceSucceeded ? 'تم الإصدار' : 'قيد المتابعة') }}</span>
+        </div>
+        <div class="shipment-flow-summary-grid">
+            <div class="shipment-summary-card shipment-summary-card--soft"><div class="shipment-summary-card__eyebrow">مرجع الشحنة</div><div class="shipment-summary-card__value td-mono">{{ $shipment->reference_number ?? $shipment->id }}</div><div class="shipment-summary-card__meta">رقم التتبع: <span class="td-mono">{{ $trackingNumber }}</span></div></div>
+            <div class="shipment-summary-card shipment-summary-card--accent"><div class="shipment-summary-card__eyebrow">الحالة المعيارية الحالية</div><div class="shipment-summary-card__value">{{ $currentStatusLabel }}</div><div class="shipment-summary-card__meta">{{ !empty($timeline['last_updated']) ? 'آخر تحديث: ' . \Illuminate\Support\Carbon::parse($timeline['last_updated'])->format('Y-m-d H:i') : 'لا يوجد تحديث زمني بعد.' }}</div></div>
+            <div class="shipment-summary-card {{ $reservationStatus === \App\Models\WalletHold::STATUS_ACTIVE ? 'shipment-summary-card--success' : 'shipment-summary-card--warning' }}"><div class="shipment-summary-card__eyebrow">الحجز المالي</div><div class="shipment-summary-card__value">{{ $reservationStatus ? ($reservationStatusLabels[$reservationStatus] ?? $reservationStatus) : 'لا يوجد حجز بعد' }}</div><div class="shipment-summary-card__meta">{{ $selectedOfferAmount !== null ? number_format((float) $selectedOfferAmount, 2) . ' ' . $selectedOfferCurrency : 'سيظهر المبلغ بعد تثبيت العرض.' }}</div></div>
+        </div>
+    </section>
+
+    <div class="shipment-flow-layout shipment-flow-layout--detail">
+        <div class="shipment-flow-stack">
+            <section class="shipment-action-grid">
+                <div class="shipment-action-card shipment-action-card--soft">
+                    <div class="shipment-action-card__eyebrow">حالة الحجز المالي</div>
+                    <div class="shipment-action-card__title">{{ $reservationStatus ? ($reservationStatusLabels[$reservationStatus] ?? $reservationStatus) : 'بانتظار إنشاء الحجز' }}</div>
+                    <div class="shipment-action-card__body">{{ $selectedOfferAmount !== null ? 'قيمة المتابعة الحالية: ' . number_format((float) $selectedOfferAmount, 2) . ' ' . $selectedOfferCurrency : 'لا توجد قيمة قابلة للحجز بعد.' }}</div>
+                </div>
+                <div class="shipment-action-card {{ $issuanceSucceeded ? 'shipment-action-card--success' : ($issuanceFailed ? 'shipment-action-card--danger' : 'shipment-action-card--warning') }}">
+                    <div class="shipment-action-card__eyebrow">الإصدار لدى الناقل</div>
+                    <div class="shipment-action-card__title">{{ $issuanceSucceeded ? 'تم الإصدار لدى الناقل' : ($issuanceFailed ? 'تعذر الإصدار لدى الناقل' : 'لم يتم الإصدار بعد') }}</div>
+                    <div class="shipment-action-card__body">{{ $shipment->carrierShipment?->tracking_number ? 'رقم التتبع الحالي: ' . $shipment->carrierShipment->tracking_number : 'سيظهر رقم التتبع هنا بعد نجاح الإصدار.' }}</div>
+                </div>
+                <div class="shipment-action-card {{ $showWalletPreflightAction ? 'shipment-action-card--accent' : ($showCarrierIssueAction ? 'shipment-action-card--success' : 'shipment-action-card--soft') }}">
+                    <div class="shipment-action-card__eyebrow">الإجراء المتاح الآن</div>
+                    <div class="shipment-action-card__title">
+                        @if($showWalletPreflightAction)
+                            فحص المحفظة قبل الإصدار
+                        @elseif($showCarrierIssueAction)
+                            الإصدار لدى الناقل
+                        @elseif($issuanceSucceeded)
+                            الشحنة أصبحت جاهزة للتتبع والتنزيل
+                        @elseif($issuanceFailed)
+                            عالج الخطأ ثم أعد المحاولة
+                        @else
+                            أكمل الخطوات السابقة أولًا
+                        @endif
                     </div>
-                @endforeach
-            </div>
-        @endif
-    </x-card>
-
-    <x-card title="المستندات المرتبطة">
-        @if($documents === [])
-            <div style="padding:16px;border:1px dashed var(--bd);border-radius:16px;background:rgba(15,23,42,.02)">
-                <div style="font-size:18px;font-weight:800;color:var(--tx);margin-bottom:8px">لا توجد مستندات متاحة حاليًا</div>
-                <div style="color:var(--td);font-size:14px">
-                    عند إتاحة ملصق الشحن أو بقية مستندات الناقل ستظهر هنا، كما ستظهر في التسلسل الزمني كحدث مستقل.
+                    <div class="shipment-action-card__body">
+                        @if($showWalletPreflightAction)
+                            نفّذ الحجز المالي لهذه الشحنة قبل إرسالها إلى الناقل.
+                        @elseif($showCarrierIssueAction)
+                            الحجز المالي نشط ويمكنك الآن إرسال الشحنة إلى الناقل وإكمال الإصدار.
+                        @elseif($issuanceSucceeded)
+                            افتح المستندات وشارك رابط التتبع العام عند الحاجة.
+                        @elseif($issuanceFailed)
+                            راجع رسالة الخطأ الظاهرة أعلى الصفحة ثم صحّح البيانات المطلوبة قبل إعادة الإصدار.
+                        @else
+                            لا يمكن تشغيل فحص المحفظة أو الإصدار قبل اكتمال اختيار العرض وإقرار المحتوى.
+                        @endif
+                    </div>
+                    <div class="shipment-action-card__actions">
+                        @if($showWalletPreflightAction)
+                            <form method="POST" action="{{ route($portalConfig['preflight_route'], ['id' => $shipment->id]) }}">
+                                @csrf
+                                <button type="submit" class="btn btn-pr" data-testid="wallet-preflight-button">تنفيذ فحص المحفظة</button>
+                            </form>
+                        @elseif($showCarrierIssueAction)
+                            <form method="POST" action="{{ route($portalConfig['issue_route'], ['id' => $shipment->id]) }}">
+                                @csrf
+                                <button type="submit" class="btn btn-pr" data-testid="carrier-issue-button">إصدار الشحنة لدى الناقل</button>
+                            </form>
+                        @elseif(! $issuanceSucceeded)
+                            <a href="{{ route($portalConfig['declaration_route'], ['id' => $shipment->id]) }}" class="btn btn-s">مراجعة الإقرار</a>
+                            <a href="{{ route($portalConfig['offers_route'], ['id' => $shipment->id]) }}" class="btn btn-s">العودة إلى العروض</a>
+                        @endif
+                    </div>
                 </div>
-            </div>
-        @else
-            <div style="display:flex;flex-direction:column;gap:12px">
-                @foreach($documents as $document)
-                    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px;border:1px solid var(--bd);border-radius:16px;background:white">
-                        <div>
-                            <div style="font-weight:800;color:var(--tx)">{{ $document['document_type_label'] ?? $document['document_type'] }}</div>
-                            <div style="font-size:13px;color:var(--td);margin-top:4px">{{ $document['filename'] }}</div>
-                            <div class="td-mono" style="font-size:12px;color:var(--tm);margin-top:4px">{{ $document['carrier_label'] ?? $document['carrier_code'] }} / {{ $document['format_label'] ?? $document['file_format'] }}</div>
+            </section>
+
+            <section class="shipment-helper-card shipment-helper-card--soft">
+                <div class="shipment-helper-card__eyebrow">التسلسل الزمني</div>
+                <div class="shipment-helper-card__title">تاريخ الشحنة من آخر تحديث إلى البداية</div>
+                @if($timelineItems === [])
+                    <div class="shipment-empty-state">
+                        <div class="shipment-empty-state__title">لا توجد أحداث زمنية مسجلة بعد</div>
+                        <div class="shipment-empty-state__body">سيظهر هنا تاريخ الشحنة بعد الإصدار، بما في ذلك تحديثات الناقل والمستندات المتاحة وأي حالة معيارية لاحقة.</div>
+                    </div>
+                @else
+                    <x-timeline :items="$timelineItems" />
+                @endif
+            </section>
+
+            @if($canViewNotifications)
+                <section class="shipment-helper-card shipment-helper-card--soft">
+                    <div class="shipment-helper-card__eyebrow">الإشعارات المرتبطة بالشحنة</div>
+                    <div class="shipment-helper-card__title">آخر التنبيهات والرسائل</div>
+                    @if($shipmentNotifications === [])
+                        <div class="shipment-empty-state">
+                            <div class="shipment-empty-state__title">لا توجد إشعارات مرتبطة بهذه الشحنة حتى الآن</div>
+                            <div class="shipment-empty-state__body">عند وصول أي تحديث معياري جديد لهذه الشحنة سيظهر هنا، كما سيظل متاحًا من مركز الإشعارات العام.</div>
                         </div>
-                        <div style="display:flex;align-items:center">
-                            <div style="display:flex;gap:8px;flex-wrap:wrap">
+                    @else
+                        <div class="shipment-notification-list">
+                            @foreach($shipmentNotifications as $notification)
+                                <article class="shipment-notification-card">
+                                    <div class="shipment-notification-card__title">{{ $notification['subject'] }}</div>
+                                    @if(empty($notification['read_at'])) <span class="shipment-status-pill shipment-status-pill--success">جديد</span> @endif
+                                    @if(!empty($notification['body'])) <div class="shipment-notification-card__body">{{ $notification['body'] }}</div> @endif
+                                    <div class="shipment-inline-meta td-mono">{{ $notification['event_type_label'] ?? $notification['event_type'] }}</div>
+                                    <div class="shipment-inline-meta">{{ !empty($notification['created_at']) ? \Illuminate\Support\Carbon::parse($notification['created_at'])->format('Y-m-d H:i') : 'غير محدد' }}</div>
+                                </article>
+                            @endforeach
+                        </div>
+                    @endif
+                </section>
+            @endif
+        </div>
+
+        <aside class="shipment-flow-rail">
+            <section class="shipment-helper-card shipment-helper-card--soft">
+                <div class="shipment-helper-card__eyebrow">ملخص الخدمة والتكلفة</div>
+                <div class="shipment-helper-card__title td-mono">{{ $shipment->reference_number ?? $shipment->id }}</div>
+                <div class="shipment-key-value-grid">
+                    <div class="shipment-key-value"><div class="shipment-key-value__label">الخدمة</div><div class="shipment-key-value__value">{{ $serviceDisplayLabel ?? ($shipment->carrierShipment?->service_name ?? $selectedOffer?->service_name ?? $shipment->service_name ?? 'غير محددة') }}</div></div>
+                    <div class="shipment-key-value"><div class="shipment-key-value__label">تكلفة الشحنة</div><div class="shipment-key-value__value">{{ $selectedOfferAmount !== null ? number_format((float) $selectedOfferAmount, 2) . ' ' . $selectedOfferCurrency : '—' }}</div></div>
+                    <div class="shipment-key-value"><div class="shipment-key-value__label">عدد الأحداث</div><div class="shipment-key-value__value">{{ number_format((int) ($timeline['total_events'] ?? 0)) }}</div></div>
+                    <div class="shipment-key-value"><div class="shipment-key-value__label">المستندات المتاحة</div><div class="shipment-key-value__value">{{ number_format(count($documents)) }}</div></div>
+                </div>
+            </section>
+
+            <section class="shipment-doc-list">
+                @if($documentsPreview === [])
+                    <div class="shipment-empty-state">
+                        <div class="shipment-empty-state__title">لا توجد مستندات متاحة حاليًا</div>
+                        <div class="shipment-empty-state__body">عند إتاحة ملصق الشحن أو بقية مستندات الناقل ستجدها هنا وفي صفحة الوثائق الكاملة.</div>
+                    </div>
+                @else
+                    @foreach($documentsPreview as $document)
+                        <article class="shipment-doc-card">
+                            <div class="shipment-doc-card__head">
+                                <div>
+                                    <div class="shipment-doc-card__eyebrow">{{ $document['document_type_label'] ?? $document['document_type'] }}</div>
+                                    <div class="shipment-doc-card__title">{{ $document['filename'] }}</div>
+                                    <div class="shipment-doc-card__meta">{{ $document['carrier_label'] ?? $document['carrier_code'] }} / {{ $document['format_label'] ?? $document['file_format'] }}</div>
+                                </div>
+                            </div>
+                            <div class="shipment-doc-card__actions">
                                 @if(!empty($document['previewable']) && !empty($document['preview_route']))
                                     <a href="{{ $document['preview_route'] }}" class="btn btn-s" target="_blank" rel="noopener noreferrer">عرض المستند</a>
                                 @endif
                                 <a href="{{ $document['download_route'] }}" class="btn btn-s" download="{{ $document['filename'] }}">تنزيل المستند</a>
                             </div>
-                        </div>
-                    </div>
-                @endforeach
-            </div>
-        @endif
-    </x-card>
+                        </article>
+                    @endforeach
+                    <a href="{{ route($portalConfig['documents_route'], ['id' => $shipment->id]) }}" class="btn btn-s">فتح مساحة الوثائق</a>
+                @endif
+            </section>
+        </aside>
+    </div>
 </div>
-
-@if($canViewNotifications)
-    <x-card title="الإشعارات المرتبطة بالشحنة" style="margin-top:24px">
-        @if($shipmentNotifications === [])
-            <div style="padding:16px;border:1px dashed var(--bd);border-radius:16px;background:rgba(15,23,42,.02)">
-                <div style="font-size:18px;font-weight:800;color:var(--tx);margin-bottom:8px">لا توجد إشعارات مرتبطة بهذه الشحنة حتى الآن</div>
-                <div style="color:var(--td);font-size:14px;margin-bottom:12px">
-                    عند وصول أي تحديث معياري جديد لهذه الشحنة سيظهر هنا، كما سيظل متاحًا من مركز الإشعارات العام.
-                </div>
-                <a href="{{ route('notifications.index') }}" class="btn btn-s">فتح مركز الإشعارات</a>
-            </div>
-        @else
-            <div style="display:flex;flex-direction:column;gap:12px">
-                @foreach($shipmentNotifications as $notification)
-                    <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px;border:1px solid var(--bd);border-radius:16px;background:white">
-                        <div style="max-width:100%">
-                            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                                <div style="font-weight:800;color:var(--tx)">{{ $notification['subject'] }}</div>
-                                @if(empty($notification['read_at']))
-                                    <span style="font-size:12px;padding:4px 8px;border-radius:999px;background:rgba(15,118,110,.12);color:#0f766e">جديد</span>
-                                @endif
-                            </div>
-                            @if(!empty($notification['body']))
-                                <div style="font-size:13px;color:var(--td);margin-top:6px;max-width:100%">{{ $notification['body'] }}</div>
-                            @endif
-                            <div class="td-mono" style="font-size:12px;color:var(--tm);margin-top:8px">{{ $notification['event_type_label'] ?? $notification['event_type'] }}</div>
-                        </div>
-                        <div style="text-align:left;min-width:0;flex:0 0 auto">
-                            <div style="font-size:13px;color:var(--td)">
-                                {{ !empty($notification['created_at']) ? \Illuminate\Support\Carbon::parse($notification['created_at'])->format('Y-m-d H:i') : 'غير محدد' }}
-                            </div>
-                            <div style="margin-top:10px">
-                                <a href="{{ route('notifications.index') }}" class="btn btn-s">عرض الكل</a>
-                            </div>
-                        </div>
-                    </div>
-                @endforeach
-            </div>
-        @endif
-    </x-card>
-@endif
 @endsection

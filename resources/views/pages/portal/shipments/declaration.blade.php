@@ -12,9 +12,8 @@
         'offer_selected' => 'تم تثبيت العرض',
         'declaration_required' => 'إقرار المحتوى مطلوب',
         'declaration_complete' => 'اكتمل إقرار المحتوى',
-        'requires_action' => 'تتطلب هذه الشحنة إجراء إضافيًا',
+        'requires_action' => 'تتطلب هذه الشحنة إجراءً إضافيًا',
     ];
-
     $shipmentStatusLabel = $shipmentStatusLabels[$shipment->status] ?? $shipment->status;
     $selectedOffer = $selectedOffer ?? null;
     $declaration = $declaration ?? null;
@@ -26,273 +25,190 @@
     ];
     $isBlocked = $declaration?->isBlocked() ?? false;
     $isComplete = (bool) ($declaration?->waiver_accepted && $declaration?->status === \App\Models\ContentDeclaration::STATUS_COMPLETED);
-    $canContinue = $workflowReady && ! $isBlocked;
     $documentsAvailable = $shipment->carrierDocuments()->where('is_available', true)->exists();
-    $documentsRoute = request()->routeIs('b2b.*')
-        ? route('b2b.shipments.documents.index', ['id' => $shipment->id])
-        : route('b2c.shipments.documents.index', ['id' => $shipment->id]);
-    $selectedCarrierLabel = \App\Support\PortalShipmentLabeler::carrier(
-        (string) ($selectedOffer?->carrier_code ?? ''),
-        (string) ($selectedOffer?->carrier_name ?? '')
-    );
-    $selectedServiceLabel = \App\Support\PortalShipmentLabeler::service(
-        (string) ($selectedOffer?->service_code ?? ''),
-        (string) ($selectedOffer?->service_name ?? '')
-    );
+    $selectedCarrierLabel = \App\Support\PortalShipmentLabeler::carrier((string) ($selectedOffer?->carrier_code ?? ''), (string) ($selectedOffer?->carrier_name ?? ''));
+    $selectedServiceLabel = \App\Support\PortalShipmentLabeler::service((string) ($selectedOffer?->service_code ?? ''), (string) ($selectedOffer?->service_name ?? ''));
+    $stepStateOverrides = $isBlocked
+        ? ['create' => 'complete', 'offers' => 'complete', 'declaration' => 'attention']
+        : ($isComplete
+            ? ['create' => 'complete', 'offers' => 'complete', 'declaration' => 'complete', 'show' => 'current']
+            : ['create' => 'complete', 'offers' => 'complete', 'declaration' => 'current']);
 @endphp
 
-@php
-    $declarationFeedbackMessage = $declarationFeedback['message'] ?? 'تم تحديث حالة الإقرار.';
-    $declarationFeedbackNextAction = $declarationFeedback['next_action'] ?? null;
-    if (($declarationFeedback['level'] ?? 'warning') === 'success' && $shipment->status === 'declaration_complete') {
-        $declarationFeedbackNextAction = 'انتقل إلى صفحة الشحنة لتفعيل فحص رصيد المحفظة ثم متابعة الإصدار لدى الناقل.';
-    }
-@endphp
-
-<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:24px">
-    <div>
-        <div style="font-size:12px;color:var(--tm);margin-bottom:8px">
-            <a href="{{ route($portalConfig['dashboard_route']) }}" style="color:inherit;text-decoration:none">{{ $portalConfig['label'] }}</a>
-            <span style="margin:0 6px">/</span>
-            <a href="{{ route($portalConfig['index_route']) }}" style="color:inherit;text-decoration:none">الشحنات</a>
-            <span style="margin:0 6px">/</span>
-            <a href="{{ route($portalConfig['offers_route'], ['id' => $shipment->id]) }}" style="color:inherit;text-decoration:none">العروض</a>
-            <span style="margin:0 6px">/</span>
-            <span>إقرار المحتوى</span>
-        </div>
-        <h1 style="font-size:28px;font-weight:800;color:var(--tx);margin:0">إقرار المحتوى والتصريح بالمواد الخطرة</h1>
-        <p style="color:var(--td);font-size:14px;margin:8px 0 0;max-width:820px">
-            هذه الخطوة إلزامية بعد اختيار العرض. يجب أن تصرح بوضوح عما إذا كانت الشحنة تحتوي على مواد خطرة، أو توافق على الإقرار القانوني إذا كانت الشحنة خالية منها.
-        </p>
-    </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap">
+<div class="shipment-flow-stack">
+    <x-page-header
+        :eyebrow="($portalConfig['label'] ?? 'البوابة') . ' / الشحنات / إقرار المحتوى'"
+        title="إقرار المحتوى والتصريح بالمواد الخطرة"
+        subtitle="هذه الخطوة إلزامية بعد اختيار العرض، وهي التي تحدد إن كانت الشحنة ستكمل المسار الذاتي أو ستتوقف لمراجعة إضافية."
+        meta="الإقرار هنا قانوني وتشغيلي في الوقت نفسه، لذلك يجب أن يكون واضحًا وصريحًا."
+    >
         <a href="{{ route($portalConfig['offers_route'], ['id' => $shipment->id]) }}" class="btn btn-s">العودة إلى العروض</a>
         @if($documentsAvailable)
-            <a href="{{ $documentsRoute }}" class="btn btn-s">عرض الوثائق</a>
+            <a href="{{ route($portalConfig['documents_route'], ['id' => $shipment->id]) }}" class="btn btn-s">عرض الوثائق</a>
         @endif
-    </div>
-</div>
+    </x-page-header>
 
-@if($offerFeedback)
-    <div style="margin-bottom:20px;padding:18px;border-radius:18px;border:1px solid rgba(4,120,87,.22);background:rgba(4,120,87,.08)">
-        <div style="font-size:18px;font-weight:800;color:var(--tx)">{{ $offerFeedback['message'] ?? 'تم تحديث حالة الشحنة.' }}</div>
-        @if(!empty($offerFeedback['next_action']))
-            <div style="margin-top:10px;color:var(--td);font-size:14px">
-                <strong style="color:var(--tx)">الخطوة التالية:</strong>
-                {{ $offerFeedback['next_action'] }}
-            </div>
-        @endif
-    </div>
-@endif
+    <x-shipment-workflow-stepper
+        current="declaration"
+        :create-route="route($portalConfig['create_route'], ['draft' => $shipment->id])"
+        :offers-route="route($portalConfig['offers_route'], ['id' => $shipment->id])"
+        :declaration-route="route($portalConfig['declaration_route'], ['id' => $shipment->id])"
+        :show-route="route($portalConfig['show_route'], ['id' => $shipment->id])"
+        :documents-route="route($portalConfig['documents_route'], ['id' => $shipment->id])"
+        :state-overrides="$stepStateOverrides"
+    />
 
-@if($declarationFeedback)
-    @php($isSuccessFeedback = ($declarationFeedback['level'] ?? 'warning') === 'success')
-    <div style="margin-bottom:20px;padding:18px;border-radius:18px;border:1px solid {{ $isSuccessFeedback ? 'rgba(4,120,87,.22)' : 'rgba(185,28,28,.18)' }};background:{{ $isSuccessFeedback ? 'rgba(4,120,87,.08)' : 'rgba(185,28,28,.06)' }}">
-        <div style="font-size:18px;font-weight:800;color:var(--tx)">{{ $declarationFeedbackMessage }}</div>
-        @if(!empty($declarationFeedbackNextAction))
-            <div style="margin-top:10px;color:var(--td);font-size:14px">
-                <strong style="color:var(--tx)">الإجراء التالي:</strong>
-                {{ $declarationFeedbackNextAction }}
-            </div>
-        @endif
-        @if(!empty($declarationFeedback['error_code']))
-            <div class="td-mono" style="margin-top:10px;font-size:12px;color:var(--tm)">{{ $declarationFeedback['error_code'] }}</div>
-        @endif
-    </div>
-@endif
-
-<div class="grid-2-1" style="margin-bottom:24px">
-    <x-card title="ملخص الشحنة والعرض المختار">
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
-            <div>
-                <div style="font-size:12px;color:var(--tm);margin-bottom:4px">مرجع الشحنة</div>
-                <div class="td-mono" style="font-weight:700;color:var(--tx)">{{ $shipment->reference_number ?? $shipment->id }}</div>
-            </div>
-            <div>
-                <div style="font-size:12px;color:var(--tm);margin-bottom:4px">حالة الشحنة</div>
-                <div style="font-weight:700;color:var(--tx)">{{ $shipmentStatusLabel }}</div>
-            </div>
-            <div>
-                <div style="font-size:12px;color:var(--tm);margin-bottom:4px">الناقل</div>
-                <div style="font-weight:700;color:var(--tx)">{{ $selectedOffer ? $selectedCarrierLabel : 'لم يتم اختيار عرض بعد' }}</div>
-            </div>
-            <div>
-                <div style="font-size:12px;color:var(--tm);margin-bottom:4px">الخدمة</div>
-                <div style="font-weight:700;color:var(--tx)">{{ $selectedOffer ? $selectedServiceLabel : '—' }}</div>
-            </div>
-            <div>
-                <div style="font-size:12px;color:var(--tm);margin-bottom:4px">السعر المعروض</div>
-                <div style="font-weight:700;color:var(--tx)">
-                    @if($selectedOffer)
-                        {{ number_format((float) $selectedOffer->retail_rate, 2) }} {{ $selectedOffer->currency }}
-                    @else
-                        —
-                    @endif
-                </div>
-            </div>
-            <div>
-                <div style="font-size:12px;color:var(--tm);margin-bottom:4px">الوصول المتوقع</div>
-                <div style="font-weight:700;color:var(--tx)">
-                    {{ $selectedOffer?->estimated_delivery_at ? \Illuminate\Support\Carbon::parse($selectedOffer->estimated_delivery_at)->format('Y-m-d H:i') : 'غير متاح' }}
-                </div>
-            </div>
+    @if($offerFeedback)
+        <div class="shipment-flow-banner shipment-flow-banner--success">
+            <div class="shipment-flow-banner__title">{{ $offerFeedback['message'] ?? 'تم تحديث حالة الشحنة.' }}</div>
+            @if(!empty($offerFeedback['next_action']))
+                <div class="shipment-flow-banner__body"><strong>الخطوة التالية:</strong> {{ $offerFeedback['next_action'] }}</div>
+            @endif
         </div>
-    </x-card>
+    @endif
 
-    <x-card title="حالة الإقرار الحالية">
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
-            <div>
-                <div style="font-size:12px;color:var(--tm);margin-bottom:4px">حالة الإقرار</div>
-                <div style="font-weight:700;color:var(--tx)">{{ $declaration ? ($declarationStatusLabels[$declaration->status] ?? $declaration->status) : 'لم يبدأ بعد' }}</div>
-            </div>
-            <div>
-                <div style="font-size:12px;color:var(--tm);margin-bottom:4px">تم تحديد وجود مواد خطرة</div>
-                <div style="font-weight:700;color:var(--tx)">
-                    @if(!$declaration || !$declaration->dg_flag_declared)
-                        لم يُحدد بعد
-                    @else
-                        {{ $declaration->contains_dangerous_goods ? 'نعم' : 'لا' }}
-                    @endif
-                </div>
-            </div>
-            <div>
-                <div style="font-size:12px;color:var(--tm);margin-bottom:4px">الموافقة على الإقرار القانوني</div>
-                <div style="font-weight:700;color:var(--tx)">{{ $declaration?->waiver_accepted ? 'تمت الموافقة' : 'لم تتم بعد' }}</div>
-            </div>
-            <div>
-                <div style="font-size:12px;color:var(--tm);margin-bottom:4px">آخر تحديث</div>
-                <div style="font-weight:700;color:var(--tx)">{{ $declaration?->updated_at ? $declaration->updated_at->format('Y-m-d H:i') : '—' }}</div>
-            </div>
+    @if($declarationFeedback)
+        @php
+            $declarationFeedbackSuccess = ($declarationFeedback['level'] ?? 'warning') === 'success';
+        @endphp
+        <div class="shipment-flow-banner {{ $declarationFeedbackSuccess ? 'shipment-flow-banner--success' : 'shipment-flow-banner--warning' }}">
+            <div class="shipment-flow-banner__title">{{ $declarationFeedback['message'] ?? 'تم تحديث حالة الإقرار.' }}</div>
+            @if(!empty($declarationFeedback['next_action']))
+                <div class="shipment-flow-banner__body"><strong>الإجراء التالي:</strong> {{ $declarationFeedback['next_action'] }}</div>
+            @endif
+            @if(!empty($declarationFeedback['error_code']))
+                <div class="shipment-flow-banner__meta td-mono">{{ $declarationFeedback['error_code'] }}</div>
+            @endif
         </div>
-    </x-card>
-</div>
+    @endif
 
-@if(!$workflowReady)
-    <x-card title="هذه الخطوة ليست جاهزة بعد">
-        <div class="empty-state" style="padding:20px;border-radius:18px;border:1px dashed var(--bd);background:rgba(15,23,42,.02)">
-            <div style="font-size:18px;font-weight:800;color:var(--tx);margin-bottom:8px">لا يمكن متابعة إقرار المحتوى بعد</div>
-            <div style="color:var(--td);font-size:14px;max-width:760px">
-                يجب اختيار عرض شحن صالح أولًا قبل فتح هذه الخطوة. بعد اختيار العرض ستنتقل هذه الشحنة إلى بوابة إقرار المحتوى تلقائيًا.
+    <section class="shipment-flow-hero">
+        <div class="shipment-flow-hero__head">
+            <div>
+                <div class="shipment-flow-hero__eyebrow">مرحلة التصريح الإلزامي</div>
+                <h2 class="shipment-flow-hero__title">وضوح قانوني قبل الحجز والإصدار</h2>
+                <p class="shipment-flow-hero__body">حدّد بوضوح ما إذا كانت هذه الشحنة تحتوي على مواد خطرة. عند اختيار "لا"، يجب الموافقة على الإقرار القانوني الإلزامي. وعند اختيار "نعم"، سيتوقف المسار العادي لهذه الشحنة لحين مراجعتها.</p>
             </div>
-            <div style="margin-top:14px">
-                <a href="{{ route($portalConfig['offers_route'], ['id' => $shipment->id]) }}" class="btn btn-pr">العودة إلى العروض</a>
-            </div>
+            <span class="shipment-status-pill shipment-status-pill--{{ $isBlocked ? 'danger' : ($isComplete ? 'success' : 'warning') }}">{{ $isBlocked ? 'يتطلب معالجة' : ($isComplete ? 'مكتمل' : 'بانتظار الإقرار') }}</span>
         </div>
-    </x-card>
-@elseif($isBlocked)
-    <x-card title="الشحنة متوقفة بسبب مواد خطرة">
-        <div style="padding:18px;border-radius:18px;border:1px solid rgba(185,28,28,.18);background:rgba(185,28,28,.06)">
-            <div style="font-size:20px;font-weight:800;color:#991b1b;margin-bottom:8px">تم تعليق المسار العادي لهذه الشحنة</div>
-            <div style="color:var(--td);font-size:14px;max-width:760px">
-                لأنك صرحت بوجود مواد خطرة، لم يعد من الممكن متابعة الإصدار العادي لهذه الشحنة عبر التدفق الذاتي.
-            </div>
+        <div class="shipment-flow-summary-grid">
+            <div class="shipment-summary-card shipment-summary-card--soft"><div class="shipment-summary-card__eyebrow">مرجع الشحنة</div><div class="shipment-summary-card__value td-mono">{{ $shipment->reference_number ?? $shipment->id }}</div><div class="shipment-summary-card__meta">{{ $shipmentStatusLabel }}</div></div>
+            <div class="shipment-summary-card shipment-summary-card--accent"><div class="shipment-summary-card__eyebrow">العرض المختار</div><div class="shipment-summary-card__value">{{ $selectedOffer ? $selectedCarrierLabel : 'لم يتم اختيار عرض بعد' }}</div><div class="shipment-summary-card__meta">{{ $selectedOffer ? $selectedServiceLabel : 'ارجع إلى مرحلة العروض لاختيار خدمة مناسبة.' }}</div></div>
+            <div class="shipment-summary-card {{ $isBlocked ? 'shipment-summary-card--danger' : ($isComplete ? 'shipment-summary-card--success' : 'shipment-summary-card--warning') }}"><div class="shipment-summary-card__eyebrow">حالة الإقرار</div><div class="shipment-summary-card__value">{{ $declaration ? ($declarationStatusLabels[$declaration->status] ?? $declaration->status) : 'لم يبدأ بعد' }}</div><div class="shipment-summary-card__meta">{{ $declaration?->updated_at ? 'آخر تحديث: ' . $declaration->updated_at->format('Y-m-d H:i') : 'سيظهر آخر تحديث بعد أول إرسال.' }}</div></div>
+        </div>
+    </section>
+
+    @if(!$workflowReady)
+        <section class="shipment-empty-state">
+            <div class="shipment-empty-state__title">لا يمكن متابعة إقرار المحتوى بعد</div>
+            <div class="shipment-empty-state__body">يجب اختيار عرض شحن صالح أولًا قبل فتح هذه الخطوة. بعد تثبيت العرض، ستنتقل هذه الشحنة تلقائيًا إلى بوابة إقرار المحتوى.</div>
+            <div class="shipment-form-actions"><a href="{{ route($portalConfig['offers_route'], ['id' => $shipment->id]) }}" class="btn btn-pr">العودة إلى العروض</a></div>
+        </section>
+    @elseif($isBlocked)
+        <section class="shipment-action-card shipment-action-card--danger">
+            <div class="shipment-action-card__eyebrow">الشحنة متوقفة</div>
+            <div class="shipment-action-card__title">تم تعليق المسار العادي لهذه الشحنة</div>
+            <div class="shipment-action-card__body">لأنك صرحت بوجود مواد خطرة، لم يعد من الممكن متابعة الإصدار العادي لهذه الشحنة عبر التدفق الذاتي. تواصل مع فريق الدعم أو العمليات لاستكمال المعالجة اليدوية.</div>
             @if($declaration?->hold_reason)
-                <div style="margin-top:10px;color:#991b1b;font-size:14px">
-                    <strong>سبب الإيقاف:</strong> {{ $declaration->hold_reason }}
-                </div>
+                <div class="shipment-inline-meta"><strong>سبب الإيقاف:</strong> {{ $declaration->hold_reason }}</div>
             @endif
-            <div style="margin-top:12px;color:var(--td);font-size:14px">
-                <strong style="color:var(--tx)">الإجراء التالي:</strong>
-                تواصل مع فريق الدعم أو العمليات لاستكمال المعالجة اليدوية لهذه الشحنة.
-            </div>
-        </div>
-    </x-card>
-@elseif($isComplete)
-    <x-card title="اكتمل إقرار المحتوى">
-        <div style="padding:18px;border-radius:18px;border:1px solid rgba(4,120,87,.22);background:rgba(4,120,87,.08)">
-            <div style="font-size:20px;font-weight:800;color:#0f766e;margin-bottom:8px">تم حفظ الإقرار القانوني بنجاح</div>
-            <div style="color:var(--td);font-size:14px;max-width:760px">
-                تم التصريح بأن الشحنة لا تحتوي على مواد خطرة، وتم حفظ موافقتك على الإقرار القانوني كسجل تدقيقي دائم مرتبط بالشحنة.
-            </div>
-            <div style="margin-top:12px;color:var(--td);font-size:14px">
-                <strong style="color:var(--tx)">الخطوة التالية:</strong>
-                الشحنة أصبحت جاهزة للمرحلة التالية من التدفق عند تفعيل مرحلة الدفع لاحقًا.
-            </div>
+        </section>
+    @elseif($isComplete)
+        <section class="shipment-action-card shipment-action-card--success">
+            <div class="shipment-action-card__eyebrow">الإقرار محفوظ</div>
+            <div class="shipment-action-card__title">تم حفظ الإقرار القانوني بنجاح</div>
+            <div class="shipment-action-card__body">تم التصريح بأن الشحنة لا تحتوي على مواد خطرة، وحُفظت موافقتك القانونية كسجل تدقيقي مرتبط بالشحنة. الشحنة أصبحت جاهزة للمرحلة التالية.</div>
             @if($declaration?->waiverVersion)
-                <div class="td-mono" style="margin-top:10px;font-size:12px;color:var(--tm)">
-                    نسخة الإقرار: {{ $declaration->waiverVersion->version }} / {{ strtoupper($declaration->waiverVersion->locale) }}
-                </div>
+                <div class="shipment-inline-meta td-mono">نسخة الإقرار: {{ $declaration->waiverVersion->version }} / {{ strtoupper($declaration->waiverVersion->locale) }}</div>
             @endif
-            <div style="margin-top:14px;display:flex;gap:10px;flex-wrap:wrap">
+            <div class="shipment-action-card__actions">
                 <a href="{{ route($portalConfig['show_route'], ['id' => $shipment->id]) }}" class="btn btn-pr" data-testid="shipment-completion-link">الانتقال إلى خطوة المحفظة والإصدار</a>
                 <a href="{{ route($portalConfig['offers_route'], ['id' => $shipment->id]) }}" class="btn btn-s">مراجعة العرض المختار</a>
             </div>
-        </div>
-    </x-card>
-@else
-    <div class="grid-2-1">
-        <x-card title="التصريح الإلزامي">
-            <form method="POST" action="{{ route($portalConfig['declaration_submit_route'], ['id' => $shipment->id]) }}" style="display:flex;flex-direction:column;gap:16px">
+        </section>
+    @else
+        <div class="shipment-flow-layout">
+            <form method="POST" action="{{ route($portalConfig['declaration_submit_route'], ['id' => $shipment->id]) }}" class="shipment-form">
                 @csrf
+                <section class="shipment-form-section">
+                    <div class="shipment-form-section__head">
+                        <div>
+                            <div class="shipment-form-section__title">هل تحتوي هذه الشحنة على مواد خطرة؟</div>
+                            <div class="shipment-form-section__body">اختر إجابة واحدة فقط. هذا الاختيار يحدد إن كانت الشحنة ستبقى ضمن المسار الذاتي أو ستنتقل إلى معالجة إضافية.</div>
+                        </div>
+                    </div>
+                    <div class="shipment-choice-grid">
+                        <label class="shipment-choice-card shipment-choice-card--safe">
+                            <input type="radio" name="contains_dangerous_goods" value="no" @checked(old('contains_dangerous_goods', ($declaration && $declaration->dg_flag_declared && ! $declaration->contains_dangerous_goods) ? 'no' : '') === 'no')>
+                            <span>
+                                <div class="shipment-choice-card__title">لا، الشحنة آمنة للمسار العادي</div>
+                                <div class="shipment-choice-card__body">سأتابع عبر الإقرار القانوني الإلزامي وأؤكد صحة التصريح قبل الحجز المالي والإصدار.</div>
+                            </span>
+                        </label>
+                        <label class="shipment-choice-card shipment-choice-card--hold">
+                            <input type="radio" name="contains_dangerous_goods" value="yes" @checked(old('contains_dangerous_goods', ($declaration && $declaration->dg_flag_declared && $declaration->contains_dangerous_goods) ? 'yes' : '') === 'yes')>
+                            <span>
+                                <div class="shipment-choice-card__title">نعم، تحتوي على مواد خطرة</div>
+                                <div class="shipment-choice-card__body">سيتم تعليق الشحنة والتحويل إلى مراجعة إضافية، ولن يستمر المسار الذاتي للإصدار لدى الناقل.</div>
+                            </span>
+                        </label>
+                    </div>
+                    @error('contains_dangerous_goods') <div class="shipment-inline-meta" style="color:#991b1b">{{ $message }}</div> @enderror
+                </section>
 
-                <div>
-                    <div style="font-size:16px;font-weight:800;color:var(--tx);margin-bottom:10px">هل تحتوي هذه الشحنة على مواد خطرة؟</div>
-                    <label style="display:flex;align-items:center;gap:10px;padding:12px;border:1px solid var(--bd);border-radius:14px;margin-bottom:10px">
-                        <input type="radio" name="contains_dangerous_goods" value="no" @checked(old('contains_dangerous_goods', ($declaration && $declaration->dg_flag_declared && ! $declaration->contains_dangerous_goods) ? 'no' : '') === 'no')>
-                        <span>
-                            <strong>لا</strong>
-                            <span style="display:block;color:var(--td);font-size:13px">سأتابع عبر الإقرار القانوني الإلزامي وأؤكد صحة التصريح.</span>
-                        </span>
-                    </label>
-                    <label style="display:flex;align-items:center;gap:10px;padding:12px;border:1px solid var(--bd);border-radius:14px">
-                        <input type="radio" name="contains_dangerous_goods" value="yes" @checked(old('contains_dangerous_goods', ($declaration && $declaration->dg_flag_declared && $declaration->contains_dangerous_goods) ? 'yes' : '') === 'yes')>
-                        <span>
-                            <strong>نعم</strong>
-                            <span style="display:block;color:var(--td);font-size:13px">سيتم تعليق هذه الشحنة للتحقق اليدوي، ولن يستمر المسار العادي للإصدار.</span>
-                        </span>
-                    </label>
-                    @error('contains_dangerous_goods')
-                        <div style="margin-top:8px;color:#991b1b;font-size:13px">{{ $message }}</div>
-                    @enderror
-                </div>
-
-                <div style="padding:16px;border-radius:16px;border:1px solid var(--bd);background:rgba(15,23,42,.02)">
-                    <div style="font-size:16px;font-weight:800;color:var(--tx);margin-bottom:8px">الإقرار القانوني الإلزامي</div>
-                    <div style="color:var(--td);font-size:14px;line-height:1.8;white-space:pre-line">{{ $waiver?->waiver_text ?? 'لا توجد نسخة إقرار قانوني نشطة حاليًا.' }}</div>
+                <section class="shipment-form-section">
+                    <div class="shipment-form-section__head">
+                        <div>
+                            <div class="shipment-form-section__title">الإقرار القانوني الإلزامي</div>
+                            <div class="shipment-form-section__body">اقرأ النص كما هو، ثم أكّد موافقتك عند اختيار المسار الآمن للشحنة.</div>
+                        </div>
+                    </div>
+                    <div class="shipment-legal-copy">{{ $waiver?->waiver_text ?? 'لا توجد نسخة إقرار قانوني نشطة حاليًا.' }}</div>
                     @if($waiver)
-                        <div class="td-mono" style="margin-top:10px;font-size:12px;color:var(--tm)">الإصدار: {{ $waiver->version }} / {{ strtoupper($waiver->locale) }}</div>
+                        <div class="shipment-inline-meta td-mono">الإصدار: {{ $waiver->version }} / {{ strtoupper($waiver->locale) }}</div>
                     @endif
-
-                    <label style="display:flex;align-items:flex-start;gap:10px;margin-top:14px">
-                        <input type="checkbox" name="accept_disclaimer" value="1" @checked(old('accept_disclaimer'))>
-                        <span style="color:var(--td);font-size:14px">
-                            أؤكد أن هذه الشحنة لا تحتوي على مواد خطرة، وأوافق على الإقرار القانوني أعلاه وأتحمل مسؤولية صحة هذا التصريح.
+                    <label class="shipment-choice-card shipment-choice-card--safe">
+                        <input type="checkbox" name="accept_disclaimer" value="1" @checked(old('accept_disclaimer', $declaration?->waiver_accepted ? '1' : null))>
+                        <span>
+                            <div class="shipment-choice-card__title">أوافق على الإقرار القانوني</div>
+                            <div class="shipment-choice-card__body">أؤكد أن هذه الشحنة لا تحتوي على مواد خطرة، وأنني أتحمل مسؤولية صحة هذا التصريح.</div>
                         </span>
                     </label>
-                    @error('accept_disclaimer')
-                        <div style="margin-top:8px;color:#991b1b;font-size:13px">{{ $message }}</div>
-                    @enderror
-                </div>
+                    @error('accept_disclaimer') <div class="shipment-inline-meta" style="color:#991b1b">{{ $message }}</div> @enderror
+                </section>
 
-                <div style="display:flex;gap:10px;flex-wrap:wrap">
+                <div class="shipment-form-actions">
                     <button type="submit" class="btn btn-pr">حفظ الإقرار والمتابعة</button>
                     <a href="{{ route($portalConfig['offers_route'], ['id' => $shipment->id]) }}" class="btn btn-s">مراجعة العروض مرة أخرى</a>
                 </div>
             </form>
-        </x-card>
 
-        <x-card title="ما الذي سيحدث بعد هذا الاختيار؟">
-            <div style="display:flex;flex-direction:column;gap:14px">
-                <div style="padding:14px;border:1px solid var(--bd);border-radius:16px">
-                    <div style="font-size:15px;font-weight:800;color:var(--tx);margin-bottom:6px">إذا اخترت "نعم"</div>
-                    <div style="color:var(--td);font-size:14px">
-                        ستتوقف الشحنة فورًا في حالة تتطلب إجراءً يدويًا، ولن يمكن متابعة الإصدار العادي حتى يراجعها فريق الدعم أو العمليات.
+            <aside class="shipment-flow-rail">
+                <section class="shipment-helper-card shipment-helper-card--soft">
+                    <div class="shipment-helper-card__eyebrow">ملخص الشحنة والعرض</div>
+                    <div class="shipment-helper-card__title td-mono">{{ $shipment->reference_number ?? $shipment->id }}</div>
+                    <div class="shipment-key-value-grid">
+                        <div class="shipment-key-value"><div class="shipment-key-value__label">حالة الشحنة</div><div class="shipment-key-value__value">{{ $shipmentStatusLabel }}</div></div>
+                        <div class="shipment-key-value"><div class="shipment-key-value__label">الناقل</div><div class="shipment-key-value__value">{{ $selectedOffer ? $selectedCarrierLabel : 'غير محدد' }}</div></div>
+                        <div class="shipment-key-value"><div class="shipment-key-value__label">الخدمة</div><div class="shipment-key-value__value">{{ $selectedOffer ? $selectedServiceLabel : 'غير محددة' }}</div></div>
+                        <div class="shipment-key-value"><div class="shipment-key-value__label">السعر المعروض</div><div class="shipment-key-value__value">{{ $selectedOffer ? number_format((float) $selectedOffer->retail_rate, 2) . ' ' . $selectedOffer->currency : '—' }}</div></div>
                     </div>
-                </div>
-                <div style="padding:14px;border:1px solid var(--bd);border-radius:16px">
-                    <div style="font-size:15px;font-weight:800;color:var(--tx);margin-bottom:6px">إذا اخترت "لا"</div>
-                    <div style="color:var(--td);font-size:14px">
-                        يجب أن توافق على الإقرار القانوني الإلزامي. من دون هذه الموافقة لن تنتقل الشحنة إلى أي خطوة لاحقة.
+                </section>
+
+                <section class="shipment-action-grid">
+                    <div class="shipment-helper-card shipment-helper-card--soft">
+                        <div class="shipment-helper-card__eyebrow">إذا اخترت "نعم"</div>
+                        <div class="shipment-helper-card__title">يتوقف المسار الذاتي</div>
+                        <div class="shipment-helper-card__body">ستحتاج الشحنة إلى معالجة إضافية ولن تنتقل إلى الحجز المالي أو الإصدار حتى تُراجع يدويًا.</div>
                     </div>
-                </div>
-                <div style="padding:14px;border:1px solid var(--bd);border-radius:16px">
-                    <div style="font-size:15px;font-weight:800;color:var(--tx);margin-bottom:6px">السجل القانوني</div>
-                    <div style="color:var(--td);font-size:14px">
-                        سيُحفظ هذا التصريح مع وقت الإرسال وعنوان IP والمستخدم الذي نفّذ الإقرار ونسخة النص القانوني المرتبطة بالشحنة.
+                    <div class="shipment-helper-card shipment-helper-card--soft">
+                        <div class="shipment-helper-card__eyebrow">إذا اخترت "لا"</div>
+                        <div class="shipment-helper-card__title">يلزمك قبول الإقرار</div>
+                        <div class="shipment-helper-card__body">من دون الموافقة الصريحة على الإقرار القانوني الإلزامي لن تنتقل الشحنة إلى المرحلة التالية.</div>
                     </div>
-                </div>
-            </div>
-        </x-card>
-    </div>
-@endif
+                </section>
+            </aside>
+        </div>
+    @endif
+</div>
 @endsection

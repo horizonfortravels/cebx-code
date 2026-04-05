@@ -1,4 +1,4 @@
-﻿@extends('layouts.app')
+@extends('layouts.app')
 @section('title', ($portalConfig['label'] ?? 'البوابة') . ' | مقارنة عروض الشحن')
 
 @section('content')
@@ -19,15 +19,14 @@
     $hasOffers = count($offers) > 0;
     $isExpired = (bool) data_get($offersPayload, 'is_expired', false);
     $selectedOptionId = $selectedOptionId !== '' ? $selectedOptionId : (string) data_get($offersPayload, 'selected_rate_option_id', '');
-    $documentsAvailable = $shipment->carrierDocuments()->where('is_available', true)->exists();
-    $quoteStatusLabels = [
-        'pending' => 'قيد الانتظار',
-        'completed' => 'مكتمل',
-        'expired' => 'منتهي',
-        'failed' => 'فشل الجلب',
-    ];
+    $quoteStatusLabels = ['pending' => 'قيد الانتظار', 'completed' => 'مكتمل', 'expired' => 'منتهي', 'failed' => 'فشل الجلب'];
     $quoteStatus = data_get($offersPayload, 'quote_status', $hasOffers ? 'completed' : 'pending');
     $localizedQuoteStatus = $quoteStatusLabels[$quoteStatus] ?? $quoteStatus;
+    $quoteExpiryLabel = data_get($offersPayload, 'expires_at') ? \Illuminate\Support\Carbon::parse(data_get($offersPayload, 'expires_at'))->format('Y-m-d H:i') : 'غير متاح بعد';
+    $documentsAvailable = $shipment->carrierDocuments()->where('is_available', true)->exists();
+    $stepStateOverrides = $selectedOptionId !== '' || in_array($shipment->status, ['declaration_required', 'declaration_complete', 'requires_action'], true)
+        ? ['create' => 'complete', 'offers' => 'complete', 'declaration' => 'current']
+        : ['create' => 'complete', 'offers' => $isExpired ? 'attention' : 'current'];
     $offerEmptyMessage = (string) ($offerError['message'] ?? 'لم يتم توليد عروض لهذه الشحنة بعد. يمكنك طلب العروض عندما تصبح الشحنة جاهزة لطلب العروض.');
     $offerEmptyNextAction = (string) data_get($offerError, 'next_action', '');
     if ($offerEmptyMessage === 'No offers are available for this shipment yet.') {
@@ -36,34 +35,21 @@
     if ($offerEmptyNextAction === 'Fetch shipment rates after the shipment reaches the ready_for_rates stage.') {
         $offerEmptyNextAction = 'اطلب عروض الشحنة بعد وصولها إلى مرحلة جاهز لطلب العروض.';
     }
-    $documentsRoute = request()->routeIs('b2b.*')
-        ? route('b2b.shipments.documents.index', ['id' => $shipment->id])
-        : route('b2c.shipments.documents.index', ['id' => $shipment->id]);
 @endphp
 
-<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:24px">
-    <div>
-        <div style="font-size:12px;color:var(--tm);margin-bottom:8px">
-            <a href="{{ route($portalConfig['dashboard_route']) }}" style="color:inherit;text-decoration:none">{{ $portalConfig['label'] }}</a>
-            <span style="margin:0 6px">/</span>
-            <a href="{{ route($portalConfig['index_route']) }}" style="color:inherit;text-decoration:none">الشحنات</a>
-            <span style="margin:0 6px">/</span>
-            <a href="{{ route($portalConfig['create_route'], ['draft' => $shipment->id]) }}" style="color:inherit;text-decoration:none">المسودة الحالية</a>
-            <span style="margin:0 6px">/</span>
-            <span>مقارنة العروض</span>
-        </div>
-        <h1 style="font-size:28px;font-weight:800;color:var(--tx);margin:0">مقارنة عروض الشحن</h1>
-        <p style="color:var(--td);font-size:14px;margin:8px 0 0;max-width:820px">
-            راجع العروض المتاحة لهذه الشحنة، قارن بين السعر وموعد الوصول والملاحظات التشغيلية، ثم اختر عرضًا واحدًا فقط للانتقال إلى المرحلة التالية.
-        </p>
-    </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap">
+<div class="shipment-flow-stack">
+    <x-page-header
+        :eyebrow="($portalConfig['label'] ?? 'البوابة') . ' / الشحنات / العروض'"
+        title="مقارنة عروض الشحن"
+        subtitle="قارن بين الخدمة والسعر والتوقيت والملاحظات التشغيلية قبل تثبيت عرض واحد فقط للمتابعة."
+        meta="هذه المرحلة توازن بين السرعة والتكلفة والقيود الفعلية على نفس الشحنة."
+    >
         <a href="{{ route($portalConfig['create_route'], ['draft' => $shipment->id]) }}" class="btn btn-s">العودة إلى المسودة</a>
         @if($selectedOptionId !== '' || in_array($shipment->status, ['declaration_required', 'declaration_complete', 'requires_action'], true))
             <a href="{{ route($portalConfig['declaration_route'], ['id' => $shipment->id]) }}" class="btn btn-s">الانتقال إلى إقرار المحتوى</a>
         @endif
         @if($documentsAvailable)
-            <a href="{{ $documentsRoute }}" class="btn btn-s">عرض الوثائق</a>
+            <a href="{{ route($portalConfig['documents_route'], ['id' => $shipment->id]) }}" class="btn btn-s">عرض الوثائق</a>
         @endif
         @if($canRefreshOffers)
             <form method="POST" action="{{ route($portalConfig['offers_fetch_route'], ['id' => $shipment->id]) }}">
@@ -71,207 +57,184 @@
                 <button type="submit" class="btn btn-pr">{{ $hasOffers ? 'تحديث العروض' : 'جلب العروض الآن' }}</button>
             </form>
         @endif
-    </div>
-</div>
+    </x-page-header>
 
-@if($offerFeedback)
-    <div style="margin-bottom:20px;padding:18px;border-radius:18px;border:1px solid {{ ($offerFeedback['level'] ?? 'warning') === 'success' ? 'rgba(4,120,87,.22)' : 'rgba(185,28,28,.18)' }};background:{{ ($offerFeedback['level'] ?? 'warning') === 'success' ? 'rgba(4,120,87,.08)' : 'rgba(185,28,28,.06)' }}">
-        <div style="font-size:20px;font-weight:800;color:var(--tx)">{{ $offerFeedback['message'] ?? 'تم تحديث حالة العروض.' }}</div>
-        @if(!empty($offerFeedback['next_action']))
-            <div style="margin-top:10px;color:var(--td);font-size:14px">
-                <strong style="color:var(--tx)">الخطوة التالية:</strong>
-                {{ $offerFeedback['next_action'] }}
-            </div>
-        @endif
-        @if(!empty($offerFeedback['error_code']))
-            <div class="td-mono" style="margin-top:10px;font-size:12px;color:var(--tm)">{{ $offerFeedback['error_code'] }}</div>
-        @endif
-    </div>
-@endif
+    <x-shipment-workflow-stepper
+        current="offers"
+        :create-route="route($portalConfig['create_route'], ['draft' => $shipment->id])"
+        :offers-route="route($portalConfig['offers_route'], ['id' => $shipment->id])"
+        :declaration-route="route($portalConfig['declaration_route'], ['id' => $shipment->id])"
+        :show-route="route($portalConfig['show_route'], ['id' => $shipment->id])"
+        :documents-route="route($portalConfig['documents_route'], ['id' => $shipment->id])"
+        :state-overrides="$stepStateOverrides"
+    />
 
-<div class="grid-2" style="margin-bottom:24px">
-    <x-card title="ملخص الشحنة الحالية">
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
-            <div>
-                <div style="font-size:12px;color:var(--tm);margin-bottom:4px">مرجع الشحنة</div>
-                <div class="td-mono" style="font-weight:700;color:var(--tx)">{{ $shipment->reference_number ?? $shipment->id }}</div>
-            </div>
-            <div>
-                <div style="font-size:12px;color:var(--tm);margin-bottom:4px">حالة الشحنة</div>
-                <div style="font-weight:700;color:var(--tx)">{{ $shipmentStatusLabel }}</div>
-            </div>
-            <div>
-                <div style="font-size:12px;color:var(--tm);margin-bottom:4px">الوجهة</div>
-                <div style="font-weight:700;color:var(--tx)">{{ $shipment->recipient_city }} / {{ $shipment->recipient_country }}</div>
-            </div>
-            <div>
-                <div style="font-size:12px;color:var(--tm);margin-bottom:4px">عدد الطرود</div>
-                <div style="font-weight:700;color:var(--tx)">{{ $shipment->parcels_count ?: $shipment->parcels()->count() }}</div>
-            </div>
-        </div>
-    </x-card>
-
-    <x-card title="حالة التسعير والعرض المختار">
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
-            <div>
-                <div style="font-size:12px;color:var(--tm);margin-bottom:4px">مرجع عرض الأسعار</div>
-                <div class="td-mono" style="font-weight:700;color:var(--tx)">{{ data_get($offersPayload, 'rate_quote_id', 'لم يُنشأ بعد') }}</div>
-            </div>
-            <div>
-                <div style="font-size:12px;color:var(--tm);margin-bottom:4px">حالة عرض الأسعار</div>
-                <div style="font-weight:700;color:var(--tx)">{{ $localizedQuoteStatus }}</div>
-            </div>
-            <div>
-                <div style="font-size:12px;color:var(--tm);margin-bottom:4px">انتهاء الصلاحية</div>
-                <div style="font-weight:700;color:var(--tx)">{{ data_get($offersPayload, 'expires_at') ? \Illuminate\Support\Carbon::parse(data_get($offersPayload, 'expires_at'))->format('Y-m-d H:i') : 'غير متاح بعد' }}</div>
-            </div>
-            <div>
-                <div style="font-size:12px;color:var(--tm);margin-bottom:4px">العرض المثبت</div>
-                <div class="td-mono" style="font-weight:700;color:var(--tx)">{{ $selectedOptionId !== '' ? $selectedOptionId : 'لم يتم الاختيار بعد' }}</div>
-            </div>
-        </div>
-        @if($isExpired)
-            <div style="margin-top:16px;padding:12px;border-radius:14px;background:rgba(185,28,28,.06);border:1px solid rgba(185,28,28,.18);color:#7f1d1d">
-                انتهت صلاحية العروض الحالية. أعد جلب العروض قبل محاولة اختيار عرض جديد.
-            </div>
-        @endif
-    </x-card>
-</div>
-
-@if(!$hasOffers)
-    <x-card title="العروض المتاحة">
-        <div style="display:flex;flex-direction:column;gap:14px">
-            <div class="empty-state" style="padding:20px;border-radius:18px;border:1px dashed var(--bd);background:rgba(15,23,42,.02)">
-                <div style="font-size:18px;font-weight:800;color:var(--tx);margin-bottom:8px">
-                    {{ $offerError ? 'الشحنة ليست جاهزة لعرض الأسعار بعد' : 'لا توجد عروض متاحة حاليًا' }}
-                </div>
-                <div style="color:var(--td);font-size:14px;max-width:760px">
-                    {{ $offerEmptyMessage }}
-                </div>
-                @if($offerEmptyNextAction !== '')
-                    <div style="margin-top:10px;color:var(--td);font-size:14px">
-                        <strong style="color:var(--tx)">الإجراء المقترح:</strong>
-                        {{ $offerEmptyNextAction }}
-                    </div>
-                @endif
-            </div>
-
-            @if($canRefreshOffers)
-                <div style="display:flex;gap:10px;flex-wrap:wrap">
-                    <form method="POST" action="{{ route($portalConfig['offers_fetch_route'], ['id' => $shipment->id]) }}">
-                        @csrf
-                        <button type="submit" class="btn btn-pr">جلب العروض لهذه الشحنة</button>
-                    </form>
-                    <a href="{{ route($portalConfig['create_route'], ['draft' => $shipment->id]) }}" class="btn btn-s">مراجعة بيانات المسودة</a>
-                </div>
+    @if($offerFeedback)
+        @php
+            $offerFeedbackSuccess = ($offerFeedback['level'] ?? 'warning') === 'success';
+        @endphp
+        <div class="shipment-flow-banner {{ $offerFeedbackSuccess ? 'shipment-flow-banner--success' : 'shipment-flow-banner--warning' }}">
+            <div class="shipment-flow-banner__title">{{ $offerFeedback['message'] ?? 'تم تحديث حالة العروض.' }}</div>
+            @if(!empty($offerFeedback['next_action']))
+                <div class="shipment-flow-banner__body"><strong>الخطوة التالية:</strong> {{ $offerFeedback['next_action'] }}</div>
+            @endif
+            @if(!empty($offerFeedback['error_code']))
+                <div class="shipment-flow-banner__meta td-mono">{{ $offerFeedback['error_code'] }}</div>
             @endif
         </div>
-    </x-card>
-@else
-    <x-card title="العروض المتاحة للمقارنة">
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">
-            @foreach($offers as $offer)
-                @php
-                    $isSelected = (bool) ($offer['is_selected'] ?? false);
-                    $isAvailable = (bool) ($offer['is_available'] ?? true);
-                    $deliveryLabel = data_get($offer, 'estimated_delivery.label') ?: 'غير متوفر';
-                    $borderColor = $isSelected ? '#0f766e' : ($isAvailable ? 'var(--bd)' : 'rgba(185,28,28,.18)');
-                    $background = $isSelected ? 'rgba(15,118,110,.06)' : 'white';
-                    $carrierLabel = \App\Support\PortalShipmentLabeler::carrier(
-                        (string) ($offer['carrier_code'] ?? ''),
-                        (string) ($offer['carrier_name'] ?? '')
-                    );
-                    $serviceLabel = \App\Support\PortalShipmentLabeler::service(
-                        (string) ($offer['service_code'] ?? ''),
-                        (string) ($offer['service_name'] ?? '')
-                    );
-                    $carrierServicePairLabel = \App\Support\PortalShipmentLabeler::carrierServicePair(
-                        (string) ($offer['carrier_code'] ?? ''),
-                        (string) ($offer['service_code'] ?? ''),
-                        (string) ($offer['carrier_name'] ?? ''),
-                        (string) ($offer['service_name'] ?? '')
-                    );
-                @endphp
-                <div style="border:1px solid {{ $borderColor }};border-radius:18px;padding:18px;background:{{ $background }};display:flex;flex-direction:column;gap:14px">
-                    <div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">
-                        <div>
-                            <div style="font-size:12px;color:var(--tm);margin-bottom:4px">الناقل</div>
-                            <div style="font-size:18px;font-weight:800;color:var(--tx)">{{ $carrierLabel }}</div>
-                            <div class="td-mono" style="font-size:12px;color:var(--tm);margin-top:4px">{{ $carrierServicePairLabel }}</div>
-                        </div>
-                        <div style="text-align:left">
-                            <div style="font-size:12px;color:var(--tm);margin-bottom:4px">السعر المعروض</div>
-                            <div style="font-size:24px;font-weight:900;color:var(--tx)">{{ number_format((float) ($offer['retail_rate'] ?? 0), 2) }}</div>
-                            <div style="font-size:12px;color:var(--tm)">{{ $offer['currency'] }}</div>
-                        </div>
-                    </div>
+    @endif
 
-                    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px">
-                        <div style="padding:12px;border:1px solid var(--bd);border-radius:14px">
-                            <div style="font-size:12px;color:var(--tm);margin-bottom:4px">الخدمة</div>
-                            <div style="font-weight:700;color:var(--tx)">{{ $serviceLabel }}</div>
-                        </div>
-                        <div style="padding:12px;border:1px solid var(--bd);border-radius:14px">
-                            <div style="font-size:12px;color:var(--tm);margin-bottom:4px">موعد الوصول</div>
-                            <div style="font-weight:700;color:var(--tx)">{{ $deliveryLabel }}</div>
-                        </div>
-                    </div>
+    <section class="shipment-flow-hero">
+        <div class="shipment-flow-hero__head">
+            <div>
+                <div class="shipment-flow-hero__eyebrow">مرحلة المقارنة والاختيار</div>
+                <h2 class="shipment-flow-hero__title">قارن العروض كما لو أنك تختار خطة تشغيل</h2>
+                <p class="shipment-flow-hero__body">كل عرض هنا يعكس خدمة حقيقية مرتبطة بهذه الشحنة. راجع السعر المعروض والقيود والتوقيت ثم ثبّت الخيار الذي يناسبك قبل الانتقال إلى التصريح القانوني.</p>
+            </div>
+            <span class="shipment-status-pill shipment-status-pill--{{ $selectedOptionId !== '' ? 'success' : ($isExpired ? 'danger' : 'info') }}">{{ $selectedOptionId !== '' ? 'تم اختيار عرض' : ($isExpired ? 'العروض منتهية' : 'جاهز للمقارنة') }}</span>
+        </div>
+        <div class="shipment-flow-summary-grid">
+            <div class="shipment-summary-card shipment-summary-card--soft"><div class="shipment-summary-card__eyebrow">مرجع الشحنة</div><div class="shipment-summary-card__value td-mono">{{ $shipment->reference_number ?? $shipment->id }}</div><div class="shipment-summary-card__meta">{{ $shipmentStatusLabel }}</div></div>
+            <div class="shipment-summary-card shipment-summary-card--accent"><div class="shipment-summary-card__eyebrow">حالة عرض الأسعار</div><div class="shipment-summary-card__value">{{ $localizedQuoteStatus }}</div><div class="shipment-summary-card__meta">الصلاحية حتى {{ $quoteExpiryLabel }}</div></div>
+            <div class="shipment-summary-card {{ $selectedOptionId !== '' ? 'shipment-summary-card--success' : 'shipment-summary-card--warning' }}"><div class="shipment-summary-card__eyebrow">العرض المثبت</div><div class="shipment-summary-card__value td-mono">{{ $selectedOptionId !== '' ? $selectedOptionId : 'لم يتم الاختيار بعد' }}</div><div class="shipment-summary-card__meta">{{ $hasOffers ? 'قارن بين جميع الخيارات قبل التثبيت.' : 'ستظهر المقارنة هنا بعد جلب العروض.' }}</div></div>
+        </div>
+    </section>
 
-                    @if(!empty($offer['badges']))
-                        <div style="display:flex;flex-wrap:wrap;gap:8px">
-                            @foreach($offer['badges'] as $badge)
-                                <span style="padding:6px 10px;border-radius:999px;background:rgba(59,130,246,.08);color:var(--tx);font-size:12px;font-weight:700">{{ $badge['label'] }}</span>
-                            @endforeach
-                        </div>
+    <div class="shipment-flow-layout">
+        <div class="shipment-flow-stack">
+            @if(!$hasOffers)
+                <section class="shipment-empty-state">
+                    <div class="shipment-empty-state__title">{{ $offerError ? 'الشحنة ليست جاهزة لعرض الأسعار بعد' : 'لا توجد عروض متاحة حاليًا' }}</div>
+                    <div class="shipment-empty-state__body">{{ $offerEmptyMessage }}</div>
+                    @if($offerEmptyNextAction !== '')
+                        <div class="shipment-inline-meta"><strong>الإجراء المقترح:</strong> {{ $offerEmptyNextAction }}</div>
                     @endif
-
-                    <div style="display:flex;flex-direction:column;gap:8px">
-                        @if(!empty($offer['notes']))
-                            <div>
-                                <div style="font-size:12px;color:var(--tm);margin-bottom:4px">ملاحظات الخدمة</div>
-                                <ul style="margin:0;padding-right:18px;color:var(--td);font-size:13px">
-                                    @foreach($offer['notes'] as $note)
-                                        <li>{{ $note }}</li>
-                                    @endforeach
-                                </ul>
-                            </div>
-                        @endif
-
-                        @if(!empty($offer['restrictions']))
-                            <div>
-                                <div style="font-size:12px;color:var(--tm);margin-bottom:4px">قيود أو أسباب عدم التوفر</div>
-                                <ul style="margin:0;padding-right:18px;color:#991b1b;font-size:13px">
-                                    @foreach($offer['restrictions'] as $restriction)
-                                        <li>{{ $restriction }}</li>
-                                    @endforeach
-                                </ul>
-                            </div>
-                        @endif
-                    </div>
-
-                    <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;margin-top:auto">
-                        <div style="font-size:13px;color:var(--td)">
-                            @if($isSelected)
-                                <strong style="color:#0f766e">هذا هو العرض المختار حاليًا.</strong>
-                            @elseif(!$isAvailable)
-                                <strong style="color:#991b1b">هذا العرض غير متاح حاليًا.</strong>
-                            @else
-                                قارن هذا العرض مع بقية الخيارات قبل التثبيت.
-                            @endif
-                        </div>
-                        @if($canSelectOffers)
-                            <form method="POST" action="{{ route($portalConfig['offers_select_route'], ['id' => $shipment->id]) }}">
+                    <div class="shipment-form-actions">
+                        @if($canRefreshOffers)
+                            <form method="POST" action="{{ route($portalConfig['offers_fetch_route'], ['id' => $shipment->id]) }}">
                                 @csrf
-                                <input type="hidden" name="option_id" value="{{ $offer['id'] }}">
-                                <button type="submit" class="btn {{ $isSelected ? 'btn-s' : 'btn-pr' }}" {{ (!$isAvailable || $isExpired) ? 'disabled' : '' }}>
-                                    {{ $isSelected ? 'تم التثبيت' : 'اختيار هذا العرض' }}
-                                </button>
+                                <button type="submit" class="btn btn-pr">جلب العروض لهذه الشحنة</button>
                             </form>
                         @endif
+                        <a href="{{ route($portalConfig['create_route'], ['draft' => $shipment->id]) }}" class="btn btn-s">مراجعة بيانات المسودة</a>
                     </div>
-                </div>
-            @endforeach
+                </section>
+            @else
+                <section class="shipment-offers-grid">
+                    @foreach($offers as $offer)
+                        @php
+                            $isSelected = (bool) ($offer['is_selected'] ?? false);
+                            $isAvailable = (bool) ($offer['is_available'] ?? true);
+                            $deliveryLabel = data_get($offer, 'estimated_delivery.label') ?: 'غير متوفر';
+                            $carrierLabel = \App\Support\PortalShipmentLabeler::carrier((string) ($offer['carrier_code'] ?? ''), (string) ($offer['carrier_name'] ?? ''));
+                            $serviceLabel = \App\Support\PortalShipmentLabeler::service((string) ($offer['service_code'] ?? ''), (string) ($offer['service_name'] ?? ''));
+                            $carrierServicePair = $carrierLabel . ' / ' . $serviceLabel;
+                            $notes = (array) ($offer['notes'] ?? []);
+                            $restrictions = (array) ($offer['restrictions'] ?? []);
+                            $breakdown = array_filter([
+                                ['label' => 'السعر المعروض', 'value' => number_format((float) ($offer['retail_rate'] ?? 0), 2) . ' ' . ($offer['currency'] ?? '')],
+                                ['label' => 'الخدمة', 'value' => $serviceLabel],
+                                ['label' => 'الوصول المتوقع', 'value' => $deliveryLabel],
+                                ['label' => 'حالة التوفر', 'value' => $isAvailable ? 'متاح للاختيار' : 'غير متاح حاليًا'],
+                            ], fn ($item) => filled($item['value']));
+                        @endphp
+                        <article class="shipment-offer-card {{ $isSelected ? 'shipment-offer-card--selected' : '' }} {{ !$isAvailable ? 'shipment-offer-card--unavailable' : '' }}">
+                            <div class="shipment-offer-card__head">
+                                <div>
+                                    <div class="shipment-offer-card__title">{{ $carrierLabel }}</div>
+                                    <div class="shipment-offer-card__body">{{ $carrierServicePair }}</div>
+                                </div>
+                                <div class="shipment-offer-card__price">
+                                    <div class="shipment-offer-card__amount">{{ number_format((float) ($offer['retail_rate'] ?? 0), 2) }}</div>
+                                    <div class="shipment-offer-card__currency">السعر المعروض / {{ $offer['currency'] }}</div>
+                                </div>
+                            </div>
+
+                            <div class="shipment-breakdown-grid">
+                                @foreach($breakdown as $item)
+                                    <div class="shipment-breakdown">
+                                        <div class="shipment-breakdown__label">{{ $item['label'] }}</div>
+                                        <div class="shipment-breakdown__value">{{ $item['value'] }}</div>
+                                    </div>
+                                @endforeach
+                            </div>
+
+                            @if(!empty($offer['badges']))
+                                <div class="shipment-flow-chip-row">
+                                    @foreach($offer['badges'] as $badge)
+                                        <span class="shipment-flow-chip">{{ $badge['label'] }}</span>
+                                    @endforeach
+                                </div>
+                            @endif
+
+                            @if($notes)
+                                <div class="shipment-note-card shipment-note-card--accent">
+                                    <div class="shipment-note-card__title">ملاحظات الخدمة</div>
+                                    <div class="shipment-note-card__body">{{ implode(' - ', $notes) }}</div>
+                                </div>
+                            @endif
+
+                            @if($restrictions)
+                                <div class="shipment-note-card shipment-note-card--danger">
+                                    <div class="shipment-note-card__title">قيود أو أسباب عدم التوفر</div>
+                                    <div class="shipment-note-card__body">{{ implode(' - ', $restrictions) }}</div>
+                                </div>
+                            @endif
+
+                            <div class="shipment-action-card {{ $isSelected ? 'shipment-action-card--success' : 'shipment-action-card--soft' }}">
+                                <div class="shipment-action-card__title">{{ $isSelected ? 'هذا هو العرض المختار حاليًا' : ($isAvailable ? 'اختيار آمن وواضح' : 'هذا العرض غير متاح حاليًا') }}</div>
+                                <div class="shipment-action-card__body">{{ $isSelected ? 'يمكنك الآن متابعة إقرار المحتوى والمواد الخطرة لهذه الشحنة.' : ($isAvailable ? 'اختيار هذا العرض يثبت السعر والخدمة قبل الانتقال إلى الإقرار القانوني.' : 'راجع القيود أو أعد جلب العروض للحصول على بدائل قابلة للتنفيذ.') }}</div>
+                                @if($canSelectOffers)
+                                    <div class="shipment-action-card__actions">
+                                        <form method="POST" action="{{ route($portalConfig['offers_select_route'], ['id' => $shipment->id]) }}">
+                                            @csrf
+                                            <input type="hidden" name="option_id" value="{{ $offer['id'] }}">
+                                            <button type="submit" class="btn {{ $isSelected ? 'btn-s' : 'btn-pr' }}" {{ (!$isAvailable || $isExpired) ? 'disabled' : '' }}>{{ $isSelected ? 'تم التثبيت' : 'اختيار هذا العرض' }}</button>
+                                        </form>
+                                    </div>
+                                @endif
+                            </div>
+                        </article>
+                    @endforeach
+                </section>
+            @endif
         </div>
-    </x-card>
-@endif
+
+        <aside class="shipment-flow-rail">
+            <section class="shipment-helper-card shipment-helper-card--soft">
+                <div class="shipment-helper-card__eyebrow">ملخص الشحنة الحالية</div>
+                <div class="shipment-helper-card__title td-mono">{{ $shipment->reference_number ?? $shipment->id }}</div>
+                <div class="shipment-key-value-grid">
+                    <div class="shipment-key-value"><div class="shipment-key-value__label">الحالة</div><div class="shipment-key-value__value">{{ $shipmentStatusLabel }}</div></div>
+                    <div class="shipment-key-value"><div class="shipment-key-value__label">الوجهة</div><div class="shipment-key-value__value">{{ $shipment->recipient_city }} / {{ $shipment->recipient_country }}</div></div>
+                    <div class="shipment-key-value"><div class="shipment-key-value__label">عدد الطرود</div><div class="shipment-key-value__value">{{ $shipment->parcels_count ?: $shipment->parcels()->count() }}</div></div>
+                    <div class="shipment-key-value"><div class="shipment-key-value__label">الصلاحية</div><div class="shipment-key-value__value">{{ $quoteExpiryLabel }}</div></div>
+                </div>
+            </section>
+
+            <section class="shipment-action-grid">
+                @if($selectedOptionId !== '')
+                    <div class="shipment-action-card shipment-action-card--success">
+                        <div class="shipment-action-card__eyebrow">الخطوة التالية</div>
+                        <div class="shipment-action-card__title">إقرار المحتوى والتصريح بالمواد الخطرة</div>
+                        <div class="shipment-action-card__body">بعد تثبيت العرض، راجع الإقرار القانوني وصرّح بوضوح عن أي مواد خطرة قبل متابعة الحجز المالي أو الإصدار.</div>
+                        <div class="shipment-action-card__actions"><a href="{{ route($portalConfig['declaration_route'], ['id' => $shipment->id]) }}" class="btn btn-pr">متابعة الإقرار</a></div>
+                    </div>
+                @else
+                    <div class="shipment-action-card shipment-action-card--warning">
+                        <div class="shipment-action-card__eyebrow">قبل التثبيت</div>
+                        <div class="shipment-action-card__title">راجع السعر والتوقيت والقيود</div>
+                        <div class="shipment-action-card__body">اختيار العرض هنا يحسم المسار اللاحق للشحنة، لذلك لا تنتقل إلى الإقرار إلا بعد التأكد من ملاءمة هذا الخيار.</div>
+                    </div>
+                @endif
+
+                <div class="shipment-helper-card shipment-helper-card--soft">
+                    <div class="shipment-helper-card__eyebrow">نصيحة تشغيلية</div>
+                    <div class="shipment-helper-card__title">قارن قبل أن تثبّت</div>
+                    <div class="shipment-helper-card__body">إذا انتهت صلاحية العروض أو ظهرت قيود جديدة، أعد جلب العروض بدل الاعتماد على عرض قديم أو غير متاح.</div>
+                </div>
+            </section>
+        </aside>
+    </div>
+</div>
 @endsection

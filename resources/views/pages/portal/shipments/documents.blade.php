@@ -21,133 +21,80 @@
     ];
 @endphp
 
-<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:24px">
-    <div>
-        <div style="font-size:12px;color:var(--tm);margin-bottom:8px">
-            <a href="{{ route($portalConfig['dashboard_route']) }}" style="color:inherit;text-decoration:none">{{ $portalConfig['label'] }}</a>
-            <span style="margin:0 6px">/</span>
-            <a href="{{ route($portalConfig['shipments_index_route']) }}" style="color:inherit;text-decoration:none">الشحنات</a>
-            <span style="margin:0 6px">/</span>
-            <span>وثائق الشحنة</span>
-        </div>
-        <h1 style="font-size:28px;font-weight:800;color:var(--tx);margin:0">وثائق الشحنة وملفات الناقل</h1>
-        <p style="color:var(--td);font-size:14px;margin:8px 0 0;max-width:820px">
-            تعرض هذه الصفحة وثائق الشحنة التي أعادها الناقل بعد نجاح الإصدار، مثل ملصق الشحن والفاتورة التجارية وأي مستندات مرافقة أخرى.
-        </p>
-    </div>
-    <div style="display:flex;gap:10px;flex-wrap:wrap">
+<div class="shipment-flow-stack">
+    <x-page-header
+        :eyebrow="($portalConfig['label'] ?? 'البوابة') . ' / الشحنات / الوثائق'"
+        title="وثائق الشحنة وملفات الناقل"
+        subtitle="نزّل المستندات الجاهزة للطباعة أو العرض، وراجع نوع كل ملف وطريقة استرجاعه ضمن نفس مساحة العمل."
+        meta="هذه الصفحة تُكمل مرحلة الإصدار وتجمع الملفات الرسمية المرتبطة بهذه الشحنة."
+    >
+        <a href="{{ route($portalConfig['show_route'], ['id' => $shipment->id]) }}" class="btn btn-s">العودة إلى حالة الشحنة</a>
         <a href="{{ route($portalConfig['offers_route'], ['id' => $shipment->id]) }}" class="btn btn-s">العودة إلى العروض</a>
-        <a href="{{ route($portalConfig['declaration_route'], ['id' => $shipment->id]) }}" class="btn btn-s">العودة إلى الإقرار</a>
-    </div>
-</div>
+    </x-page-header>
 
-<div class="grid-2-1" style="margin-bottom:24px">
-    <x-card title="ملخص الشحنة">
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px">
+    <x-shipment-workflow-stepper
+        current="documents"
+        :create-route="route($portalConfig['create_route'], ['draft' => $shipment->id])"
+        :offers-route="route($portalConfig['offers_route'], ['id' => $shipment->id])"
+        :declaration-route="route($portalConfig['declaration_route'], ['id' => $shipment->id])"
+        :show-route="route($portalConfig['show_route'], ['id' => $shipment->id])"
+        :documents-route="route($portalConfig['documents_route'], ['id' => $shipment->id])"
+        :state-overrides="['create' => 'complete', 'offers' => 'complete', 'declaration' => 'complete', 'show' => 'complete', 'documents' => 'current']"
+    />
+
+    <section class="shipment-flow-hero">
+        <div class="shipment-flow-hero__head">
             <div>
-                <div style="font-size:12px;color:var(--tm);margin-bottom:4px">مرجع الشحنة</div>
-                <div class="td-mono" style="font-weight:700;color:var(--tx)">{{ $shipment->reference_number ?? $shipment->id }}</div>
+                <div class="shipment-flow-hero__eyebrow">مساحة التنزيل والطباعة</div>
+                <h2 class="shipment-flow-hero__title">الوثائق الجاهزة للشحنة</h2>
+                <p class="shipment-flow-hero__body">بعد الإصدار لدى الناقل، تظهر هنا ملفات الشحنة الرسمية مثل الملصق والفاتورة والمستندات المرافقة. استخدم العرض السريع عندما يكون الملف قابلاً للمعاينة، أو نزّله مباشرةً للطباعة والأرشفة.</p>
             </div>
-            <div>
-                <div style="font-size:12px;color:var(--tm);margin-bottom:4px">حالة الشحنة</div>
-                <div style="font-weight:700;color:var(--tx)">{{ $workflowStatusLabels[$shipment->status] ?? $shipment->status }}</div>
-            </div>
-            <div>
-                <div style="font-size:12px;color:var(--tm);margin-bottom:4px">الناقل</div>
-                <div style="font-weight:700;color:var(--tx)">{{ \App\Support\PortalShipmentLabeler::carrier((string) ($shipment->carrierShipment?->carrier_code ?? $selectedOffer?->carrier_code ?? $shipment->carrier_code ?? ''), (string) ($shipment->carrierShipment?->carrier_name ?? $selectedOffer?->carrier_name ?? __('portal_shipments.common.not_specified'))) }}</div>
-            </div>
-            <div>
-                <div style="font-size:12px;color:var(--tm);margin-bottom:4px">رقم التتبع</div>
-                <div class="td-mono" style="font-weight:700;color:var(--tx)">{{ $shipment->carrierShipment?->tracking_number ?? $shipment->tracking_number ?? $shipment->carrier_tracking_number ?? 'غير متاح بعد' }}</div>
-            </div>
+            <span class="shipment-status-pill shipment-status-pill--{{ $hasDocuments ? 'success' : 'warning' }}">{{ $hasDocuments ? 'وثائق متاحة' : 'بانتظار الوثائق' }}</span>
         </div>
-    </x-card>
+        <div class="shipment-flow-summary-grid">
+            <div class="shipment-summary-card shipment-summary-card--soft"><div class="shipment-summary-card__eyebrow">مرجع الشحنة</div><div class="shipment-summary-card__value td-mono">{{ $shipment->reference_number ?? $shipment->id }}</div><div class="shipment-summary-card__meta">{{ $workflowStatusLabels[$shipment->status] ?? $shipment->status }}</div></div>
+            <div class="shipment-summary-card shipment-summary-card--accent"><div class="shipment-summary-card__eyebrow">الناقل المرتبط</div><div class="shipment-summary-card__value">{{ \App\Support\PortalShipmentLabeler::carrier((string) ($shipment->carrierShipment?->carrier_code ?? $selectedOffer?->carrier_code ?? $shipment->carrier_code ?? ''), (string) ($shipment->carrierShipment?->carrier_name ?? $selectedOffer?->carrier_name ?? __('portal_shipments.common.not_specified'))) }}</div><div class="shipment-summary-card__meta">رقم التتبع: <span class="td-mono">{{ $shipment->carrierShipment?->tracking_number ?? $shipment->tracking_number ?? $shipment->carrier_tracking_number ?? 'غير متاح بعد' }}</span></div></div>
+            <div class="shipment-summary-card {{ $hasDocuments ? 'shipment-summary-card--success' : 'shipment-summary-card--warning' }}"><div class="shipment-summary-card__eyebrow">جاهزية الوثائق</div><div class="shipment-summary-card__value">{{ number_format(count($documents)) }}</div><div class="shipment-summary-card__meta">{{ $hasDocuments ? 'مستند/مستندات جاهزة للتنزيل والطباعة.' : 'ستظهر المستندات هنا فور إتاحتها من الناقل.' }}</div></div>
+        </div>
+    </section>
 
-    <x-card title="جاهزية الوثائق">
-        @if($hasDocuments)
-            <div style="padding:16px;border-radius:16px;border:1px solid rgba(4,120,87,.22);background:rgba(4,120,87,.08)">
-                <div style="font-size:18px;font-weight:800;color:#0f766e;margin-bottom:8px">الوثائق جاهزة للتنزيل والطباعة</div>
-                <div style="color:var(--td);font-size:14px">
-                    تم العثور على {{ count($documents) }} مستند/مستندات مرتبطة بهذه الشحنة. يمكنك تنزيل كل ملف على حدة من القائمة أدناه.
-                </div>
-            </div>
-        @else
-            <div style="padding:16px;border-radius:16px;border:1px dashed var(--bd);background:rgba(15,23,42,.02)">
-                <div style="font-size:18px;font-weight:800;color:var(--tx);margin-bottom:8px">لا توجد وثائق متاحة حتى الآن</div>
-                <div style="color:var(--td);font-size:14px">
-                    لم تُسجل أي وثائق قابلة للتنزيل لهذه الشحنة بعد. قد يكون الإصدار تم بدون إرجاع ملصق فوري أو أن الناقل لم يرسل ملفاته بعد.
-                </div>
-            </div>
-        @endif
-    </x-card>
-</div>
-
-<x-card title="قائمة المستندات">
     @if(!$hasDocuments)
-        <div class="empty-state" style="padding:18px;border-radius:18px;border:1px dashed var(--bd);background:rgba(15,23,42,.02)">
-            <div style="font-size:18px;font-weight:800;color:var(--tx);margin-bottom:8px">لا توجد مستندات قابلة للتنزيل</div>
-            <div style="color:var(--td);font-size:14px">
-                عند توفر الملصقات أو الفواتير أو المستندات الجمركية من الناقل، ستظهر هنا بشكل منظم وآمن.
-            </div>
-        </div>
+        <section class="shipment-empty-state">
+            <div class="shipment-empty-state__title">لا توجد مستندات قابلة للتنزيل</div>
+            <div class="shipment-empty-state__body">عند توفر الملصقات أو الفواتير أو المستندات الجمركية من الناقل، ستظهر هنا بشكل منظم وآمن. حتى ذلك الحين يمكنك الرجوع إلى صفحة حالة الشحنة لمتابعة التحديثات الزمنية.</div>
+            <div class="shipment-form-actions"><a href="{{ route($portalConfig['show_route'], ['id' => $shipment->id]) }}" class="btn btn-pr">فتح حالة الشحنة</a></div>
+        </section>
     @else
-        <div style="display:flex;flex-direction:column;gap:14px">
+        <section class="shipment-doc-list">
             @foreach($documents as $document)
-                <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;padding:16px;border:1px solid var(--bd);border-radius:18px;background:white">
-                    <div style="display:flex;flex-direction:column;gap:8px;min-width:0;flex:1 1 360px">
-                        <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-                            <span style="font-size:18px;font-weight:800;color:var(--tx)">{{ $document['document_type_label'] ?? $document['document_type'] }}</span>
-                            <span class="td-mono" style="font-size:12px;color:var(--tm)">{{ $document['format_label'] ?? $document['file_format'] }}</span>
-                            <span class="td-mono" style="font-size:12px;color:var(--tm)">{{ $document['carrier_label'] ?? $document['carrier_code'] }}</span>
+                <article class="shipment-doc-card">
+                    <div class="shipment-doc-card__head">
+                        <div>
+                            <div class="shipment-doc-card__eyebrow">{{ $document['document_type_label'] ?? $document['document_type'] }}</div>
+                            <div class="shipment-doc-card__title">{{ $document['filename'] }}</div>
+                            <div class="shipment-doc-card__meta">{{ $document['carrier_label'] ?? $document['carrier_code'] }} / {{ $document['format_label'] ?? $document['file_format'] }}</div>
                         </div>
-                        <div style="font-size:14px;color:var(--td)">{{ $document['filename'] }}</div>
-                        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
-                            <div>
-                                <div style="font-size:12px;color:var(--tm);margin-bottom:4px">طريقة الاسترجاع</div>
-                                <div style="font-weight:700;color:var(--tx)">{{ $document['retrieval_mode_label'] ?? $document['retrieval_mode'] }}</div>
-                            </div>
-                            <div>
-                                <div style="font-size:12px;color:var(--tm);margin-bottom:4px">الحجم</div>
-                                <div style="font-weight:700;color:var(--tx)">{{ $document['size'] ? number_format(((int) $document['size']) / 1024, 1) . ' كيلوبايت' : 'غير محدد' }}</div>
-                            </div>
-                            <div>
-                                <div style="font-size:12px;color:var(--tm);margin-bottom:4px">تاريخ الإتاحة</div>
-                                <div style="font-weight:700;color:var(--tx)">{{ $document['created_at'] ? \Illuminate\Support\Carbon::parse($document['created_at'])->format('Y-m-d H:i') : '—' }}</div>
-                            </div>
+                    </div>
+                    <div class="shipment-breakdown-grid">
+                        <div class="shipment-breakdown"><div class="shipment-breakdown__label">طريقة الاسترجاع</div><div class="shipment-breakdown__value">{{ $document['retrieval_mode_label'] ?? $document['retrieval_mode'] }}</div></div>
+                        <div class="shipment-breakdown"><div class="shipment-breakdown__label">الحجم</div><div class="shipment-breakdown__value">{{ $document['size'] ? number_format(((int) $document['size']) / 1024, 1) . ' كيلوبايت' : 'غير محدد' }}</div></div>
+                        <div class="shipment-breakdown"><div class="shipment-breakdown__label">تاريخ الإتاحة</div><div class="shipment-breakdown__value">{{ $document['created_at'] ? \Illuminate\Support\Carbon::parse($document['created_at'])->format('Y-m-d H:i') : '—' }}</div></div>
+                    </div>
+                    @if(!empty($document['notes']))
+                        <div class="shipment-note-card shipment-note-card--accent">
+                            <div class="shipment-note-card__title">ملاحظات من الناقل</div>
+                            <div class="shipment-note-card__body">{{ implode(' - ', (array) $document['notes']) }}</div>
                         </div>
-                        @if(!empty($document['notes']))
-                            <div>
-                                <div style="font-size:12px;color:var(--tm);margin-bottom:4px">ملاحظات من الناقل</div>
-                                <ul style="margin:0;padding-right:18px;color:var(--td);font-size:13px">
-                                    @foreach($document['notes'] as $note)
-                                        <li>{{ $note }}</li>
-                                    @endforeach
-                                </ul>
-                            </div>
+                    @endif
+                    <div class="shipment-doc-card__actions">
+                        @if(!empty($document['previewable']) && !empty($document['preview_route']))
+                            <a href="{{ $document['preview_route'] }}" class="btn btn-s" target="_blank" rel="noopener noreferrer" @if(!$document['available']) aria-disabled="true" @endif>عرض المستند</a>
                         @endif
+                        <a href="{{ $document['download_route'] }}" class="btn btn-pr" download="{{ $document['filename'] }}" @if(!$document['available']) aria-disabled="true" @endif>تنزيل المستند</a>
                     </div>
-                    <div style="display:flex;flex-direction:column;gap:10px;min-width:0;flex:0 0 200px">
-                        <div style="font-size:13px;color:var(--td)">
-                            @if($document['available'])
-                                المستند متاح حاليًا للتنزيل.
-                            @else
-                                المستند غير متاح حاليًا.
-                            @endif
-                        </div>
-                        <div style="display:flex;flex-direction:column;gap:8px">
-                            @if(!empty($document['previewable']) && !empty($document['preview_route']))
-                                <a href="{{ $document['preview_route'] }}" class="btn btn-s" target="_blank" rel="noopener noreferrer" @if(!$document['available']) aria-disabled="true" @endif>
-                                    &#1593;&#1585;&#1590; &#1575;&#1604;&#1605;&#1587;&#1578;&#1606;&#1583;
-                                </a>
-                            @endif
-                            <a href="{{ $document['download_route'] }}" class="btn btn-pr" download="{{ $document['filename'] }}" @if(!$document['available']) aria-disabled="true" @endif>
-                                &#1578;&#1606;&#1586;&#1610;&#1604; &#1575;&#1604;&#1605;&#1587;&#1578;&#1606;&#1583;
-                            </a>
-                        </div>
-                    </div>
-                </div>
+                </article>
             @endforeach
-        </div>
+        </section>
     @endif
-</x-card>
+</div>
 @endsection

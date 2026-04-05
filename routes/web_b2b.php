@@ -47,11 +47,15 @@ Route::prefix('b2b')->name('b2b.')->middleware('portal:b2b')->group(function ():
         });
 
         Route::prefix('users')->name('users.')->group(function (): void {
-            Route::get('/', [PortalWorkspaceController::class, 'b2bUsers'])->name('index');
+            Route::get('/', [PortalWorkspaceController::class, 'b2bUsers'])
+                ->middleware('permission:users.read')
+                ->name('index');
         });
 
         Route::prefix('roles')->name('roles.')->group(function (): void {
-            Route::get('/', [PortalWorkspaceController::class, 'b2bRoles'])->name('index');
+            Route::get('/', [PortalWorkspaceController::class, 'b2bRoles'])
+                ->middleware('permission:roles.read')
+                ->name('index');
         });
 
         Route::prefix('invitations')->name('invitations.')->group(function (): void {
@@ -61,7 +65,9 @@ Route::prefix('b2b')->name('b2b.')->middleware('portal:b2b')->group(function ():
         });
 
         Route::prefix('wallet')->name('wallet.')->group(function (): void {
-            Route::get('/', [PortalWorkspaceController::class, 'b2bWallet'])->name('index');
+            Route::get('/', [PortalWorkspaceController::class, 'b2bWallet'])
+                ->middleware(['permission:wallet.balance', 'permission:wallet.ledger'])
+                ->name('index');
         });
 
         Route::prefix('addresses')->name('addresses.')->group(function (): void {
@@ -74,7 +80,9 @@ Route::prefix('b2b')->name('b2b.')->middleware('portal:b2b')->group(function ():
         });
 
         Route::prefix('reports')->name('reports.')->group(function (): void {
-            Route::get('/', [PortalWorkspaceController::class, 'b2bReports'])->name('index');
+            Route::get('/', [PortalWorkspaceController::class, 'b2bReports'])
+                ->middleware(['permission:reports.read', 'permission:analytics.read'])
+                ->name('index');
         });
 
         Route::prefix('developer')->name('developer.')->group(function (): void {
@@ -106,7 +114,9 @@ Route::prefix('b2b')->name('b2b.')->middleware('portal:b2b')->group(function ():
 
         Route::prefix('settings')->name('settings.')->group(function (): void {
             Route::get('/', function () {
-                return view('b2b.dashboard');
+                return view('pages.portal.b2b.settings', [
+                    'account' => auth()->user()?->account,
+                ]);
             })->name('index');
         });
     });

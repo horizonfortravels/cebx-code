@@ -69,6 +69,8 @@ class InternalLandingDashboardService
     public function buildForAdmin(User $user, ?Account $selectedAccount): array
     {
         $canTenantContext = $this->canSelectTenantContext($user);
+        $roleProfile = $this->controlPlane->roleProfile($user);
+        $hasDeprecatedRoleAssignments = $this->controlPlane->hasDeprecatedAssignments($user);
         $shipmentsDashboard = $this->dashboardIfVisible($user, 'shipments', InternalControlPlane::SURFACE_INTERNAL_REPORTS_SHIPMENTS_DASHBOARD);
         $kycDashboard = $this->dashboardIfVisible($user, 'kyc', InternalControlPlane::SURFACE_INTERNAL_REPORTS_KYC_DASHBOARD);
         $billingDashboard = $this->dashboardIfVisible($user, 'billing', InternalControlPlane::SURFACE_INTERNAL_REPORTS_BILLING_DASHBOARD);
@@ -86,10 +88,13 @@ class InternalLandingDashboardService
             'title' => 'لوحة الإدارة',
             'description' => 'نظرة تنفيذية فورية على أحجام الشحن، حالات المتابعة الحرجة، مؤشرات الدعم، وصحة التكاملات من نقطة دخول واحدة للفريق الداخلي.',
             'pills' => array_values(array_filter([
-                $this->pill('مدير المنصة', 'info'),
+                $this->pill((string) ($roleProfile['label'] ?? 'مدير المنصة'), 'info'),
                 $selectedAccount
                     ? $this->pill('الحساب الجاري: '.$selectedAccount->name, 'success')
                     : $this->pill('المنظور الحالي: المنصة كاملة', 'neutral'),
+                $hasDeprecatedRoleAssignments
+                    ? $this->pill('تم إخفاء الدور الداخلي القديم من الواجهة النشطة', 'warning')
+                    : null,
             ])),
             'hero_actions' => array_slice($actions, 0, 3),
             'kpis' => [

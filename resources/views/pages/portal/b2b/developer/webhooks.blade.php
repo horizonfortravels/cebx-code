@@ -2,111 +2,95 @@
 @section('title', 'بوابة الأعمال | الويبهوكات')
 
 @section('content')
-<div style="display:grid;gap:24px">
-    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap">
-        <div>
-            <div style="font-size:12px;color:var(--tm);margin-bottom:8px">
-                <a href="{{ route('b2b.dashboard') }}" style="color:inherit;text-decoration:none">بوابة الأعمال</a>
-                <span style="margin:0 6px">/</span>
-                <a href="{{ route('b2b.developer.index') }}" style="color:inherit;text-decoration:none">واجهة المطور</a>
-                <span style="margin:0 6px">/</span>
-                <span>الويبهوكات</span>
-            </div>
-            <h1 style="font-size:28px;font-weight:800;color:var(--tx);margin:0">مركز الويبهوكات</h1>
-            <p style="color:var(--td);font-size:14px;margin:8px 0 0;max-width:760px">
-                راجع نقاط الاستقبال الثابتة وسجل الأحداث الواردة للحساب. تسجيل الويبهوكات على مستوى المتجر ما زال عبر الواجهة البرمجية فقط،
-                لكن هذه الصفحة تشرح مكان التنفيذ وتعرض ما يصل فعليًا إلى المنصة. هذه الويبهوكات تخص أحداث المنصة ولا تمنح ملكية لتكاملات الناقلين.
-            </p>
-        </div>
-        <a href="{{ route('b2b.developer.integrations') }}" class="btn btn-ghost">العودة إلى التكاملات</a>
+<div class="b2b-workspace-page">
+    <x-page-header
+        eyebrow="بوابة الأعمال / واجهة المطور / الويبهوكات"
+        title="مركز الويبهوكات"
+        subtitle="راجع نقاط الاستقبال الثابتة وسجل الأحداث الواردة للحساب. هذه الصفحة تشرح أين يصل الربط فعلياً إلى المنصة، لا كيف تُدار تكاملات الناقلين."
+        :meta="'الحساب الحالي: ' . ($account->name ?? 'حساب المنظمة')"
+    >
+        <a href="{{ route('b2b.developer.integrations') }}" class="btn btn-s">العودة إلى التكاملات</a>
+    </x-page-header>
+
+    <div class="stats-grid b2b-metrics-grid">
+        @foreach($workspaceStats as $stat)
+            <x-stat-card
+                :iconName="$stat['iconName']"
+                :label="$stat['label']"
+                :value="$stat['value']"
+                :meta="$stat['meta']"
+                :eyebrow="$stat['eyebrow']"
+            />
+        @endforeach
     </div>
 
-    <section style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px">
-        <article class="card">
-            <div class="card-title">نقاط الاستقبال العامة</div>
-            <div style="display:grid;gap:12px">
-                <div style="padding:12px;border:1px solid var(--bd);border-radius:14px">
-                    <div style="font-weight:700;color:var(--tx)">أحداث المتجر</div>
-                    <code style="display:block;margin-top:8px;direction:ltr;text-align:left">{{ $baseWebhookUrl }}/{platform}/{storeId}</code>
-                </div>
-                <div style="padding:12px;border:1px solid var(--bd);border-radius:14px">
-                    <div style="font-weight:700;color:var(--tx)">تتبع DHL</div>
-                    <code style="display:block;margin-top:8px;direction:ltr;text-align:left">{{ $baseWebhookUrl }}/dhl/tracking</code>
-                </div>
-                <div style="padding:12px;border:1px solid var(--bd);border-radius:14px">
-                    <div style="font-weight:700;color:var(--tx)">مسار التتبع الاحتياطي</div>
-                    <code style="display:block;margin-top:8px;direction:ltr;text-align:left">{{ $baseWebhookUrl }}/track/{trackingNumber}</code>
-                </div>
-            </div>
-        </article>
-
-        <article class="card">
-            <div class="card-title">ما الذي ما زال برمجيًا فقط؟</div>
-            <div style="display:grid;gap:12px">
-                <div style="padding:12px;border:1px solid var(--bd);border-radius:14px;background:#f8fafc">
-                    <strong>تسجيل إشعارات متجر جديد</strong>
-                    <p style="margin:8px 0 0;color:var(--td);line-height:1.8">
-                        يتم حاليًا عبر المسار البرمجي:
-                        <code>/api/v1/stores/{storeId}/register-webhooks</code>.
-                        الهدف من هذه الصفحة هو إعطاء فريق المطورين نقطة انطلاق واضحة بدل البحث في الواجهات البرمجية يدويًا.
-                    </p>
-                </div>
-                <div style="padding:12px;border:1px solid var(--bd);border-radius:14px;background:#f8fafc">
-                    <strong>اختبار التوقيع والتحقق</strong>
-                    <p style="margin:8px 0 0;color:var(--td);line-height:1.8">
-                        تفاصيل التوقيع والتجارب المتقدمة تبقى موجّهة نحو الواجهة البرمجية حاليًا، لكن سجل الأحداث الظاهر هنا يساعد على التأكد من أن الربط يعمل فعليًا.
-                    </p>
-                </div>
-            </div>
-        </article>
-    </section>
-
-    <section class="card">
-        <div class="card-title">المتاجر القابلة للربط</div>
-        @if($stores->isEmpty())
-            <div class="empty-state">لا توجد متاجر مرتبطة بهذا الحساب حتى الآن.</div>
-        @else
-            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px">
-                @foreach($stores as $store)
-                    <div style="padding:14px;border:1px solid var(--bd);border-radius:16px;background:#fff">
-                        <div style="font-weight:700;color:var(--tx)">{{ $store->name }}</div>
-                        <div style="font-size:12px;color:var(--td);margin-top:6px">استخدم مسار تسجيل المتجر عبر الواجهة البرمجية لتسجيل ويبهوكات هذا المتجر.</div>
+    <div class="b2b-workspace-grid">
+        <section class="b2b-panel-stack">
+            <x-card title="نقاط الاستقبال العامة">
+                <div class="b2b-endpoint-grid">
+                    <div class="b2b-endpoint-card">
+                        <strong>أحداث المتجر</strong>
+                        <code class="b2b-code-block">{{ $baseWebhookUrl }}/{platform}/{storeId}</code>
                     </div>
-                @endforeach
-            </div>
-        @endif
-    </section>
+                    <div class="b2b-endpoint-card">
+                        <strong>تتبع DHL</strong>
+                        <code class="b2b-code-block">{{ $baseWebhookUrl }}/dhl/tracking</code>
+                    </div>
+                    <div class="b2b-endpoint-card">
+                        <strong>مسار التتبع الاحتياطي</strong>
+                        <code class="b2b-code-block">{{ $baseWebhookUrl }}/track/{trackingNumber}</code>
+                    </div>
+                </div>
+            </x-card>
 
-    <section class="card">
-        <div class="card-title">سجل الأحداث الأخيرة</div>
-        <div style="overflow:auto">
-            <table class="table">
-                <thead>
-                <tr>
-                    <th>المنصة</th>
-                    <th>نوع الحدث</th>
-                    <th>المتجر</th>
-                    <th>الحالة</th>
-                    <th>التوقيت</th>
-                </tr>
-                </thead>
-                <tbody>
-                @forelse($recentWebhookEvents as $event)
-                    <tr>
-                        <td>{{ $event->platform }}</td>
-                        <td>{{ $event->event_type }}</td>
-                        <td>{{ $event->store?->name ?? '—' }}</td>
-                        <td>{{ $event->status }}</td>
-                        <td>{{ optional($event->created_at)->format('Y-m-d H:i') }}</td>
-                    </tr>
-                @empty
-                    <tr>
-                        <td colspan="5" class="empty-state">لا توجد أحداث ويبهوك واردة لهذا الحساب حتى الآن.</td>
-                    </tr>
-                @endforelse
-                </tbody>
-            </table>
-        </div>
-    </section>
+            <x-card title="سجل الأحداث الأخيرة">
+                <div class="b2b-table-shell">
+                    <table class="table">
+                        <thead>
+                        <tr>
+                            <th>المنصة</th>
+                            <th>نوع الحدث</th>
+                            <th>المتجر</th>
+                            <th>الحالة</th>
+                            <th>التوقيت</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        @forelse($recentWebhookEvents as $event)
+                            <tr>
+                                <td>{{ $event->platform }}</td>
+                                <td>{{ $event->event_type }}</td>
+                                <td>{{ $event->store?->name ?? '—' }}</td>
+                                <td><span class="b2b-status-pill b2b-status-pill--{{ $event->status === \App\Models\WebhookEvent::STATUS_FAILED ? 'danger' : 'info' }}">{{ $event->status }}</span></td>
+                                <td>{{ optional($event->created_at)->format('Y-m-d H:i') ?? '—' }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="5" class="empty-state">لا توجد أحداث ويبهوك واردة لهذا الحساب حتى الآن. عند تفعيل الربط ستظهر هنا الحالة الفعلية للرسائل الواردة.</td>
+                            </tr>
+                        @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </x-card>
+        </section>
+
+        <aside class="b2b-rail">
+            <x-card title="المتاجر القابلة للربط">
+                <div class="b2b-mini-stack">
+                    @forelse($stores as $store)
+                        <div class="b2b-mini-stack__item">
+                            <div>
+                                <div class="b2b-mini-stack__title">{{ $store->name }}</div>
+                                <div class="b2b-mini-stack__meta">يمكن ربط هذا المتجر مع المنصة عبر المسار البرمجي المناسب.</div>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="b2b-inline-empty">لا توجد متاجر مرتبطة بهذا الحساب حتى الآن.</div>
+                    @endforelse
+                </div>
+            </x-card>
+        </aside>
+    </div>
 </div>
 @endsection

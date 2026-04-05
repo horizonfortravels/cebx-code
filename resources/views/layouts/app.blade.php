@@ -44,6 +44,7 @@
     $canViewWalletLedger = $currentUser?->hasPermission('wallet.ledger') ?? false;
     $canReadShipments = $currentUser?->hasPermission('shipments.read') ?? false;
     $canReadUsers = $currentUser?->hasPermission('users.read') ?? false;
+    $canReadRoles = $currentUser?->hasPermission('roles.read') ?? false;
     $canReadKyc = $currentUser?->hasPermission('kyc.read') ?? false;
     $canReadCompliance = $currentUser?->hasPermission('compliance.read') ?? false;
     $canReadDangerousGoods = $currentUser?->hasPermission('dg.read') ?? false;
@@ -56,6 +57,27 @@
     $canReadAnalytics = $currentUser?->hasPermission('analytics.read') ?? false;
     $canReadWebhooks = $currentUser?->hasPermission('webhooks.read') ?? false;
     $showDeveloperWorkspace = ! $isInternalUser && $currentPortal === 'b2b' && ($canReadIntegrations || $canReadApiKeys || $canReadWebhooks);
+    $showB2bWalletWorkspace = ! $isInternalUser
+        && $currentPortal === 'b2b'
+        && $canViewWalletBalance
+        && $canViewWalletLedger
+        && Route::has('b2b.wallet.index');
+    $showB2bUsersWorkspace = ! $isInternalUser
+        && $currentPortal === 'b2b'
+        && $canReadUsers
+        && Route::has('b2b.users.index');
+    $showB2bRolesWorkspace = ! $isInternalUser
+        && $currentPortal === 'b2b'
+        && $canReadRoles
+        && Route::has('b2b.roles.index');
+    $showB2bReportsWorkspace = ! $isInternalUser
+        && $currentPortal === 'b2b'
+        && $canReadReports
+        && $canReadAnalytics
+        && Route::has('b2b.reports.index');
+    $showB2bSettingsWorkspace = ! $isInternalUser
+        && $currentPortal === 'b2b'
+        && Route::has('b2b.settings.index');
     $showAdminDashboard = $isInternalUser
         && $canAdminAccess
         && $internalControlPlane?->canSeeSurface($currentUser, \App\Support\Internal\InternalControlPlane::SURFACE_ADMIN_DASHBOARD);
@@ -268,6 +290,55 @@ SVG,
     <path d="M9.5 12h5"></path>
 </svg>
 SVG,
+        'tracking' => <<<'SVG'
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="11" cy="11" r="6.25"></circle>
+    <path d="M15.5 15.5 19.25 19.25"></path>
+    <path d="M11 8.25v3.25l2.25 1.5"></path>
+</svg>
+SVG,
+        'wallet' => <<<'SVG'
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M5 8.5A2.75 2.75 0 0 1 7.75 5.75h8.5A2.75 2.75 0 0 1 19 8.5v7A2.75 2.75 0 0 1 16.25 18.25h-8.5A2.75 2.75 0 0 1 5 15.5z"></path>
+    <path d="M15.75 11.25h3.5v2.5h-3.5a1.25 1.25 0 1 1 0-2.5Z"></path>
+    <path d="M8 8.5h6.75"></path>
+</svg>
+SVG,
+        'addresses' => <<<'SVG'
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 20.25s6-5.52 6-10a6 6 0 1 0-12 0c0 4.48 6 10 6 10Z"></path>
+    <circle cx="12" cy="10.25" r="2.25"></circle>
+</svg>
+SVG,
+        'support' => <<<'SVG'
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 19.25a7.25 7.25 0 1 0-7.25-7.25"></path>
+    <path d="M4.75 17v-4.75a2 2 0 0 1 2-2h.5v8.5h-.5a2 2 0 0 1-2-2Z"></path>
+    <path d="M16.75 10.25h.5a2 2 0 0 1 2 2V17a2 2 0 0 1-2 2h-.5v-8.75Z"></path>
+    <path d="M12 19.25v1.5"></path>
+</svg>
+SVG,
+        'settings' => <<<'SVG'
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="3.25"></circle>
+    <path d="M18.2 15.2 20 16.25l-1.5 2.6-2.05-.55a7.5 7.5 0 0 1-1.55.9l-.3 2.1h-3l-.3-2.1a7.5 7.5 0 0 1-1.55-.9l-2.05.55-1.5-2.6 1.8-1.05a7.7 7.7 0 0 1 0-1.8l-1.8-1.05 1.5-2.6 2.05.55c.48-.37 1-.67 1.55-.9l.3-2.1h3l.3 2.1c.55.23 1.07.53 1.55.9l2.05-.55 1.5 2.6-1.8 1.05c.12.59.12 1.21 0 1.8Z"></path>
+</svg>
+SVG,
+        'orders' => <<<'SVG'
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M7 5.75h10A1.75 1.75 0 0 1 18.75 7.5v11A1.75 1.75 0 0 1 17 20.25H7A1.75 1.75 0 0 1 5.25 18.5v-11A1.75 1.75 0 0 1 7 5.75Z"></path>
+    <path d="M9 4.75h6"></path>
+    <path d="M8.75 10.25h6.5"></path>
+    <path d="M8.75 14h6.5"></path>
+</svg>
+SVG,
+        'developer' => <<<'SVG'
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m8.25 8.5-4 3.5 4 3.5"></path>
+    <path d="m15.75 8.5 4 3.5-4 3.5"></path>
+    <path d="m13.25 5.75-2.5 12.5"></path>
+</svg>
+SVG,
     ];
 
     $pushMenuGroup = static function (array &$menu, string $label, array $items): void {
@@ -378,48 +449,86 @@ SVG,
 
         $pushMenuGroup($menu, 'إدارة المنصة', $platformManagementItems);
     } elseif ($currentPortal === 'b2c') {
-        $menu = [
-            ['divider' => 'بوابة الأفراد'],
-            ['active' => ['b2c.dashboard'], 'route' => 'b2c.dashboard', 'icon' => 'HOME', 'label' => 'الرئيسية'],
-            ['active' => ['b2c.shipments.*'], 'route' => 'b2c.shipments.index', 'icon' => 'SH', 'label' => 'الشحنات'],
-            ['active' => ['b2c.tracking.*'], 'route' => 'b2c.tracking.index', 'icon' => 'TR', 'label' => 'التتبع'],
-            ['active' => ['b2c.wallet.*'], 'route' => 'b2c.wallet.index', 'icon' => 'WL', 'label' => 'المحفظة'],
-            ['active' => ['b2c.addresses.*'], 'route' => 'b2c.addresses.index', 'icon' => 'ADR', 'label' => 'العناوين'],
-            ['active' => ['b2c.support.*'], 'route' => 'b2c.support.index', 'icon' => 'SUP', 'label' => 'الدعم'],
-            ['active' => ['b2c.settings.*'], 'route' => 'b2c.settings.index', 'icon' => 'SET', 'label' => 'الإعدادات'],
+        $workspaceItems = [
+            ['active' => ['b2c.dashboard'], 'route' => 'b2c.dashboard', 'icon' => 'dashboard', 'label' => 'الرئيسية'],
+            ['active' => ['b2c.shipments.*'], 'route' => 'b2c.shipments.index', 'icon' => 'shipments', 'label' => 'الشحنات'],
+            ['active' => ['b2c.tracking.*'], 'route' => 'b2c.tracking.index', 'icon' => 'tracking', 'label' => 'التتبع'],
         ];
+        $serviceItems = [
+            ['active' => ['b2c.wallet.*'], 'route' => 'b2c.wallet.index', 'icon' => 'wallet', 'label' => 'المحفظة'],
+            ['active' => ['b2c.addresses.*'], 'route' => 'b2c.addresses.index', 'icon' => 'addresses', 'label' => 'العناوين'],
+            ['active' => ['b2c.support.*'], 'route' => 'b2c.support.index', 'icon' => 'support', 'label' => 'الدعم'],
+            ['active' => ['b2c.settings.*'], 'route' => 'b2c.settings.index', 'icon' => 'settings', 'label' => 'الإعدادات'],
+        ];
+
+        $pushMenuGroup($menu, 'بوابة الأفراد', $workspaceItems);
+        $pushMenuGroup($menu, 'الخدمات والمساندة', $serviceItems);
     } else {
-        $menu = [
-            ['divider' => 'بوابة الأعمال'],
-            ['active' => ['b2b.dashboard'], 'route' => 'b2b.dashboard', 'icon' => 'HOME', 'label' => 'الرئيسية'],
-            ['active' => ['b2b.shipments.*'], 'route' => 'b2b.shipments.index', 'icon' => 'SH', 'label' => 'الشحنات'],
-            ['active' => ['b2b.addresses.*'], 'route' => 'b2b.addresses.index', 'icon' => 'ADR', 'label' => 'العناوين'],
-            ['active' => ['b2b.orders.*'], 'route' => 'b2b.orders.index', 'icon' => 'OR', 'label' => 'الطلبات'],
-            ['active' => ['b2b.wallet.*'], 'route' => 'b2b.wallet.index', 'icon' => 'WL', 'label' => 'المحفظة'],
-            ['active' => ['b2b.reports.*'], 'route' => 'b2b.reports.index', 'icon' => 'RPT', 'label' => 'التقارير'],
-            ['active' => ['b2b.users.*'], 'route' => 'b2b.users.index', 'icon' => 'USR', 'label' => 'المستخدمون'],
-            ['active' => ['b2b.roles.*'], 'route' => 'b2b.roles.index', 'icon' => 'ROL', 'label' => 'الأدوار'],
+        $operationsItems = [
+            ['active' => ['b2b.dashboard'], 'route' => 'b2b.dashboard', 'icon' => 'dashboard', 'label' => 'الرئيسية'],
+            ['active' => ['b2b.shipments.*'], 'route' => 'b2b.shipments.index', 'icon' => 'shipments', 'label' => 'الشحنات'],
+            ['active' => ['b2b.orders.*'], 'route' => 'b2b.orders.index', 'icon' => 'orders', 'label' => 'الطلبات'],
         ];
+        if ($showB2bReportsWorkspace) {
+            $operationsItems[] = ['active' => ['b2b.reports.*'], 'route' => 'b2b.reports.index', 'icon' => 'reports', 'label' => 'التقارير'];
+        }
+
+        $accountItems = [
+            ['active' => ['b2b.addresses.*'], 'route' => 'b2b.addresses.index', 'icon' => 'addresses', 'label' => 'العناوين'],
+        ];
+        if ($showB2bWalletWorkspace) {
+            $accountItems[] = ['active' => ['b2b.wallet.*'], 'route' => 'b2b.wallet.index', 'icon' => 'wallet', 'label' => 'المحفظة'];
+        }
+        if ($showB2bUsersWorkspace) {
+            $accountItems[] = ['active' => ['b2b.users.*'], 'route' => 'b2b.users.index', 'icon' => 'users', 'label' => 'المستخدمون'];
+        }
+        if ($showB2bRolesWorkspace) {
+            $accountItems[] = ['active' => ['b2b.roles.*'], 'route' => 'b2b.roles.index', 'icon' => 'roles', 'label' => 'الأدوار'];
+        }
+
+        $pushMenuGroup($menu, 'بوابة الأعمال', $operationsItems);
+        $pushMenuGroup($menu, 'الحساب والفريق', $accountItems);
 
         if ($showDeveloperWorkspace) {
-            $menu[] = ['divider' => 'أدوات المطور'];
+            $developerItems = [];
             if ($canReadIntegrations) {
-                $menu[] = ['active' => ['b2b.developer.index'], 'route' => 'b2b.developer.index', 'icon' => 'DEV', 'label' => 'واجهة المطور'];
-                $menu[] = ['active' => ['b2b.developer.integrations'], 'route' => 'b2b.developer.integrations', 'icon' => 'INT', 'label' => 'التكاملات'];
+                $developerItems[] = ['active' => ['b2b.developer.index'], 'route' => 'b2b.developer.index', 'icon' => 'developer', 'label' => 'واجهة المطور'];
+                $developerItems[] = ['active' => ['b2b.developer.integrations'], 'route' => 'b2b.developer.integrations', 'icon' => 'integrations', 'label' => 'التكاملات'];
             }
             if ($canReadApiKeys) {
-                $menu[] = ['active' => ['b2b.developer.api-keys'], 'route' => 'b2b.developer.api-keys', 'icon' => 'KEY', 'label' => 'مفاتيح التكامل'];
+                $developerItems[] = ['active' => ['b2b.developer.api-keys'], 'route' => 'b2b.developer.api-keys', 'icon' => 'api-key', 'label' => 'مفاتيح API'];
             }
             if ($canReadWebhooks) {
-                $menu[] = ['active' => ['b2b.developer.webhooks'], 'route' => 'b2b.developer.webhooks', 'icon' => 'WH', 'label' => 'الويبهوكات'];
+                $developerItems[] = ['active' => ['b2b.developer.webhooks'], 'route' => 'b2b.developer.webhooks', 'icon' => 'webhooks', 'label' => 'الويبهوكات'];
             }
+
+            $pushMenuGroup($menu, 'أدوات المطور', $developerItems);
         }
 
-        if (Route::has('b2b.settings.index')) {
-            $menu[] = ['divider' => 'إعدادات الحساب'];
-            $menu[] = ['active' => ['b2b.settings.*'], 'route' => 'b2b.settings.index', 'icon' => 'SET', 'label' => 'الإعدادات'];
+        if ($showB2bSettingsWorkspace) {
+            $pushMenuGroup($menu, 'إعدادات الحساب', [
+                ['active' => ['b2b.settings.*'], 'route' => 'b2b.settings.index', 'icon' => 'settings', 'label' => 'الإعدادات'],
+            ]);
         }
     }
+
+    $externalPortalMeta = match ($currentPortal) {
+        'b2c' => [
+            'label' => 'بوابة الأفراد',
+            'eyebrow' => 'مساحة شحن شخصية',
+            'title' => 'إدارة الشحن الفردي بخطوات واضحة',
+            'description' => 'واجهة عربية عملية لمتابعة الشحنات والمحفظة والعناوين ضمن تجربة أخف وأكثر تركيزًا على المهام اليومية.',
+            'badge' => 'حساب فردي',
+        ],
+        'b2b' => [
+            'label' => 'بوابة الأعمال',
+            'eyebrow' => 'مساحة المنظمة',
+            'title' => 'مركز عمل تشغيلي للفريق والحساب',
+            'description' => 'تجربة موحدة لفرق المنظمة تجمع الشحنات والطلبات والماليات وأدوات التكامل ضمن مساحة عمل واحدة.',
+            'badge' => 'حساب منظمة',
+        ],
+        default => null,
+    };
 
     $topbarSubtitle = match (true) {
         $isInternalUser && $selectedAccount !== null => 'الدور الداخلي: ' . $internalTopbarRole . ' • الحساب المحدد: ' . $selectedAccount->name,
@@ -429,13 +538,36 @@ SVG,
         default => 'بوابة الأعمال لحسابات المنظمات',
     };
 @endphp
-<div class="app-layout">
-    <aside class="sidebar">
-        <div class="sidebar-header">
+<div class="app-layout {{ $isInternalUser ? 'app-layout--internal' : 'app-layout--external app-layout--' . $currentPortal }}">
+    <aside class="sidebar {{ $isInternalUser ? 'sidebar--internal' : 'sidebar--external' }}">
+        <div class="sidebar-header {{ $isInternalUser ? '' : 'external-sidebar-header' }}">
             <img src="{{ asset('images/logo-sidebar.png') }}" alt="CBEX" class="sidebar-logo-img">
-            <span class="sidebar-title">بوابة CBEX</span>
+            <div class="sidebar-brand-copy">
+                @if($isInternalUser)
+                    <span class="sidebar-title">بوابة CBEX</span>
+                @else
+                    <span class="sidebar-kicker">الشحن الذكي الموحد</span>
+                    <span class="sidebar-title">CBEX</span>
+                    <span class="sidebar-subtitle">{{ $externalPortalMeta['label'] ?? 'البوابة الخارجية' }}</span>
+                @endif
+            </div>
+            @unless($isInternalUser)
+                <span class="external-sidebar-badge">{{ $externalPortalMeta['badge'] ?? 'حساب خارجي' }}</span>
+            @endunless
         </div>
-        <nav class="sidebar-nav">
+        @unless($isInternalUser)
+            <div class="external-sidebar-intro">
+                <div class="external-sidebar-intro__eyebrow">{{ $externalPortalMeta['eyebrow'] ?? 'مساحة خارجية' }}</div>
+                <div class="external-sidebar-intro__title">{{ $externalPortalMeta['title'] ?? 'واجهة موحدة لإدارة الحساب' }}</div>
+                <div class="external-sidebar-intro__body">{{ $externalPortalMeta['description'] ?? 'إدارة الشحنات والخدمات الأساسية ضمن مساحة عربية واضحة.' }}</div>
+                @if($currentPortal === 'b2b' && $currentUser?->account?->name)
+                    <div class="external-sidebar-account">{{ $currentUser->account->name }}</div>
+                @elseif($currentPortal === 'b2c')
+                    <div class="external-sidebar-account">الحساب الفردي الحالي</div>
+                @endif
+            </div>
+        @endunless
+        <nav class="sidebar-nav {{ $isInternalUser ? '' : 'sidebar-nav--external' }}">
             @foreach($menu as $item)
                 @if(isset($item['group_label']))
                     <div class="sidebar-group-label">{{ $item['group_label'] }}</div>
@@ -486,34 +618,51 @@ SVG,
                 @endif
             @endforeach
         </nav>
-        <div class="sidebar-footer">
+        <div class="sidebar-footer {{ $isInternalUser ? '' : 'sidebar-footer--external' }}">
+            @unless($isInternalUser)
+                <div class="external-sidebar-footnote">تجربة موحدة لبروتوكولات الشحن والحساب مع فصل واضح بين بوابة الأفراد وبوابة الأعمال.</div>
+            @endunless
             <form action="{{ route('logout') }}" method="POST">
                 @csrf
-                <button type="submit"><span>تسجيل الخروج</span></button>
+                <button type="submit" class="{{ $isInternalUser ? '' : 'external-logout-btn' }}"><span>تسجيل الخروج</span></button>
             </form>
         </div>
     </aside>
 
-    <div class="main-area">
-        <header class="topbar">
-            <div class="topbar-inner">
-                <div>
-                    <div style="color: var(--tm); font-size: 11px;">مرحبًا، {{ $currentUser->name ?? 'مستخدم' }}</div>
-                    <div style="font-size:12px;color:var(--td);margin-top:2px">{{ $topbarSubtitle }}</div>
-                </div>
-                <div class="topbar-user">
+    <div class="main-area {{ $isInternalUser ? '' : 'main-area--external' }}">
+        <header class="topbar {{ $isInternalUser ? '' : 'topbar--external' }}">
+            <div class="topbar-inner {{ $isInternalUser ? '' : 'topbar-inner--external' }}">
+                @if($isInternalUser)
+                    <div>
+                        <div style="color: var(--tm); font-size: 11px;">مرحبًا، {{ $currentUser->name ?? 'مستخدم' }}</div>
+                        <div style="font-size:12px;color:var(--td);margin-top:2px">{{ $topbarSubtitle }}</div>
+                    </div>
+                @else
+                    <div class="external-topbar-copy">
+                        <div class="external-topbar-kicker">{{ $externalPortalMeta['eyebrow'] ?? 'بوابة خارجية' }}</div>
+                        <div class="external-topbar-title-row">
+                            <div class="external-topbar-title">مرحبًا، {{ $currentUser->name ?? 'مستخدم' }}</div>
+                            <span class="external-context-pill">{{ $externalPortalMeta['label'] ?? 'CBEX' }}</span>
+                            @if($currentPortal === 'b2b' && $currentUser?->account?->name)
+                                <span class="external-context-pill external-context-pill--muted">{{ $currentUser->account->name }}</span>
+                            @endif
+                        </div>
+                        <p class="external-topbar-subtitle">{{ $topbarSubtitle }}</p>
+                    </div>
+                @endif
+                <div class="topbar-user {{ $isInternalUser ? '' : 'topbar-user--external' }}">
                     @if($isInternalUser && $showTenantContext)
                         <a class="topbar-bell" href="{{ route($showAdminDashboard ? 'admin.tenant-context' : 'internal.tenant-context') }}" title="اختيار الحساب" aria-label="اختيار الحساب">
                             <span class="icon icon-svg" aria-hidden="true">{!! $sidebarIconMap['context-switch'] !!}</span>
                         </a>
                     @endif
-                    <div class="topbar-avatar">{{ mb_substr($currentUser->name ?? 'م', 0, 1) }}</div>
+                    <div class="topbar-avatar {{ $isInternalUser ? '' : 'topbar-avatar--external' }}">{{ mb_substr($currentUser->name ?? 'م', 0, 1) }}</div>
                 </div>
             </div>
         </header>
 
         <main class="content">
-            <div class="content-shell">
+            <div class="content-shell {{ $isInternalUser ? '' : 'content-shell--external' }}">
                 @if(session('success'))
                     <x-toast type="success" :message="session('success')" />
                 @endif

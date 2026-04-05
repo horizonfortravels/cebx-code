@@ -15,10 +15,11 @@ use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules\Password as PasswordRule;
 use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\Response;
 
 class AuthWebController extends Controller
 {
-    public function showLogin(): RedirectResponse|View
+    public function showLogin(): RedirectResponse|View|Response
     {
         return $this->portalSelector();
     }
@@ -31,11 +32,14 @@ class AuthWebController extends Controller
         ]);
 
         if (! Auth::attempt($credentials, $request->boolean('remember'))) {
-            return back()->withErrors(['email' => 'بيانات الدخول غير صحيحة. تأكد من البريد وكلمة المرور ثم حاول مرة أخرى.'])->onlyInput('email');
+            return back()->withErrors([
+                'email' => 'بيانات الدخول غير صحيحة. تأكد من البريد وكلمة المرور ثم حاول مرة أخرى.',
+            ])->onlyInput('email');
         }
 
         /** @var User $user */
         $user = Auth::user();
+
         if ($inactiveResponse = $this->rejectInactiveUser($request, $user)) {
             return $inactiveResponse;
         }
@@ -43,26 +47,22 @@ class AuthWebController extends Controller
         $request->session()->regenerate();
         $user->update(['last_login_at' => now()]);
 
-        return $this->postLoginRedirect($user);
+        return $this->postLoginRedirect($user, $request);
     }
 
-    public function portalSelector(): RedirectResponse|View
+    public function portalSelector(): RedirectResponse|View|Response
     {
         if (Auth::check()) {
             /** @var User $user */
             $user = Auth::user();
 
-            if ($this->isInternal($user)) {
-                return redirect()->route($this->internalHomeRouteName($user));
-            }
-
-            return redirect()->route('dashboard');
+            return $this->redirectAuthenticatedUserHome($user);
         }
 
         return view('pages.auth.portal-selector');
     }
 
-    public function showB2bLogin(): RedirectResponse|View
+    public function showB2bLogin(): RedirectResponse|View|Response
     {
         if (Auth::check()) {
             /** @var User $user */
@@ -72,9 +72,11 @@ class AuthWebController extends Controller
                 return redirect()->route($this->internalHomeRouteName($user));
             }
 
-            if ($user->account && $user->account->type === 'organization') {
+            if ((string) optional($user->account)->type === 'organization') {
                 return redirect()->route('b2b.dashboard');
             }
+
+            return $this->wrongPortalResponse($user, 'b2b');
         }
 
         return view('pages.auth.login-b2b');
@@ -88,16 +90,19 @@ class AuthWebController extends Controller
         ]);
 
         if (! Auth::attempt($credentials, $request->boolean('remember'))) {
-            return back()->withErrors(['email' => 'بيانات الدخول غير صحيحة. تأكد من البريد وكلمة المرور ثم حاول مرة أخرى.'])->onlyInput('email');
+            return back()->withErrors([
+                'email' => 'بيانات الدخول غير صحيحة. تأكد من البريد وكلمة المرور ثم حاول مرة أخرى.',
+            ])->onlyInput('email');
         }
 
         /** @var User $user */
         $user = Auth::user();
+
         if ($inactiveResponse = $this->rejectInactiveUser($request, $user)) {
             return $inactiveResponse;
         }
 
-        if (! $user->account || $user->account->type !== 'organization') {
+        if ((string) optional($user->account)->type !== 'organization') {
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
@@ -113,7 +118,7 @@ class AuthWebController extends Controller
         return redirect()->route('b2b.dashboard');
     }
 
-    public function showB2cLogin(): RedirectResponse|View
+    public function showB2cLogin(): RedirectResponse|View|Response
     {
         if (Auth::check()) {
             /** @var User $user */
@@ -123,9 +128,11 @@ class AuthWebController extends Controller
                 return redirect()->route($this->internalHomeRouteName($user));
             }
 
-            if ($user->account && $user->account->type === 'individual') {
+            if ((string) optional($user->account)->type === 'individual') {
                 return redirect()->route('b2c.dashboard');
             }
+
+            return $this->wrongPortalResponse($user, 'b2c');
         }
 
         return view('pages.auth.login-b2c');
@@ -139,16 +146,19 @@ class AuthWebController extends Controller
         ]);
 
         if (! Auth::attempt($credentials, $request->boolean('remember'))) {
-            return back()->withErrors(['email' => 'بيانات الدخول غير صحيحة. تأكد من البريد وكلمة المرور ثم حاول مرة أخرى.'])->onlyInput('email');
+            return back()->withErrors([
+                'email' => 'بيانات الدخول غير صحيحة. تأكد من البريد وكلمة المرور ثم حاول مرة أخرى.',
+            ])->onlyInput('email');
         }
 
         /** @var User $user */
         $user = Auth::user();
+
         if ($inactiveResponse = $this->rejectInactiveUser($request, $user)) {
             return $inactiveResponse;
         }
 
-        if (! $user->account || $user->account->type !== 'individual') {
+        if ((string) optional($user->account)->type !== 'individual') {
             Auth::logout();
             $request->session()->invalidate();
             $request->session()->regenerateToken();
@@ -164,7 +174,7 @@ class AuthWebController extends Controller
         return redirect()->route('b2c.dashboard');
     }
 
-    public function showAdminLogin(): RedirectResponse|View
+    public function showAdminLogin(): RedirectResponse|View|Response
     {
         if (Auth::check()) {
             /** @var User $user */
@@ -174,7 +184,7 @@ class AuthWebController extends Controller
                 return redirect()->route($this->internalHomeRouteName($user));
             }
 
-            return redirect()->route('dashboard');
+            return $this->wrongPortalResponse($user, 'admin');
         }
 
         return view('pages.auth.login-admin');
@@ -188,11 +198,14 @@ class AuthWebController extends Controller
         ]);
 
         if (! Auth::attempt($credentials, $request->boolean('remember'))) {
-            return back()->withErrors(['email' => 'بيانات الدخول غير صحيحة. تأكد من البريد وكلمة المرور ثم حاول مرة أخرى.'])->onlyInput('email');
+            return back()->withErrors([
+                'email' => 'بيانات الدخول غير صحيحة. تأكد من البريد وكلمة المرور ثم حاول مرة أخرى.',
+            ])->onlyInput('email');
         }
 
         /** @var User $user */
         $user = Auth::user();
+
         if ($inactiveResponse = $this->rejectInactiveUser($request, $user)) {
             return $inactiveResponse;
         }
@@ -210,7 +223,7 @@ class AuthWebController extends Controller
         $request->session()->regenerate();
         $user->update(['last_login_at' => now()]);
 
-        return $this->postLoginRedirect($user);
+        return $this->postLoginRedirect($user, $request);
     }
 
     public function logout(Request $request): RedirectResponse
@@ -222,8 +235,8 @@ class AuthWebController extends Controller
         if ($user) {
             $loginUrl = match (true) {
                 $this->isInternal($user) => url('/admin/login'),
-                optional($user->account)->type === 'individual' => url('/b2c/login'),
-                optional($user->account)->type === 'organization' => url('/b2b/login'),
+                (string) optional($user->account)->type === 'individual' => url('/b2c/login'),
+                (string) optional($user->account)->type === 'organization' => url('/b2b/login'),
                 default => url('/login'),
             };
         }
@@ -282,13 +295,20 @@ class AuthWebController extends Controller
             ->with('success', 'تمت إعادة تعيين كلمة المرور بنجاح. يمكنك تسجيل الدخول الآن.');
     }
 
-    private function postLoginRedirect(User $user): RedirectResponse
+    private function postLoginRedirect(User $user, Request $request): RedirectResponse
     {
         if ($this->isInternal($user)) {
             return redirect()->route($this->internalHomeRouteName($user));
         }
 
-        return redirect()->intended(url('/'));
+        $fallbackRoute = $this->externalHomeRouteName($user);
+        $intended = (string) $request->session()->get('url.intended', '');
+
+        if ($this->isAllowedIntendedUrl($user, $intended)) {
+            return redirect()->to($intended);
+        }
+
+        return redirect()->route($fallbackRoute);
     }
 
     private function passwordResetLoginRouteName(?User $user): string
@@ -313,6 +333,97 @@ class AuthWebController extends Controller
         return app(InternalControlPlane::class)->landingRouteName($user);
     }
 
+    private function externalHomeRouteName(User $user): string
+    {
+        return match ((string) optional($user->account)->type) {
+            'organization' => 'b2b.dashboard',
+            'individual' => 'b2c.dashboard',
+            default => 'login',
+        };
+    }
+
+    private function externalLoginRouteName(User $user): string
+    {
+        return match ((string) optional($user->account)->type) {
+            'organization' => 'b2b.login',
+            'individual' => 'b2c.login',
+            default => 'login',
+        };
+    }
+
+    private function redirectAuthenticatedUserHome(User $user): RedirectResponse
+    {
+        if ($this->isInternal($user)) {
+            return redirect()->route($this->internalHomeRouteName($user));
+        }
+
+        return redirect()->route($this->externalHomeRouteName($user));
+    }
+
+    private function isAllowedIntendedUrl(User $user, string $intended): bool
+    {
+        if ($intended === '') {
+            return false;
+        }
+
+        $path = parse_url($intended, PHP_URL_PATH);
+
+        if (! is_string($path) || $path === '') {
+            return false;
+        }
+
+        return match ((string) optional($user->account)->type) {
+            'individual' => str_starts_with($path, '/b2c/') || $path === '/notifications',
+            'organization' => str_starts_with($path, '/b2b/') || $path === '/notifications',
+            default => false,
+        };
+    }
+
+    private function wrongPortalResponse(User $user, string $targetPortal): Response
+    {
+        if ($targetPortal === 'admin') {
+            return response()->view('pages.browser-guidance', [
+                'statusCode' => 403,
+                'eyebrow' => 'بوابة داخلية فقط',
+                'title' => 'البوابة الداخلية',
+                'heading' => 'هذه الصفحة مخصصة لفريق التشغيل الداخلي في المنصة',
+                'message' => 'تم تسجيل دخولك بحساب خارجي، لذلك لن تتمكن من متابعة العمل من بوابة الإدارة الداخلية. استخدم بوابتك الحالية بدلًا من ذلك.',
+                'primaryActionLabel' => (string) optional($user->account)->type === 'organization'
+                    ? 'العودة إلى بوابة الأعمال'
+                    : 'العودة إلى بوابة الأفراد',
+                'primaryActionUrl' => route($this->externalHomeRouteName($user)),
+                'secondaryActionLabel' => 'العودة إلى اختيار البوابة',
+                'secondaryActionUrl' => route('login'),
+            ], 403);
+        }
+
+        if ($targetPortal === 'b2b') {
+            return response()->view('pages.browser-guidance', [
+                'statusCode' => 403,
+                'eyebrow' => 'البوابة غير المناسبة',
+                'title' => 'بوابة الأعمال',
+                'heading' => 'هذه المنطقة مخصصة لبوابة الأعمال الخاصة بحسابات المنظمات',
+                'message' => 'حسابك الحالي فردي، لذلك ستجد شحناتك ومحفظتك والمتابعة الخاصة بك داخل بوابة الأفراد وليس داخل بوابة الأعمال.',
+                'primaryActionLabel' => 'العودة إلى بوابة الأفراد',
+                'primaryActionUrl' => route('b2c.dashboard'),
+                'secondaryActionLabel' => 'فتح صفحة دخول الأفراد',
+                'secondaryActionUrl' => route('b2c.login'),
+            ], 403);
+        }
+
+        return response()->view('pages.browser-guidance', [
+            'statusCode' => 403,
+            'eyebrow' => 'البوابة غير المناسبة',
+            'title' => 'بوابة الأفراد',
+            'heading' => 'هذه المنطقة مخصصة لبوابة الأفراد الخاصة بالحسابات الفردية',
+            'message' => 'حسابك الحالي تابع لمنظمة، لذلك ستجد الشحنات والتقارير وأدوات الفريق داخل بوابة الأعمال وليس داخل بوابة الأفراد.',
+            'primaryActionLabel' => 'العودة إلى بوابة الأعمال',
+            'primaryActionUrl' => route('b2b.dashboard'),
+            'secondaryActionLabel' => 'فتح صفحة دخول الأعمال',
+            'secondaryActionUrl' => route('b2b.login'),
+        ], 403);
+    }
+
     private function isInternal(User $user): bool
     {
         return ($user->user_type ?? null) === 'internal';
@@ -321,6 +432,7 @@ class AuthWebController extends Controller
     private function rejectInactiveUser(Request $request, User $user): ?RedirectResponse
     {
         $status = (string) ($user->status ?? '');
+
         if (! in_array($status, ['suspended', 'disabled'], true)) {
             return null;
         }
@@ -342,7 +454,7 @@ class AuthWebController extends Controller
             return 'هذا الحساب داخلي. استخدم البوابة الداخلية للمنصة بدل بوابات العملاء.';
         }
 
-        $actualType = optional($user->account)->type;
+        $actualType = (string) optional($user->account)->type;
 
         if ($requiredType === 'organization') {
             return $actualType === 'individual'

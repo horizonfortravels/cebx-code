@@ -26,7 +26,8 @@ class WalletWorkspaceWebTest extends TestCase
         $this->actingAs($user, 'web')
             ->get('/b2c/wallet')
             ->assertOk()
-            ->assertSee('1,000.00')
+            ->assertSee('980.00')
+            ->assertSee('25.00')
             ->assertSee('USD');
 
         $this->actingAs($user, 'web')
@@ -54,7 +55,7 @@ class WalletWorkspaceWebTest extends TestCase
     public function test_wallet_workspace_handles_missing_wallet_without_crashing(): void
     {
         $account = Account::factory()->organization()->create([
-            'name' => 'Wallet Missing ' . Str::upper(Str::random(4)),
+            'name' => 'Wallet Missing '.Str::upper(Str::random(4)),
             'status' => 'active',
         ]);
 
@@ -88,7 +89,7 @@ class WalletWorkspaceWebTest extends TestCase
 
         $this->actingAs($user, 'web')
             ->followingRedirects()
-            ->post($routePrefix . $shipment->id . '/wallet-preflight')
+            ->post($routePrefix.$shipment->id.'/wallet-preflight')
             ->assertOk()
             ->assertSee('data-testid="carrier-issue-button"', false);
 

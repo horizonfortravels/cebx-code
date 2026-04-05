@@ -72,9 +72,9 @@ async function openPortalLogin(page, portal) {
 
   if ((await emailField.count()) === 0 || (await passwordField.count()) === 0) {
     const selector = {
-      b2c: 'a.portal-door.b2c',
-      b2b: 'a.portal-door.b2b',
-      admin: 'a.portal-door.admin',
+      b2c: 'a.entry-card.entry-card--b2c',
+      b2b: 'a.entry-card.entry-card--b2b',
+      admin: 'a.entry-card.entry-card--admin',
     }[portal];
 
     await expect(page.locator(selector)).toBeVisible();
@@ -116,7 +116,7 @@ test('external individual user can login and reach B2C home', async ({ page }) =
   await loginWith(page, 'b2c', USERS.externalIndividualOwner);
 
   await expect(page).toHaveURL(/\/b2c\/dashboard/);
-  await expect(page.locator('.badge-b2c')).toBeVisible();
+  await expect(page.locator('.external-sidebar-badge')).toContainText('حساب فردي');
 });
 
 test('external organization owner can login and reach B2B home', async ({ page }) => {

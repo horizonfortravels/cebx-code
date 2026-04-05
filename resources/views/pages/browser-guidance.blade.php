@@ -1,191 +1,40 @@
-﻿<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ $title ?? 'إرشاد الوصول' }} - CBEX</title>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
+@php
+    $user = auth()->user();
+    $accountType = (string) optional($user?->account)->type;
+    $isInternalUser = (string) ($user->user_type ?? '') === 'internal';
+    $variant = $isInternalUser
+        ? 'internal'
+        : ($accountType === 'individual' || request()->is('b2c/*')
+            ? 'b2c'
+            : ($accountType === 'organization' || request()->is('b2b/*') || request()->is('notifications')
+                ? 'b2b'
+                : 'neutral'));
+    $icon = $isInternalUser
+        ? 'admin'
+        : ($variant === 'b2c' ? 'individual' : ($variant === 'b2b' ? 'organization' : 'alert'));
+    $heading = $heading ?? 'تحتاج إلى خطوة مختلفة للمتابعة';
+    $message = $message ?? 'راجع البوابة الحالية أو ارجع إلى الصفحة المناسبة لحسابك.';
+@endphp
 
-        :root {
-            --bg: #f8fafc;
-            --surface: #ffffff;
-            --text: #0f172a;
-            --muted: #64748b;
-            --primary: #1d4ed8;
-            --secondary: #e2e8f0;
-            --border: #e2e8f0;
-            --accent: #dc2626;
-            --page-max: 1600px;
-            --page-gutter: clamp(24px, 2vw, 40px);
-        }
-
-        * { box-sizing: border-box; }
-
-        body {
-            margin: 0;
-            min-height: 100dvh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: clamp(24px, 2vw, 40px);
-            background:
-                radial-gradient(circle at top right, rgba(37, 99, 235, 0.12), transparent 38%),
-                radial-gradient(circle at bottom left, rgba(15, 118, 110, 0.10), transparent 34%),
-                var(--bg);
-            color: var(--text);
-            font-family: 'Tajawal', sans-serif;
-        }
-
-        .panel {
-            width: min(var(--page-max), calc(100% - (var(--page-gutter) * 2)));
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 24px;
-            box-shadow: 0 24px 60px rgba(15, 23, 42, 0.08);
-            overflow: hidden;
-        }
-        .hero p,
-        .body > * {
-            max-width: 820px;
-        }
-
-        .hero {
-            padding: 28px 28px 20px;
-            background: linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%);
-            color: #fff;
-        }
-
-        .eyebrow {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 6px 12px;
-            border-radius: 999px;
-            background: rgba(255, 255, 255, 0.14);
-            font-size: 13px;
-            font-weight: 700;
-        }
-
-        h1 {
-            margin: 16px 0 10px;
-            font-size: 32px;
-            line-height: 1.25;
-        }
-
-        .hero p {
-            margin: 0;
-            font-size: 16px;
-            line-height: 1.9;
-            color: rgba(255, 255, 255, 0.88);
-        }
-
-        .body {
-            padding: 28px;
-        }
-
-        .next-steps {
-            margin: 0;
-            padding: 0;
-            list-style: none;
-            display: grid;
-            gap: 12px;
-        }
-
-        .next-steps li {
-            padding: 14px 16px;
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            background: #f8fafc;
-            color: var(--muted);
-            font-size: 14px;
-            line-height: 1.8;
-        }
-
-        .actions {
-            margin-top: 24px;
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
-        }
-
-        .button,
-        .button-secondary,
-        .button-form button {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-width: 180px;
-            padding: 12px 18px;
-            border-radius: 14px;
-            text-decoration: none;
-            font-weight: 700;
-            font-family: inherit;
-            font-size: 15px;
-            border: none;
-            cursor: pointer;
-        }
-
-        .button {
-            background: var(--primary);
-            color: #fff;
-        }
-
-        .button-secondary,
-        .button-form button {
-            background: var(--secondary);
-            color: #0f172a;
-        }
-
-        .meta {
-            margin-top: 18px;
-            font-size: 13px;
-            color: var(--muted);
-        }
-
-        @media (max-width: 720px) {
-            body {
-                padding: 16px;
-            }
-
-            .panel {
-                width: 100%;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="panel">
-        <div class="hero">
-            <div class="eyebrow">{{ $eyebrow ?? 'إرشاد' }}</div>
-            <h1>{{ $heading ?? 'تحتاج إلى خطوة مختلفة للمتابعة' }}</h1>
-            <p>{{ $message ?? 'راجع البوابة الحالية أو ارجع إلى الصفحة المناسبة لحسابك.' }}</p>
-        </div>
-
-        <div class="body">
-            <ul class="next-steps">
-                <li>إذا كنت تتوقع صفحة مختلفة، ارجع إلى البوابة المخصصة لنوع حسابك أولًا: بوابة الأفراد للحسابات الفردية أو بوابة الأعمال للحسابات المنظمة.</li>
-                <li>إذا كان دورك الحالي أقل من المطلوب، اطلب الصلاحية المناسبة بدل المحاولة عبر مسار غير مخصص لك.</li>
-                <li>في حال كنت مستخدمًا داخليًا، اختر سياق الحساب فقط عند الحاجة إلى تصفح بيانات عميل محدد.</li>
-            </ul>
-
-            <div class="actions">
-                @if (! empty($primaryActionUrl))
-                    <a href="{{ $primaryActionUrl }}" class="button">{{ $primaryActionLabel ?? 'الانتقال إلى الخطوة التالية' }}</a>
-                @endif
-
-                @if (($secondaryActionMethod ?? 'get') === 'post')
-                    <form action="{{ $secondaryActionUrl }}" method="POST" class="button-form">
-                        @csrf
-                        <button type="submit">{{ $secondaryActionLabel ?? 'تنفيذ الإجراء' }}</button>
-                    </form>
-                @elseif (! empty($secondaryActionUrl))
-                    <a href="{{ $secondaryActionUrl }}" class="button-secondary">{{ $secondaryActionLabel ?? 'العودة' }}</a>
-                @endif
-            </div>
-
-            <div class="meta">الحالة الحالية: {{ $statusCode ?? 403 }}</div>
-        </div>
-    </div>
-</body>
-</html>
+<x-browser-safe-page
+    :page-title="$title ?? 'إرشاد الوصول'"
+    :variant="$variant"
+    :icon="$icon"
+    :eyebrow="$eyebrow ?? 'إرشاد'"
+    :heading="$heading"
+    :message="$message"
+    :summary="'نحافظ على فصل واضح بين بوابات الأفراد والأعمال والبوابة الداخلية حتى تصل إلى الأدوات الصحيحة لحسابك الحالي دون تعارض أو صلاحيات غير مناسبة.'"
+    :status-code="$statusCode ?? 403"
+    :primary-action-url="$primaryActionUrl ?? null"
+    :primary-action-label="$primaryActionLabel ?? 'الانتقال إلى الخطوة التالية'"
+    :secondary-action-url="$secondaryActionUrl ?? null"
+    :secondary-action-label="$secondaryActionLabel ?? 'العودة'"
+    :secondary-action-method="$secondaryActionMethod ?? 'get'"
+    :meta="'إذا بدا لك أن هذه الصفحة لا تطابق نوع حسابك، ارجع إلى صفحة اختيار البوابة أو تواصل مع مدير الحساب بدل المحاولة عبر مسار مختلف.'"
+>
+    <ul class="browser-safe-steps">
+        <li>إذا كان حسابك فرديًا فابدأ من بوابة الأفراد، وإذا كان تابعًا لمنظمة فابدأ من بوابة الأعمال، أما فريق CBEX الداخلي فله بوابة منفصلة.</li>
+        <li>عند ظهور منع مرتبط بالصلاحيات، فهذا يعني أن حسابك الحالي لا يملك الوصول المطلوب لهذه الصفحة أو لهذه الوظيفة الآن.</li>
+        <li>إذا كنت مستخدمًا داخليًا، فاختر سياق الحساب عند الحاجة فقط بدل التعامل مع البوابة الخارجية كما لو كانت مخصصة لك.</li>
+    </ul>
+</x-browser-safe-page>

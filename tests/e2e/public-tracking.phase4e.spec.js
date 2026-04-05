@@ -185,7 +185,7 @@ async function verifyPublicTracking({ browser, baseURL, publicUrl, reference, tr
   await invalidPage.waitForLoadState('networkidle');
 
   await expect(invalidPage).toHaveURL(/\/track\/NO-SUCH-PUBLIC-TOKEN$/);
-  await expect(invalidPage.getByRole('heading', { name: 'The requested page is not available.', exact: true })).toBeVisible();
+  await expect(invalidPage.getByRole('heading', { name: 'هذه الصفحة غير متاحة داخل البوابة الحالية', exact: true })).toBeVisible();
   await expect(invalidPage.getByText('HTTP 404', { exact: true })).toBeVisible();
 
   const invalidBody = await invalidPage.locator('body').innerText();

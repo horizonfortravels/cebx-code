@@ -2,74 +2,182 @@
 @section('title', 'بوابة الأفراد | المحفظة')
 
 @section('content')
-<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:24px">
-    <div>
-        <div style="font-size:12px;color:var(--tm);margin-bottom:8px">
-            <a href="{{ route('b2c.dashboard') }}" style="color:inherit;text-decoration:none">بوابة الأفراد</a>
-            <span style="margin:0 6px">/</span>
-            <span>المحفظة</span>
+@php
+    $activeHolds = $activeHolds ?? collect();
+    $movementTone = static function (\App\Models\WalletLedgerEntry $entry): string {
+        return $entry->isCredit() ? 'success' : 'danger';
+    };
+    $movementLabel = static function (\App\Models\WalletLedgerEntry $entry): string {
+        if (filled($entry->description)) {
+            return (string) $entry->description;
+        }
+
+        if (filled($entry->type)) {
+            return $entry->typeLabel();
+        }
+
+        return 'حركة على المحفظة';
+    };
+    $holdTone = static function (?string $status): string {
+        return match ((string) $status) {
+            \App\Models\WalletHold::STATUS_ACTIVE => 'warning',
+            \App\Models\WalletHold::STATUS_CAPTURED => 'info',
+            default => 'neutral',
+        };
+    };
+    $holdLabel = static function (?string $status): string {
+        return match ((string) $status) {
+            \App\Models\WalletHold::STATUS_ACTIVE => 'مبلغ محجوز',
+            \App\Models\WalletHold::STATUS_CAPTURED => 'تم استخدامه للإصدار',
+            \App\Models\WalletHold::STATUS_RELEASED => 'تم الإفراج',
+            \App\Models\WalletHold::STATUS_EXPIRED => 'منتهي',
+            default => 'غير محدد',
+        };
+    };
+@endphp
+
+<x-page-header
+    eyebrow="بوابة الأفراد"
+    title="محفظتك الشخصية"
+    subtitle="راجع الرصيد المتاح، والحجوزات المالية، وآخر الحركات المرتبطة بالشحنات من شاشة واحدة مفهومة وواضحة."
+    meta="حالة المحفظة: {{ $wallet ? ($wallet->isFrozen() ? 'متوقفة مؤقتًا' : 'نشطة') : 'غير مفعلة' }}"
+>
+    <a href="{{ route('b2c.shipments.create') }}" class="btn btn-pr">إنشاء شحنة</a>
+    <a href="{{ route('b2c.shipments.index') }}" class="btn btn-s">سجل الشحنات</a>
+</x-page-header>
+
+<section class="b2c-wallet-hero {{ $wallet ? '' : 'b2c-wallet-hero--empty' }}">
+    <div class="b2c-wallet-hero__copy">
+        <div class="b2c-wallet-hero__eyebrow">الرصيد المتاح الآن</div>
+        <div class="b2c-wallet-hero__value">
+            {{ $wallet ? number_format((float) $wallet->available_balance, 2) : '0.00' }}
+            <span>{{ $wallet->currency ?? 'SAR' }}</span>
         </div>
-        <h1 style="font-size:28px;font-weight:800;color:var(--tx);margin:0">محفظتك الشخصية</h1>
-        <p style="color:var(--td);font-size:14px;margin:8px 0 0;max-width:720px">
-            هذه الصفحة تعطيك نظرة سريعة على رصيد الحساب الفردي والحركة الأخيرة قبل الانتقال إلى مركز المحفظة الكامل لشحن الرصيد أو مراجعة السجل المالي.
+        <p class="b2c-wallet-hero__body">
+            @if($wallet)
+                استخدم هذه الصفحة لفهم المبلغ الجاهز للحجز، والمبالغ المعلقة مؤقتًا على شحنات جارية، وآخر الحركات التي أثرت على الرصيد.
+            @else
+                لا توجد محفظة مفعلة لهذا الحساب بعد. سنعرض الرصيد والحركات والحجوزات هنا بمجرد تفعيل المحفظة.
+            @endif
         </p>
     </div>
-    <a href="{{ route('wallet.index') }}" class="btn btn-pr">فتح مركز المحفظة</a>
+
+    <div class="b2c-wallet-hero__meta">
+        <div class="b2c-wallet-hero__meta-item">
+            <span>المبلغ المحجوز</span>
+            <strong>{{ $wallet ? number_format((float) ($wallet->reserved_balance ?? 0), 2) : '0.00' }} {{ $wallet->currency ?? 'SAR' }}</strong>
+        </div>
+        <div class="b2c-wallet-hero__meta-item">
+            <span>إجمالي الرصيد الممول</span>
+            <strong>{{ $wallet ? number_format((float) ($wallet->total_credited ?? 0), 2) : '0.00' }} {{ $wallet->currency ?? 'SAR' }}</strong>
+        </div>
+        <div class="b2c-wallet-hero__meta-item">
+            <span>عدد الحركات الأخيرة</span>
+            <strong>{{ number_format($transactions->count()) }}</strong>
+        </div>
+        <div class="b2c-wallet-hero__meta-item">
+            <span>عدد الحجوزات</span>
+            <strong>{{ number_format($activeHolds->count()) }}</strong>
+        </div>
+    </div>
+</section>
+
+<div class="stats-grid b2c-metrics-grid">
+    <x-stat-card iconSvg='
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M5 8.5A2.75 2.75 0 0 1 7.75 5.75h8.5A2.75 2.75 0 0 1 19 8.5v7A2.75 2.75 0 0 1 16.25 18.25h-8.5A2.75 2.75 0 0 1 5 15.5z"></path>
+            <path d="M15.75 11.25h3.5v2.5h-3.5a1.25 1.25 0 1 1 0-2.5Z"></path>
+            <path d="M8 8.5h6.75"></path>
+        </svg>
+    ' label="الرصيد المتاح" :value="$wallet ? number_format((float) $wallet->available_balance, 2) . ' ' . ($wallet->currency ?? 'SAR') : '0.00'" meta="الجزء الجاهز للحجز أو الاستخدام" eyebrow="المتاح" />
+    <x-stat-card iconSvg='
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 5.5v5"></path>
+            <path d="M12 12.5v.01"></path>
+            <path d="M5.75 7.75h12.5v10.5H5.75z"></path>
+        </svg>
+    ' label="المبالغ المحجوزة" :value="$wallet ? number_format((float) ($wallet->reserved_balance ?? 0), 2) . ' ' . ($wallet->currency ?? 'SAR') : '0.00'" meta="مرتبطة بإصدار شحنات جارية" eyebrow="الحجز" />
+    <x-stat-card iconSvg='
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 5.5v13"></path>
+            <path d="M5.5 12h13"></path>
+        </svg>
+    ' label="الحركات الأخيرة" :value="number_format($transactions->count())" meta="أحدث الخصومات أو الشحن أو الاسترداد" eyebrow="الحركة" />
+    <x-stat-card iconSvg='
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 4.75 18 7v4.75c0 3.46-2.27 6.59-6 7.5-3.73-.91-6-4.04-6-7.5V7z"></path>
+            <path d="m9.5 12 1.75 1.75L14.75 10"></path>
+        </svg>
+    ' label="حالة المحفظة" :value="$wallet ? ($wallet->isFrozen() ? 'متوقفة مؤقتًا' : 'نشطة') : 'غير مفعلة'" :meta="$wallet && $wallet->isLowBalance() ? 'الرصيد تحت حد التنبيه الحالي' : 'لا توجد ملاحظات تشغيلية على المحفظة'" eyebrow="الحالة" />
 </div>
 
-<div style="background:linear-gradient(135deg,#2563eb 0%,#1d4ed8 100%);border-radius:20px;padding:28px 32px;color:#fff;margin-bottom:24px">
-    <div style="font-size:13px;opacity:.82;margin-bottom:6px">الرصيد المتاح</div>
-    <div style="font-size:40px;font-weight:800;letter-spacing:-1px">
-        {{ $wallet ? number_format((float) $wallet->available_balance, 2) : '0.00' }} {{ $wallet->currency ?? 'SAR' }}
-    </div>
-    <div style="font-size:13px;opacity:.78;margin-top:8px">
-        @if($wallet)
-            الرصيد المعلّق: {{ number_format((float) ($wallet->reserved_balance ?? $wallet->locked_balance ?? 0), 2) }} {{ $wallet->currency ?? 'SAR' }}
-        @else
-            لم يتم إنشاء محفظة لهذا الحساب بعد.
-        @endif
-    </div>
-</div>
+<div class="b2c-workspace-grid">
+    <x-card title="أحدث الحركات المالية">
+        <div class="b2c-activity-list">
+            @forelse($transactions as $entry)
+                <div class="b2c-activity-list__item">
+                    <div>
+                        <div class="b2c-activity-list__title">{{ $movementLabel($entry) }}</div>
+                        <div class="b2c-activity-list__meta">{{ optional($entry->created_at)->format('Y-m-d H:i') ?? 'غير محدد' }}</div>
+                    </div>
+                    <div class="b2c-activity-list__side">
+                        <span class="b2c-status-pill b2c-status-pill--{{ $movementTone($entry) }}">
+                            {{ $entry->isCredit() ? 'إضافة' : 'خصم' }}
+                        </span>
+                        <strong class="b2c-activity-list__amount {{ $entry->isCredit() ? 'is-positive' : 'is-negative' }}">
+                            {{ number_format((float) $entry->amount, 2) }} {{ $wallet->currency ?? 'SAR' }}
+                        </strong>
+                    </div>
+                </div>
+            @empty
+                <div class="b2c-empty-card b2c-empty-card--soft">
+                    <div class="b2c-empty-card__title">لا توجد حركات مالية بعد</div>
+                    <p class="b2c-empty-card__body">عند أول خصم أو شحن رصيد أو استرداد ستظهر التفاصيل هنا بترتيب واضح يساعدك على مراجعة الرصيد وفهم ما حدث.</p>
+                </div>
+            @endforelse
+        </div>
+    </x-card>
 
-<div class="grid-2">
-    <x-card title="أحدث العمليات">
-        <div style="overflow:auto">
-            <table class="table">
-                <thead>
-                <tr>
-                    <th>الوصف</th>
-                    <th>المبلغ</th>
-                    <th>التاريخ</th>
-                </tr>
-                </thead>
-                <tbody>
-                @forelse($transactions as $entry)
-                    <tr>
-                        <td>{{ $entry->description ?? $entry->type ?? 'عملية مالية' }}</td>
-                        <td>{{ number_format((float) $entry->amount, 2) }} {{ $wallet->currency ?? 'SAR' }}</td>
-                        <td>{{ optional($entry->created_at)->format('Y-m-d H:i') ?? '—' }}</td>
-                    </tr>
+    <div class="b2c-panel-stack">
+        <x-card title="الحجوزات والالتزامات الحالية">
+            <div class="b2c-hold-list">
+                @forelse($activeHolds as $hold)
+                    <div class="b2c-hold-list__item">
+                        <div>
+                            <div class="b2c-hold-list__title">{{ $hold->shipment?->reference_number ?? $hold->shipment?->tracking_number ?? 'حجز مرتبط بمحفظتك' }}</div>
+                            <div class="b2c-hold-list__meta">{{ optional($hold->created_at)->format('Y-m-d H:i') ?? 'غير محدد' }}</div>
+                        </div>
+                        <div class="b2c-hold-list__side">
+                            <span class="b2c-status-pill b2c-status-pill--{{ $holdTone($hold->status) }}">{{ $holdLabel($hold->status) }}</span>
+                            <strong>{{ number_format((float) $hold->amount, 2) }} {{ $hold->currency ?? ($wallet->currency ?? 'SAR') }}</strong>
+                        </div>
+                    </div>
                 @empty
-                    <tr>
-                        <td colspan="3" class="empty-state">لا توجد عمليات بعد. افتح مركز المحفظة الكامل لتنفيذ أول شحن أو مراجعة السجل.</td>
-                    </tr>
+                    <div class="b2c-inline-empty">لا توجد حجوزات نشطة على الرصيد الآن. عندما تمر شحنة عبر خطوة الحجز المالي سنعرضها هنا فورًا.</div>
                 @endforelse
-                </tbody>
-            </table>
-        </div>
-    </x-card>
+            </div>
+        </x-card>
 
-    <x-card title="إجراءات سريعة">
-        <div style="display:flex;flex-direction:column;gap:12px">
-            <div style="padding:14px;border:1px solid var(--bd);border-radius:14px">
-                <div style="font-weight:700;color:var(--tx)">شحن الرصيد</div>
-                <div style="color:var(--td);font-size:13px;margin-top:4px">استخدم مركز المحفظة لتعبئة الرصيد قبل إنشاء الشحنات الجديدة.</div>
+        <x-card title="إرشادات سريعة">
+            <div class="b2c-guidance-stack">
+                <div class="b2c-guidance-card">
+                    <div class="b2c-guidance-card__title">راجع الرصيد قبل الإصدار</div>
+                    <div class="b2c-guidance-card__body">عندما تصل الشحنة إلى خطوة الحجز المالي سيُستخدم الرصيد المتاح أولًا، لذلك من المفيد مراجعة المبلغ المحجوز والمتاح قبل إصدار شحنة جديدة.</div>
+                </div>
+                <div class="b2c-guidance-card {{ $wallet && $wallet->isLowBalance() ? 'b2c-guidance-card--accent' : '' }}">
+                    <div class="b2c-guidance-card__title">انتبه للتنبيهات</div>
+                    <div class="b2c-guidance-card__body">
+                        @if($wallet && $wallet->isFrozen())
+                            المحفظة الحالية متوقفة مؤقتًا، وقد تتعطل بعض خطوات الشحنة حتى تعود إلى الحالة النشطة.
+                        @elseif($wallet && $wallet->isLowBalance())
+                            الرصيد أقل من حد التنبيه المضبوط. من الأفضل مراجعة المحفظة قبل محاولة إصدار شحنة جديدة.
+                        @else
+                            لا توجد تنبيهات تشغيلية على المحفظة حاليًا، ويمكنك متابعة استخدام الرصيد بصورة طبيعية.
+                        @endif
+                    </div>
+                </div>
             </div>
-            <div style="padding:14px;border:1px solid var(--bd);border-radius:14px">
-                <div style="font-weight:700;color:var(--tx)">مراجعة السجل</div>
-                <div style="color:var(--td);font-size:13px;margin-top:4px">السجل الكامل يساعدك على فهم الحركات الأخيرة والخصومات ذات الصلة بالشحن.</div>
-            </div>
-        </div>
-    </x-card>
+        </x-card>
+    </div>
 </div>
 @endsection

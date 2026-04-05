@@ -9,20 +9,76 @@
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     @include('components.pwa-meta')
     <meta name="pwa-sw-url" content="{{ asset('sw.js') }}">
+    @php
+        $authPortal = trim($__env->yieldContent('auth-portal', 'shared'));
+        $brandMark = trim($__env->yieldContent('brand-mark'));
+        $brandBadge = trim($__env->yieldContent('brand-badge'));
+        $brandTitle = trim($__env->yieldContent('brand-title'));
+        $brandDescription = trim($__env->yieldContent('brand-description'));
+        $brandFeatures = trim($__env->yieldContent('brand-features'));
+        $formBadge = trim($__env->yieldContent('form-badge'));
+        $formNote = trim($__env->yieldContent('form-note'));
+        $formSupport = trim($__env->yieldContent('form-support'));
+        $legacyBrandBackground = trim($__env->yieldContent('brand-bg'));
+        $legacyInputFocusStyle = trim($__env->yieldContent('input-focus-style'));
+        $legacyButtonStyle = trim($__env->yieldContent('btn-style'));
+        $legacyLinkStyle = trim($__env->yieldContent('link-color'));
+        $hasStructuredBrand = $brandMark !== ''
+            || $brandBadge !== ''
+            || $brandTitle !== ''
+            || $brandDescription !== ''
+            || $brandFeatures !== '';
+    @endphp
     @hasSection('portal-styles')
-    <style>@yield('portal-styles')</style>
+        <style>@yield('portal-styles')</style>
     @endif
 </head>
-<body>
+<body class="auth-layout auth-layout--{{ $authPortal }}">
 <div class="login-page">
-    <div class="login-brand" style="@yield('brand-bg', 'background:#1E3A5F')">
-        @yield('brand-content')
+    <div class="login-brand" @if($legacyBrandBackground !== '') style="{{ $legacyBrandBackground }}" @endif>
+        @if($hasStructuredBrand)
+            <div class="login-brand-shell">
+                @if($brandMark !== '')
+                    <div class="brand-logo">{!! $brandMark !!}</div>
+                @endif
+                @if($brandBadge !== '')
+                    <span class="brand-badge">{{ $brandBadge }}</span>
+                @endif
+                @if($brandTitle !== '')
+                    <h2 class="brand-title">{{ $brandTitle }}</h2>
+                @endif
+                @if($brandDescription !== '')
+                    <p class="brand-desc">{{ $brandDescription }}</p>
+                @endif
+                @if($brandFeatures !== '')
+                    <ul class="brand-features">{!! $brandFeatures !!}</ul>
+                @endif
+            </div>
+        @else
+            @yield('brand-content')
+        @endif
     </div>
 
     <div class="login-form-panel">
         <div class="login-form-card">
-            <h1 class="login-form-title">@yield('form-title', 'تسجيل الدخول')</h1>
-            <p class="login-form-subtitle">@yield('form-subtitle', 'أدخل بياناتك للدخول')</p>
+            <div class="login-form-head">
+                <h1 class="login-form-title">@yield('form-title', 'تسجيل الدخول')</h1>
+                <p class="login-form-subtitle">@yield('form-subtitle', 'أدخل بياناتك للمتابعة')</p>
+            </div>
+
+            @if (session('success'))
+                <div class="login-success" role="status" aria-live="polite">
+                    {{ session('success') }}
+                </div>
+            @endif
+
+            @if($formBadge !== '')
+                <div class="login-form-badge">{!! $formBadge !!}</div>
+            @endif
+
+            @if($formNote !== '')
+                <div class="login-form-note">{!! $formNote !!}</div>
+            @endif
 
             @if ($errors->any())
                 <div class="login-errors" role="alert" aria-live="polite" id="login-errors">
@@ -41,7 +97,7 @@
                         type="email"
                         name="email"
                         value="{{ old('email') }}"
-                placeholder="@yield('email-placeholder', 'name@company.sa')"
+                        placeholder="@yield('email-placeholder', 'name@company.sa')"
                         class="form-input"
                         inputmode="email"
                         autocomplete="username"
@@ -49,9 +105,9 @@
                         aria-invalid="{{ $errors->has('email') ? 'true' : 'false' }}"
                         required
                         autofocus
-                        style="@yield('input-focus-style')"
+                        @if($legacyInputFocusStyle !== '') style="{{ $legacyInputFocusStyle }}" @endif
                     >
-                    <div id="login-email-hint" class="form-hint">استخدم البريد المرتبط بالحساب الذي تريد الدخول إليه.</div>
+                    <div id="login-email-hint" class="form-hint">استخدم البريد المرتبط بالحساب الذي تريد تسجيل الدخول إليه.</div>
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="login-password">كلمة المرور</label>
@@ -73,14 +129,18 @@
                         <input id="login-remember" type="checkbox" name="remember"> تذكرني على هذا الجهاز
                     </label>
                 </div>
-                <button type="submit" class="login-submit-btn" style="@yield('btn-style', 'background:var(--pr);color:#fff')">
+                <button type="submit" class="login-submit-btn" @if($legacyButtonStyle !== '') style="{{ $legacyButtonStyle }}" @endif>
                     @yield('btn-text', 'دخول')
                 </button>
             </form>
 
-            <div class="back-link" style="@yield('link-color')">
+            <div class="back-link" @if($legacyLinkStyle !== '') style="{{ $legacyLinkStyle }}" @endif>
                 <a href="@yield('back-link-url', route('login'))">@yield('back-link-text', 'العودة إلى اختيار البوابة المناسبة لنوع الحساب')</a>
             </div>
+
+            @if($formSupport !== '')
+                <div class="login-support">{!! $formSupport !!}</div>
+            @endif
 
             @if (app()->environment('local') && config('features.demo_data', false))
                 @yield('demo-credentials')
@@ -90,117 +150,6 @@
 </div>
 
 @yield('content')
-
-<style>
-        body {
-            margin: 0;
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
-        .login-page {
-            width: 100%;
-            min-height: 100vh;
-            display: grid;
-            grid-template-columns: minmax(0, 1.12fr) minmax(0, 0.88fr);
-            font-family: 'Tajawal', sans-serif;
-            direction: rtl;
-        }
-        @media (max-width: 1024px) {
-            .login-page { grid-template-columns: 1fr; }
-            .login-brand { min-height: 260px; padding: 36px 24px !important; }
-            .login-form-panel { padding: 28px 20px 36px; }
-        }
-        .login-brand {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: clamp(40px, 4vw, 76px) clamp(32px, 4vw, 68px);
-            color: #fff;
-            text-align: center;
-        }
-.login-brand .brand-logo {
-    width: 72px; height: 72px;
-    border-radius: 18px;
-    display: flex; align-items: center; justify-content: center;
-    color: #fff; font-weight: 800; font-size: 24px;
-    margin-bottom: 12px;
-}
-.login-brand .brand-badge {
-    display: inline-block;
-    padding: 4px 12px;
-    border-radius: 8px;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: .5px;
-    margin-bottom: 16px;
-}
-.login-brand .brand-title { font-size: 22px; font-weight: 800; margin: 0 0 8px; }
-.login-brand .brand-desc { font-size: 14px; opacity: .9; line-height: 1.6; margin: 0 0 24px; max-width: 440px; }
-.login-brand .brand-features { list-style: none; margin: 0; padding: 0; text-align: right; }
-.login-brand .brand-features li { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; font-size: 13px; opacity: .95; }
-.login-brand .brand-features li span { font-size: 18px; }
-        .login-form-panel {
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: clamp(36px, 4vw, 80px);
-            background: var(--bg, #F8FAFC);
-        }
-        .login-form-card {
-            width: 100%;
-            max-width: clamp(480px, 34vw, 560px);
-            background: #fff;
-            border-radius: 16px;
-            padding: 36px 32px;
-            box-shadow: 0 4px 24px rgba(0,0,0,.06);
-            border: 1px solid var(--bd, #E2E8F0);
-}
-.login-form-title { font-size: 22px; font-weight: 800; color: var(--tx,#1E293B); margin: 0 0 6px; }
-.login-form-subtitle { font-size: 14px; color: var(--td,#64748B); margin: 0 0 24px; }
-.login-errors {
-    padding: 12px 14px;
-    background: #FEE2E2;
-    border: 1px solid #FECACA;
-    border-radius: 10px;
-    margin-bottom: 20px;
-    font-size: 13px;
-    color: #991B1B;
-}
-.login-form .form-group { margin-bottom: 18px; }
-.form-hint {
-    margin-top: 6px;
-    font-size: 12px;
-    color: var(--tm, #94A3B8);
-}
-.login-form-options { margin-bottom: 20px; }
-.login-remember { font-size: 13px; color: var(--td); cursor: pointer; display: flex; align-items: center; gap: 8px; }
-.login-submit-btn {
-    width: 100%;
-    padding: 14px 20px;
-    border: none;
-    border-radius: 12px;
-    font-size: 16px;
-    font-weight: 700;
-    cursor: pointer;
-    font-family: inherit;
-    transition: transform .15s, box-shadow .15s;
-}
-.login-submit-btn:hover { transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,.15); }
-.back-link { margin-top: 20px; text-align: center; font-size: 13px; }
-.back-link a { text-decoration: none; font-weight: 600; }
-.back-link a:hover { text-decoration: underline; }
-.demo-credentials {
-    margin-top: 24px;
-    padding-top: 20px;
-    border-top: 1px solid var(--bd,#E2E8F0);
-}
-.demo-title { font-size: 12px; font-weight: 700; color: var(--td); margin-bottom: 10px; }
-.demo-row { font-size: 13px; color: var(--tx); margin-bottom: 4px; }
-.demo-row code { background: var(--sf,#F1F5F9); padding: 2px 8px; border-radius: 6px; font-size: 12px; }
-</style>
 
 <script>window.PWA={swUrl:'{{ asset("sw.js") }}',scope:'{{ rtrim(url("/"), "/") }}/'};</script>
 <script src="{{ asset('js/pwa.js') }}" defer></script>

@@ -1,34 +1,57 @@
 @extends('layouts.auth')
 
-@section('title', 'دخول الأعمال — حسابات المنظمات')
+@section('title', 'دخول الأعمال - حسابات المنظمات')
+@section('auth-portal', 'b2b')
 
-@section('portal-styles')
-    .form-group input:focus { border-color: #3B82F6; box-shadow: 0 0 0 4px rgba(59,130,246,0.1); }
+@section('brand-mark')
+    <x-portal-icon name="organization" class="brand-logo__icon" />
 @endsection
 
-@section('brand-bg', 'background: linear-gradient(160deg, #1E3A5F 0%, #1E40AF 40%, #3B82F6 100%)')
-
-@section('brand-content')
-    <div class="brand-logo"
-        style="background:linear-gradient(135deg,#3B82F6,#1D4ED8);box-shadow:0 8px 32px rgba(59,130,246,0.4)">أعمال</div>
-    <span class="brand-badge" style="background:rgba(255,255,255,0.15);color:#93C5FD">حسابات المنظمات</span>
-    <h2 class="brand-title">بوابة الأعمال</h2>
-    <p class="brand-desc">بوابة مخصصة لحسابات المنظمات الخارجية فقط، لإدارة شحنات المنظمة وفريقها عبر شبكة الناقلين التابعة
-        للمنصة.</p>
-    <ul class="brand-features">
-        <li><span>📦</span> إدارة الشحنات والتتبع المباشر</li>
-        <li><span>🏪</span> ربط المتاجر الإلكترونية (سلة، زد، شوبيفاي)</li>
-        <li><span>👥</span> إدارة فريق العمل والأدوار</li>
-        <li><span>📊</span> تقارير وتحليلات متقدمة</li>
-        <li><span>💰</span> المحفظة الإلكترونية والفوترة</li>
-    </ul>
+@section('brand-badge', 'حسابات المنظمات والفرق')
+@section('brand-title', 'بوابة الأعمال')
+@section('brand-description', 'بوابة مخصصة لحسابات المنظمات الخارجية، لإدارة الشحنات والطلبات والمحفظة والتقارير وأدوات المنصة المسموح بها ضمن مساحة عمل واحدة.')
+@section('brand-features')
+    <li>لوحة تشغيل موحدة للشحنات والطلبات اليومية</li>
+    <li>متابعة الفريق والأدوار وفق الصلاحيات المتاحة</li>
+    <li>الوصول إلى أدوات التكامل الخاصة بالمنصة عند السماح بها</li>
 @endsection
 
-@section('form-title', 'دخول الأعمال')
-@section('form-subtitle', 'سجّل دخولك بحساب المنظمة الخارجي للوصول إلى الشحنات والتقارير وأدوات تكامل المنصة')
+@section('form-title', 'دخول بوابة الأعمال')
+@section('form-subtitle', 'سجل دخولك بحساب المنظمة للوصول إلى الشحنات والتقارير وأدوات المنصة الخاصة بفريقك')
 @section('form-action', route('b2b.login.submit'))
-@section('email-placeholder', 'مثال: اسم@الشركة.sa')
-@section('input-focus-style', '')
-@section('link-color', 'color:#3B82F6')
-@section('btn-style', 'background:linear-gradient(135deg,#3B82F6,#1D4ED8);box-shadow:0 4px 16px rgba(59,130,246,0.4)')
-@section('btn-text', '🏢 دخول حساب المنظمة')
+@section('email-placeholder', 'مثال: ops@company.sa')
+@section('btn-text', 'الدخول إلى بوابة الأعمال')
+
+@section('form-badge')
+    حساب منظمة خارجي فقط
+@endsection
+
+@section('form-note')
+    <strong>متى أستخدم هذه الصفحة؟</strong>
+    استخدم هذه الصفحة إذا كان حسابك تابعًا لمنظمة أو فريق عمل داخل CBEX. أدوات المطور والتكاملات هنا
+    تخص تكامل منظمتك مع المنصة، ولا تعني امتلاك إعدادات الناقلين أو إدارتها مباشرة.
+@endsection
+
+@section('form-support')
+    <p class="login-support-title">بوابات أخرى قد تحتاجها</p>
+    <div class="login-support-links">
+        <a href="{{ route('b2c.login') }}" class="login-support-link">
+            <span class="login-support-link__text">
+                <span class="login-support-link__title">هل حسابك فردي؟</span>
+                <span class="login-support-link__meta">استخدم بوابة الأفراد إذا كان الحساب مرتبطًا بشخص واحد.</span>
+            </span>
+            <span class="login-support-link__icon" aria-hidden="true">
+                <x-portal-icon name="individual" />
+            </span>
+        </a>
+        <a href="{{ route('login') }}" class="login-support-link">
+            <span class="login-support-link__text">
+                <span class="login-support-link__title">العودة إلى اختيار البوابة</span>
+                <span class="login-support-link__meta">ابدأ من صفحة الاختيار إذا كنت تريد مراجعة نوع البوابة المناسبة.</span>
+            </span>
+            <span class="login-support-link__icon" aria-hidden="true">
+                <x-portal-icon name="dashboard" />
+            </span>
+        </a>
+    </div>
+@endsection
