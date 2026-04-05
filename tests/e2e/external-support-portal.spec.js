@@ -5,6 +5,7 @@ const PASSWORD = process.env.E2E_USER_PASSWORD || 'Password123!';
 
 const USERS = {
   externalOrganizationOwner: 'e2e.c.organization_owner@example.test',
+  externalSameTenantMember: 'e2e.c.organization_admin@example.test',
   externalOtherOrganizationOwner: 'e2e.d.organization_owner@example.test',
 };
 
@@ -65,7 +66,7 @@ async function loginWith(page, portal, email, password = PASSWORD) {
   await page.waitForLoadState('networkidle');
 }
 
-test('external organization user can create and view an in-scope help request while cross-tenant access is denied', async ({ browser }) => {
+test('external organization user can create and view their own help request while other users are denied', async ({ browser }) => {
   const subject = `I9 external browser ticket ${Date.now()}`;
   const body = 'External organization owner created a browser help request for the final I9 verification.';
 
@@ -98,6 +99,19 @@ test('external organization user can create and view an in-scope help request wh
   const ticketId = new URL(ownerPage.url()).pathname.split('/').pop();
   expect(ticketId).toBeTruthy();
 
+  const sameTenantContext = await browser.newContext();
+  const sameTenantPage = await sameTenantContext.newPage();
+
+  await loginWith(sameTenantPage, 'b2b', USERS.externalSameTenantMember);
+
+  const sameTenantDeniedResponse = await sameTenantPage.goto(
+    resolveParameterizedRoute('support.show', '/support/{ticket}', { ticket: ticketId })
+  );
+  expect(sameTenantDeniedResponse).not.toBeNull();
+  expect(sameTenantDeniedResponse.status()).toBe(404);
+  await expect(sameTenantPage.locator('[data-testid="external-ticket-thread-card"]')).toHaveCount(0);
+  await expect(sameTenantPage.locator('body')).not.toContainText('Internal Server Error');
+
   const otherContext = await browser.newContext();
   const otherPage = await otherContext.newPage();
 
@@ -111,6 +125,7 @@ test('external organization user can create and view an in-scope help request wh
   await expect(otherPage.locator('[data-testid="external-ticket-thread-card"]')).toHaveCount(0);
   await expect(otherPage.locator('body')).not.toContainText('Internal Server Error');
 
+  await sameTenantContext.close();
   await otherContext.close();
   await ownerContext.close();
 });

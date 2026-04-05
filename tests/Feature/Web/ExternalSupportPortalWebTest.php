@@ -4,21 +4,13 @@ namespace Tests\Feature\Web;
 
 use App\Models\SupportTicket;
 use App\Models\User;
-use Database\Seeders\E2EUserMatrixSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
 use PHPUnit\Framework\Attributes\Test;
-use Tests\TestCase;
-
-class ExternalSupportPortalWebTest extends TestCase
+class ExternalSupportPortalWebTest extends TicketWebTestCase
 {
-    use RefreshDatabase;
-
     protected function setUp(): void
     {
         parent::setUp();
-
-        $this->seed(E2EUserMatrixSeeder::class);
     }
 
     #[Test]
@@ -64,7 +56,7 @@ class ExternalSupportPortalWebTest extends TestCase
     }
 
     #[Test]
-    public function organization_user_can_create_a_help_request_and_same_tenant_members_can_view_it_but_cross_tenant_users_cannot(): void
+    public function organization_user_can_create_a_help_request_and_only_view_their_own_ticket_while_same_tenant_and_cross_tenant_users_cannot(): void
     {
         $owner = $this->userByEmail('e2e.c.organization_owner@example.test');
         $sameTenantMember = $this->userByEmail('e2e.c.organization_admin@example.test');
@@ -92,10 +84,13 @@ class ExternalSupportPortalWebTest extends TestCase
             ->assertSeeText($subject);
 
         $this->actingAs($sameTenantMember, 'web')
-            ->get(route('support.show', $ticket))
+            ->get(route('support.index'))
             ->assertOk()
-            ->assertSeeText($subject)
-            ->assertSeeText($body);
+            ->assertDontSeeText($subject);
+
+        $this->actingAs($sameTenantMember, 'web')
+            ->get(route('support.show', $ticket))
+            ->assertNotFound();
 
         $this->actingAs($crossTenantUser, 'web')
             ->get(route('support.show', $ticket))

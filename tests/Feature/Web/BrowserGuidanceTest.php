@@ -59,8 +59,12 @@ class BrowserGuidanceTest extends TestCase
             'web'
         )->get(route('internal.home'))
             ->assertOk()
-            ->assertSeeText('المساحة الداخلية')
+            ->assertSeeText('لوحة العمليات الداخلية')
             ->assertSeeText('الدعم');
+
+        $page->assertSeeText('أقرب المسارات المتاحة');
+        $page->assertSeeText('التذاكر المفتوحة');
+        $page->assertDontSeeText('هذه الصفحة مخصصة للمستخدمين الداخليين الذين لا يحتاجون إلى لوحة الإدارة الكاملة في كل مرة.');
 
         $this->assertHasNavigationLink($page, 'internal.home');
         $this->assertMissingNavigationLink($page, 'admin.index');
@@ -88,11 +92,11 @@ class BrowserGuidanceTest extends TestCase
 
     private function assertHasNavigationLink(TestResponse $response, string $routeName): void
     {
-        $response->assertSee('href="' . route($routeName) . '"', false);
+        $response->assertSee('href="'.route($routeName).'"', false);
     }
 
     private function assertMissingNavigationLink(TestResponse $response, string $routeName): void
     {
-        $response->assertDontSee('href="' . route($routeName) . '"', false);
+        $response->assertDontSee('href="'.route($routeName).'"', false);
     }
 }

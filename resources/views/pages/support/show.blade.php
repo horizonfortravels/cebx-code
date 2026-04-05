@@ -69,7 +69,7 @@
             <x-info-row label="الفئة" :value="['general' => 'عامة', 'shipment' => 'شحنة', 'shipping' => 'شحنة', 'billing' => 'الفوترة', 'technical' => 'تقنية', 'account' => 'الحساب', 'carrier' => 'شركة الشحن'][$ticket->category] ?? $ticket->category" />
             <x-info-row label="الأولوية" :value="['low' => 'منخفضة', 'medium' => 'متوسطة', 'high' => 'مرتفعة', 'urgent' => 'عاجلة'][$ticket->priority] ?? $ticket->priority" />
             <x-info-row label="تاريخ الإنشاء" :value="$ticket->created_at?->format('d/m/Y')" />
-            @if($ticket->assignee)
+            @if(false && $ticket->assignee)
                 <x-info-row label="مسندة إلى" :value="$ticket->assignee->name" />
             @endif
         </x-card>

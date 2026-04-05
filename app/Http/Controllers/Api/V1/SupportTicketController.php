@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\SupportTicket;
 use App\Models\SupportTicketReply;
 use App\Services\AuditService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -21,8 +22,7 @@ class SupportTicketController extends Controller
     {
         $this->authorize('viewAny', SupportTicket::class);
 
-        $query = SupportTicket::withoutGlobalScopes()
-            ->where('account_id', $this->currentAccountId($request))
+        $query = $this->visibleTicketQuery($request)
             ->with(['assignee:id,name', 'user:id,name']);
 
         if ($request->filled('status')) {
@@ -214,8 +214,7 @@ class SupportTicketController extends Controller
     {
         $this->authorize('viewAny', SupportTicket::class);
 
-        $accountId = $this->currentAccountId($request);
-        $base = SupportTicket::where('account_id', $accountId);
+        $base = $this->visibleTicketQuery($request);
 
         return response()->json(['data' => [
             'total' => (clone $base)->count(),
@@ -265,9 +264,31 @@ class SupportTicketController extends Controller
 
     private function findTicketForCurrentTenant(Request $request, string $id): SupportTicket
     {
-        return SupportTicket::withoutGlobalScopes()
-            ->where('account_id', $this->currentAccountId($request))
+        return $this->visibleTicketQuery($request)
             ->where('id', $id)
             ->firstOrFail();
+    }
+
+    private function visibleTicketQuery(Request $request): Builder
+    {
+        $query = SupportTicket::withoutGlobalScopes()
+            ->where('account_id', $this->currentAccountId($request));
+
+        if ($this->currentUserIsExternal($request)) {
+            $query->where('user_id', (string) $request->user()->id);
+        }
+
+        return $query;
+    }
+
+    private function currentUserIsExternal(Request $request): bool
+    {
+        $userType = strtolower(trim((string) ($request->user()->user_type ?? '')));
+
+        if ($userType === 'internal' || $userType === 'external') {
+            return $userType === 'external';
+        }
+
+        return trim((string) ($request->user()->account_id ?? '')) !== '';
     }
 }

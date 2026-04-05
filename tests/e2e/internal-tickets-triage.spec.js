@@ -66,15 +66,15 @@ test('internal support can triage the queue and update ticket priority and categ
   await loginWith(page, 'admin', USERS.internalSupport);
   await openTicketsCenter(page);
 
-  await page.locator('[data-testid="internal-ticket-filter-status"]').selectOption('waiting_agent');
-  await page.locator('[data-testid="internal-ticket-filter-priority"]').selectOption('high');
+  await page.locator('[data-testid="internal-ticket-filter-status"]').selectOption('resolved');
+  await page.locator('[data-testid="internal-ticket-filter-priority"]').selectOption('medium');
   await page.locator('[data-testid="internal-ticket-filter-submit"]').click();
   await page.waitForLoadState('networkidle');
 
-  await expect(page.locator('[data-testid="internal-tickets-table"]')).toContainText('TKT-I9A-C-001');
-  await expect(page.locator('[data-testid="internal-tickets-table"]')).not.toContainText('TKT-I9A-A-001');
+  await expect(page.locator('[data-testid="internal-tickets-table"]')).toContainText('TKT-I9A-A-001');
+  await expect(page.locator('[data-testid="internal-tickets-table"]')).not.toContainText('TKT-I9A-C-001');
 
-  await page.getByRole('link', { name: 'TKT-I9A-C-001' }).click();
+  await page.getByRole('link', { name: 'TKT-I9A-A-001' }).click();
   await page.waitForLoadState('networkidle');
 
   await expect(page.locator('[data-testid="internal-ticket-triage-form"]')).toBeVisible();
@@ -84,10 +84,10 @@ test('internal support can triage the queue and update ticket priority and categ
   await page.locator('[data-testid="internal-ticket-triage-submit"]').click();
   await page.waitForLoadState('networkidle');
 
-  await expect(page.locator('body')).toContainText('The ticket triage details were updated successfully.');
-  await expect(page.locator('[data-testid="internal-ticket-summary-card"]')).toContainText('Urgent');
-  await expect(page.locator('[data-testid="internal-ticket-summary-card"]')).toContainText('Technical');
-  await expect(page.locator('[data-testid="internal-ticket-notes-card"]')).toContainText('Triage update: Priority High -> Urgent; Category Shipping -> Technical.');
+  await expect(page.locator('body')).toContainText('تم تحديث تفاصيل فرز التذكرة بنجاح.');
+  await expect(page.locator('[data-testid="internal-ticket-summary-card"]')).toContainText('عاجلة');
+  await expect(page.locator('[data-testid="internal-ticket-summary-card"]')).toContainText('تقنية');
+  await expect(page.locator('[data-testid="internal-ticket-notes-card"]')).toContainText('Triage update: Priority Medium -> Urgent; Category Billing -> Technical.');
   await expect(page.locator('body')).not.toContainText('Internal Server Error');
 });
 

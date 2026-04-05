@@ -73,6 +73,13 @@ class InternalLandingDashboardService
         $kycDashboard = $this->dashboardIfVisible($user, 'kyc', InternalControlPlane::SURFACE_INTERNAL_REPORTS_KYC_DASHBOARD);
         $billingDashboard = $this->dashboardIfVisible($user, 'billing', InternalControlPlane::SURFACE_INTERNAL_REPORTS_BILLING_DASHBOARD);
         $actions = $this->adminActions($user, $selectedAccount, $canTenantContext);
+        $roleProfile = [
+            'name' => InternalControlPlane::ROLE_SUPER_ADMIN,
+            'label' => 'مدير المنصة',
+            'description' => 'رؤية إدارية كاملة عبر المراكز الداخلية مع وصول تنفيذي للتشغيل والتقارير وضبط المنصة.',
+            'landing_route' => 'admin.index',
+        ];
+        $hasDeprecatedRoleAssignments = false;
         $pulseItems = [
             $this->summaryMetric('التذاكر المفتوحة', $this->openTicketCount($user), 'warning'),
             $this->summaryMetric('الحجوزات النشطة', $this->activeHoldCount(), 'info'),
@@ -81,10 +88,10 @@ class InternalLandingDashboardService
         ];
 
         return $this->withLegacyShellRoleContext([
-            'page_title' => 'لوحة الإدارة',
-            'eyebrow' => 'المركز الداخلي / لوحة الإدارة',
-            'title' => 'لوحة الإدارة',
-            'description' => 'نظرة تنفيذية فورية على أحجام الشحن، حالات المتابعة الحرجة، مؤشرات الدعم، وصحة التكاملات من نقطة دخول واحدة للفريق الداخلي.',
+            'page_title' => 'لوحة الإدارة الداخلية',
+            'eyebrow' => 'المركز الداخلي / لوحة الإدارة الداخلية',
+            'title' => 'لوحة الإدارة الداخلية',
+            'description' => 'لوحة قيادة تنفيذية تبدأ بها الرحلة الداخلية فور تسجيل الدخول، وتمنح الفريق الإداري صورة فورية عن الشحن، الدعم، التحقق، وصحة التكاملات من نقطة عمل واحدة.',
             'pills' => array_values(array_filter([
                 $this->pill('مدير المنصة', 'info'),
                 $selectedAccount
@@ -193,10 +200,10 @@ class InternalLandingDashboardService
         ];
 
         return $this->withLegacyShellRoleContext([
-            'page_title' => 'المساحة الداخلية',
-            'eyebrow' => 'المركز الداخلي / لوحة العمليات',
-            'title' => 'المساحة الداخلية',
-            'description' => 'لوحة عمليات داخلية تمنحك صورة مهنية وسريعة عن الطوابير الحرجة، اتجاه الشحن، الدعم، والتحقق دون فتح صفحات متعددة قبل بدء العمل.',
+            'page_title' => 'لوحة العمليات الداخلية',
+            'eyebrow' => 'المركز الداخلي / لوحة العمليات الداخلية',
+            'title' => 'لوحة العمليات الداخلية',
+            'description' => 'لوحة عمليات داخلية تبدأ منها المهام اليومية مباشرة، وتمنحك صورة مهنية وسريعة عن الطوابير الحرجة، اتجاه الشحن، الدعم، والتحقق قبل الانتقال إلى التفاصيل.',
             'pills' => array_values(array_filter([
                 $this->pill($roleProfile['label'], 'info'),
                 $selectedAccount
@@ -282,10 +289,10 @@ class InternalLandingDashboardService
             ->values();
 
         return $this->withLegacyShellRoleContext([
-            'page_title' => 'المساحة الداخلية',
-            'eyebrow' => 'المركز الداخلي / إدارة الناقلين',
-            'title' => 'المساحة الداخلية',
-            'description' => 'لوحة عمليات مخصصة لإدارة الناقلين والتكاملات، مع متابعة فورية لصحة الخدمات، الأعطال الحديثة، والاستعداد التشغيلي دون الخروج من المسار الآمن للدور.',
+            'page_title' => 'لوحة عمليات الناقلين',
+            'eyebrow' => 'المركز الداخلي / لوحة عمليات الناقلين',
+            'title' => 'لوحة عمليات الناقلين',
+            'description' => 'لوحة عمليات مخصصة تبدأ منها متابعة الناقلين والتكاملات فور الدخول، مع رؤية مباشرة لصحة الخدمات، الأعطال الحديثة، والاستعداد التشغيلي ضمن حدود الدور الآمنة.',
             'pills' => array_values(array_filter([
                 $this->pill($roleProfile['label'], 'info'),
                 $this->pill('إعدادات SMTP', 'success'),

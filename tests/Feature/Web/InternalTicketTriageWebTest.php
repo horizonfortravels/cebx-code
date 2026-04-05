@@ -9,18 +9,12 @@ use App\Models\SupportTicket;
 use App\Models\SupportTicketReply;
 use App\Models\User;
 use App\Services\InternalTicketReadService;
-use Database\Seeders\E2EUserMatrixSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Testing\TestResponse;
 use PHPUnit\Framework\Attributes\Test;
-use Tests\TestCase;
-
-class InternalTicketTriageWebTest extends TestCase
+class InternalTicketTriageWebTest extends TicketWebTestCase
 {
-    use RefreshDatabase;
-
     private Account $accountA;
 
     private Account $accountC;
@@ -30,8 +24,6 @@ class InternalTicketTriageWebTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-
-        $this->seed(E2EUserMatrixSeeder::class);
 
         $this->accountA = $this->accountBySlug('e2e-account-a');
         $this->accountC = $this->accountBySlug('e2e-account-c');

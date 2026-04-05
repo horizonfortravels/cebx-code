@@ -64,6 +64,16 @@ class DemoBrowserReadinessTest extends TestCase
         ]);
 
         $response->assertRedirect(route('admin.index'));
+
+        $dashboard = $this->actingAs(
+            User::query()->withoutGlobalScopes()->where('email', 'e2e.internal.super_admin@example.test')->firstOrFail(),
+            'web'
+        )->get(route('admin.index'));
+
+        $dashboard->assertOk();
+        $dashboard->assertSeeText('لوحة الإدارة الداخلية');
+        $dashboard->assertSeeText('إجمالي الحسابات');
+        $dashboard->assertSeeText('أحدث الشحنات');
     }
 
     #[Test]

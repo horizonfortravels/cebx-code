@@ -7,25 +7,17 @@ use App\Models\AuditLog;
 use App\Models\SupportTicket;
 use App\Models\SupportTicketReply;
 use App\Models\User;
-use Database\Seeders\E2EUserMatrixSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Testing\TestResponse;
 use PHPUnit\Framework\Attributes\Test;
-use Tests\TestCase;
-
-class InternalTicketWorkflowWebTest extends TestCase
+class InternalTicketWorkflowWebTest extends TicketWebTestCase
 {
-    use RefreshDatabase;
-
     private Account $accountC;
 
     protected function setUp(): void
     {
         parent::setUp();
-
-        $this->seed(E2EUserMatrixSeeder::class);
 
         $this->accountC = $this->accountBySlug('e2e-account-c');
     }

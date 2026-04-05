@@ -1,18 +1,19 @@
 <?php
+
 namespace Tests;
 
 use App\Models\Account;
 use App\Models\Permission;
 use App\Models\User;
-use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Facades\Schema;
 use Tests\Concerns\InteractsWithStrictRbac;
 
 abstract class TestCase extends BaseTestCase
 {
-    use RefreshDatabase;
     use InteractsWithStrictRbac;
+    use RefreshDatabase;
 
     protected string $seeder = \Database\Seeders\RolesAndPermissionsSeeder::class;
 
@@ -28,7 +29,7 @@ abstract class TestCase extends BaseTestCase
         $user = $this->createUserWithRole((string) $account->id);
 
         $permissions = $this->permissionsForTestRole($role);
-        $this->grantTenantPermissions($user, $permissions, 'test_' . str_replace('-', '_', $role));
+        $this->grantTenantPermissions($user, $permissions, 'test_'.str_replace('-', '_', $role));
 
         return $user;
     }
@@ -37,11 +38,12 @@ abstract class TestCase extends BaseTestCase
     {
         $user = $user ?? $this->createAuthenticatedUser();
         $token = $user->createToken('test')->plainTextToken;
-        return ['Authorization' => 'Bearer ' . $token, 'Accept' => 'application/json'];
+
+        return ['Authorization' => 'Bearer '.$token, 'Accept' => 'application/json'];
     }
 
     /**
-     * @param array<string, mixed> $attributes
+     * @param  array<string, mixed>  $attributes
      */
     protected function createUserWithRole(string $accountId, ?string $roleId = null, array $attributes = []): User
     {

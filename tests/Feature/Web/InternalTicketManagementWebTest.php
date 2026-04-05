@@ -8,17 +8,11 @@ use App\Models\Shipment;
 use App\Models\SupportTicket;
 use App\Models\User;
 use App\Services\InternalTicketReadService;
-use Database\Seeders\E2EUserMatrixSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Testing\TestResponse;
 use PHPUnit\Framework\Attributes\Test;
-use Tests\TestCase;
-
-class InternalTicketManagementWebTest extends TestCase
+class InternalTicketManagementWebTest extends TicketWebTestCase
 {
-    use RefreshDatabase;
-
     private Account $accountA;
     private Account $accountC;
     private Shipment $shipmentC;
@@ -26,8 +20,6 @@ class InternalTicketManagementWebTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-
-        $this->seed(E2EUserMatrixSeeder::class);
 
         $this->accountA = $this->accountBySlug('e2e-account-a');
         $this->accountC = $this->accountBySlug('e2e-account-c');

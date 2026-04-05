@@ -17,6 +17,9 @@ class InternalWebTenantContextBrowsingTest extends TestCase
         $response = $this->actingAs($user, 'web')->get(route('admin.index'));
 
         $response->assertOk();
+        $response->assertSeeText('لوحة الإدارة الداخلية');
+        $response->assertSeeText('إجمالي الحسابات');
+        $response->assertSeeText('أحدث الشحنات');
         $response->assertSee('/admin/tenant-context', false);
     }
 

@@ -28,36 +28,15 @@ class InternalAdminWebController extends Controller
         $user = $request->user();
         $selectedAccount = $this->selectedAccount($request);
         $controlPlane = app(InternalControlPlane::class);
-        $roleProfile = $controlPlane->roleProfile($user);
-        $hasDeprecatedRoleAssignments = $controlPlane->hasDeprecatedAssignments($user);
         $dashboard = $this->landingDashboardService->buildForInternal(
             $user,
             $selectedAccount,
-            $roleProfile,
-            $hasDeprecatedRoleAssignments,
+            $controlPlane->roleProfile($user),
+            $controlPlane->hasDeprecatedAssignments($user),
         );
 
         return view('pages.admin.internal-home', [
             'dashboard' => $dashboard,
-            'selectedAccount' => $selectedAccount,
-            'roleProfile' => $roleProfile,
-            'hasDeprecatedRoleAssignments' => $hasDeprecatedRoleAssignments,
-            'capabilities' => [
-                'adminAccess' => $user->hasPermission('admin.access'),
-                'tenantContext' => $user->hasPermission('tenancy.context.select'),
-                'ticketsRead' => $user->hasPermission('tickets.read'),
-                'ticketsManage' => $user->hasPermission('tickets.manage'),
-                'reportsRead' => $user->hasPermission('reports.read'),
-                'analyticsRead' => $user->hasPermission('analytics.read'),
-            ],
-            'surfaces' => [
-                'adminDashboard' => $controlPlane->canSeeSurface($user, InternalControlPlane::SURFACE_ADMIN_DASHBOARD)
-                    && $user->hasPermission('admin.access'),
-                'tenantContext' => $controlPlane->canSeeSurface($user, InternalControlPlane::SURFACE_TENANT_CONTEXT)
-                    && $user->hasPermission('tenancy.context.select'),
-                'smtpSettings' => $controlPlane->canSeeSurface($user, InternalControlPlane::SURFACE_SMTP_SETTINGS)
-                    && $user->hasPermission('notifications.channels.manage'),
-            ],
         ]);
     }
 
@@ -68,16 +47,6 @@ class InternalAdminWebController extends Controller
 
         return view('pages.admin.index', [
             'dashboard' => $this->landingDashboardService->buildForAdmin($user, $selectedAccount),
-            'selectedAccount' => $selectedAccount,
-            'orgCount' => Account::query()->withoutGlobalScopes()->where('type', 'organization')->count(),
-            'usersCount' => User::query()->count(),
-            'totalShipments' => Shipment::query()->withoutGlobalScopes()->count(),
-            'systemHealth' => [
-                ['name' => 'قاعدة البيانات', 'status' => 'ok', 'latency' => 'n/a'],
-                ['name' => 'الجلسات', 'status' => 'ok', 'latency' => 'n/a'],
-                ['name' => 'الويب الداخلي', 'status' => 'ok', 'latency' => 'n/a'],
-            ],
-            'recentActivity' => collect(),
         ]);
     }
 

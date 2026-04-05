@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
@@ -288,9 +288,9 @@ SVG,
         $platformItems = [];
 
         if ($showAdminDashboard) {
-            $platformItems[] = ['active' => ['admin.index'], 'route' => 'admin.index', 'icon' => 'dashboard', 'label' => 'لوحة الإدارة'];
+            $platformItems[] = ['active' => ['admin.index'], 'route' => 'admin.index', 'icon' => 'dashboard', 'label' => 'لوحة الإدارة الداخلية'];
         } else {
-            $platformItems[] = ['active' => ['internal.home'], 'route' => 'internal.home', 'icon' => 'workspace', 'label' => 'المساحة الداخلية'];
+            $platformItems[] = ['active' => ['internal.home'], 'route' => 'internal.home', 'icon' => 'workspace', 'label' => 'لوحة العمليات الداخلية'];
         }
 
         if ($showTenantContext) {
@@ -421,9 +421,14 @@ SVG,
         }
     }
 
+    $internalLandingLabel = match (true) {
+        $currentRoute === 'admin.index' => 'لوحة الإدارة الداخلية',
+        $currentRoute === 'internal.home' => 'لوحة العمليات الداخلية',
+        default => 'المركز الداخلي',
+    };
     $topbarSubtitle = match (true) {
-        $isInternalUser && $selectedAccount !== null => 'الدور الداخلي: ' . $internalTopbarRole . ' • الحساب المحدد: ' . $selectedAccount->name,
-        $isInternalUser => 'الدور الداخلي: ' . $internalTopbarRole,
+        $isInternalUser && $selectedAccount !== null => $internalLandingLabel . ' • الدور الداخلي: ' . $internalTopbarRole . ' • الحساب المحدد: ' . $selectedAccount->name,
+        $isInternalUser => $internalLandingLabel . ' • الدور الداخلي: ' . $internalTopbarRole,
         $currentPortal === 'b2c' => 'بوابة الأفراد للحساب الفردي الحالي',
         $currentPortal === 'b2b' && $currentUser?->account?->name => 'حساب المنظمة الحالي: ' . $currentUser->account->name,
         default => 'بوابة الأعمال لحسابات المنظمات',
@@ -498,8 +503,8 @@ SVG,
         <header class="topbar">
             <div class="topbar-inner">
                 <div>
-                    <div style="color: var(--tm); font-size: 11px;">مرحبًا، {{ $currentUser->name ?? 'مستخدم' }}</div>
-                    <div style="font-size:12px;color:var(--td);margin-top:2px">{{ $topbarSubtitle }}</div>
+                    <div class="topbar-greeting">مرحبًا، {{ $currentUser->name ?? 'مستخدم' }}</div>
+                    <div class="topbar-subtitle">{{ $topbarSubtitle }}</div>
                 </div>
                 <div class="topbar-user">
                     @if($isInternalUser && $showTenantContext)

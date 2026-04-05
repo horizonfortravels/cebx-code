@@ -79,7 +79,7 @@ class InternalPortalRoleAlignmentWebTest extends TestCase
             $page = $this->actingAs($this->userByEmail($scenario['email']), 'web')
                 ->get(route('internal.home'))
                 ->assertOk()
-                ->assertSeeText('المساحة الداخلية')
+                ->assertSeeText('لوحة العمليات الداخلية')
                 ->assertSeeText($scenario['label']);
 
             $this->assertHasNavigationLink($page, 'internal.home');

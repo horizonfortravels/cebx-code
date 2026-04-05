@@ -8,6 +8,7 @@ use App\Models\SupportTicket;
 use App\Models\User;
 use App\Services\AuditService;
 use App\Services\SupportTicketConversationService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
@@ -23,13 +24,12 @@ class SupportWebController extends WebController
     {
         $this->authorize('viewAny', SupportTicket::class);
 
-        $query = SupportTicket::query()
-            ->with('user')
-            ->where('account_id', $this->currentAccountId());
+        $query = $this->visibleTicketQuery()
+            ->with('user');
 
         $tickets = $query->latest()->paginate(15);
 
-        $statsQ = fn () => SupportTicket::query()->where('account_id', $this->currentAccountId());
+        $statsQ = fn () => (clone $this->visibleTicketQuery());
         $openCount = $statsQ()->where('status', 'open')->count();
         $resolvedCount = $statsQ()->where('status', 'resolved')->count();
 
@@ -177,11 +177,35 @@ class SupportWebController extends WebController
 
     private function findTicketForCurrentAccount(string $ticketId): SupportTicket
     {
-        return SupportTicket::query()
+        return $this->visibleTicketQuery()
             ->withoutGlobalScopes()
-            ->where('account_id', $this->currentAccountId())
             ->whereKey($ticketId)
             ->firstOrFail();
+    }
+
+    private function visibleTicketQuery(): Builder
+    {
+        $query = SupportTicket::query()
+            ->withoutGlobalScopes()
+            ->where('account_id', $this->currentAccountId());
+
+        if ($this->currentUserIsExternal()) {
+            $query->where('user_id', (string) $this->currentUser()->id);
+        }
+
+        return $query;
+    }
+
+    private function currentUserIsExternal(): bool
+    {
+        $user = $this->currentUser();
+        $userType = strtolower(trim((string) ($user->user_type ?? '')));
+
+        if ($userType === 'internal' || $userType === 'external') {
+            return $userType === 'external';
+        }
+
+        return trim((string) ($user->account_id ?? '')) !== '';
     }
 
     private function normalizeRequiredBody(string $body): string

@@ -7,26 +7,18 @@ use App\Models\AuditLog;
 use App\Models\SupportTicket;
 use App\Models\SupportTicketReply;
 use App\Models\User;
-use Database\Seeders\E2EUserMatrixSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Testing\TestResponse;
 use Illuminate\Support\Str;
 use PHPUnit\Framework\Attributes\Test;
-use Tests\TestCase;
-
-class InternalTicketConversationWebTest extends TestCase
+class InternalTicketConversationWebTest extends TicketWebTestCase
 {
-    use RefreshDatabase;
-
     private Account $accountC;
 
     protected function setUp(): void
     {
         parent::setUp();
-
-        $this->seed(E2EUserMatrixSeeder::class);
 
         $this->accountC = $this->accountBySlug('e2e-account-c');
     }
@@ -68,7 +60,7 @@ class InternalTicketConversationWebTest extends TestCase
                 ->get(route('internal.tickets.show', $ticket))
                 ->assertOk()
                 ->assertSeeText($replyBody)
-                ->assertSeeText('Support reply');
+                ->assertSeeText('رد الدعم');
         }
     }
 
@@ -170,7 +162,7 @@ class InternalTicketConversationWebTest extends TestCase
             ->get(route('internal.tickets.show', $ticket))
             ->assertOk()
             ->assertSeeText($replyBody)
-            ->assertSeeText('Requester reply');
+            ->assertSeeText('رد مقدم الطلب');
     }
 
     private function createTicket(string $subject): SupportTicket

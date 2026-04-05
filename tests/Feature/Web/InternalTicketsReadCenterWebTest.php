@@ -5,24 +5,16 @@ namespace Tests\Feature\Web;
 use App\Models\SupportTicket;
 use App\Models\User;
 use App\Services\InternalTicketReadService;
-use Database\Seeders\E2EUserMatrixSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Testing\TestResponse;
 use PHPUnit\Framework\Attributes\Test;
-use Tests\TestCase;
-
-class InternalTicketsReadCenterWebTest extends TestCase
+class InternalTicketsReadCenterWebTest extends TicketWebTestCase
 {
-    use RefreshDatabase;
-
     private SupportTicket $shippingTicket;
 
     protected function setUp(): void
     {
         parent::setUp();
-
-        $this->seed(E2EUserMatrixSeeder::class);
 
         $this->shippingTicket = $this->ticketByNumber('TKT-I9A-C-001');
     }
